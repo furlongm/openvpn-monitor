@@ -291,7 +291,7 @@ def html_header(settings, vpns):
     print "div.footer { text-align: center; }"
     print "</style></head><body onload=\"initialize()\">"
     if settings['logo']:
-        print "<div><img src=\"%s\" /></div>" % settings['logo']
+        print "<div><img src=\"%s\" alt=\"logo\"/></div>" % settings['logo']
     print "<h1>%s OpenVPN Status Monitor</h1><br />" % settings['site']
 
 
