@@ -6,10 +6,11 @@ server.
 Adding the following line to your openvpn connection will run the management
 console on 127.0.0.1 port 5555:
 
-   management 127.0.0.1 5557
+   management 127.0.0.1 5555
 
 The example configuration file should give some indication of how to set site
-name, add a logo, etc.
+name, add a logo, etc. You can also set the default location (latitude and
+longitude) for google maps. If not set, it will default to Melbourne, Australia.
 
 It can be run from the command line to test the html is generating correctly.
 
