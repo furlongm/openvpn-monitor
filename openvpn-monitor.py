@@ -2,7 +2,7 @@
 
 # Licensed under GPL v3
 # Copyright 2011 VPAC <http://www.vpac.org>
-# Copyright 2010 Marcus Furlong <furlongm@vpac.org>
+# Copyright 2012 Marcus Furlong <furlongm@vpac.org>
 
 
 import getopt
@@ -16,14 +16,17 @@ import GeoIP
 CONFIG_FILE = './openvpn-monitor.cfg'
 debug = False
 
+
 def get_config(config_file):
     cfg = {}
     try:
         f = open(config_file)
     except:
-        print "Config file doesn't exist or is not readble, using localhost:5555"
-        cfg['OpenVPN-Monitor'] = {'site' : 'Default Site', 'logo' : ''}
-        cfg['Default VPN'] = {'name': 'default', 'host': 'localhost', 'port': '5555', 'order': '1'}
+        print "Config file doesn't exist or is unreadable,"
+        print "Using default of localhost:5555"
+        cfg['OpenVPN-Monitor'] = {'site': 'Default Site', 'logo': ''}
+        cfg['Default VPN'] = {'name': 'default', 'host': 'localhost',
+                              'port': '5555', 'order': '1'}
         return cfg
     config = ConfigParser.RawConfigParser()
     config.read(config_file)
@@ -33,13 +36,17 @@ def get_config(config_file):
         for section in sections:
             if section != "OpenVPN-Monitor":
                 cfg[section] = parse_cfg_section(config, section)
-        cfg['OpenVPN-Monitor'] = {'site' : config.get('OpenVPN-Monitor', 'site'), 'logo' : config.get('OpenVPN-Monitor', 'logo')}
+        cfg['OpenVPN-Monitor'] = {'site': config.get('OpenVPN-Monitor', 'site'),
+                                  'logo': config.get('OpenVPN-Monitor', 'logo')}
     except:
-        print "Syntax error reading config file, using localhost:5555"
+        print "Syntax error reading config file."
+        print "Using default of localhost:5555"
         cfg = {}
-        cfg['OpenVPN-Monitor'] = {'site' : 'Default Site', 'logo' : ''}
-        cfg['Default VPN'] = {'name': 'default', 'host': 'localhost', 'port': '5555', 'order': '1'}
+        cfg['OpenVPN-Monitor'] = {'site': 'Default Site', 'logo': ''}
+        cfg['Default VPN'] = {'name': 'default', 'host': 'localhost',
+                              'port': '5555', 'order': '1'}
     return cfg
+
 
 def parse_cfg_section(config, section):
     global debug
@@ -57,29 +64,36 @@ def parse_cfg_section(config, section):
         print "=== begin section\n%s\n=== end section" % tmp
     return tmp
 
+
 def openvpn_connect(vpn, command):
     global debug
-    host = vpn["host"]
-    port = int(vpn["port"])
+    host = vpn['host']
+    port = int(vpn['port'])
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((host, port))
+    try:
+        s.connect((host, port))
+        vpn['socket_connect'] = True
+    except socket.error:
+        vpn['socket_connect'] = False
+        return False
     s.send(command)
     data = ""
     while 1:
         tmp = s.recv(1024)
         data += tmp
-        if data.endswith("END\r\n"): break
+        if data.endswith("END\r\n"):
+            break
     s.send('quit\n')
     s.close()
     if debug:
         print "=== begin raw data\n%s\n=== end raw data" % data
     return data
 
+
 def openvpn_parse_state(data):
     global debug
     state = {}
-    lines = data.splitlines()
-    for line in lines:
+    for line in data.splitlines():
         tmp = line.split(",")
         if (debug):
             print "=== begin split line\n%s\n=== end split line" % tmp
@@ -96,6 +110,7 @@ def openvpn_parse_state(data):
             else:
                 state['type'] = "tun"
     return state
+
 
 def openvpn_parse_status(data):
     global debug
@@ -153,15 +168,17 @@ def openvpn_parse_status(data):
                 print "=== begin sessions\n%s\n=== end sessions" % sessions
     return sessions
 
+
 def print_table_headers(headers):
     print "<table><tr>"
     for header in headers:
         print "<th>%s</th>" % header
     print "</tr>"
 
+
 def openvpn_print_html(vpn):
 
-    gi = GeoIP.open("/usr/share/GeoIP/GeoIPCity.dat",GeoIP.GEOIP_STANDARD)
+    gi = GeoIP.open("/usr/share/GeoIP/GeoIPCity.dat", GeoIP.GEOIP_STANDARD)
 
     if vpn["state"]["connected"] == "CONNECTED":
         connection = "Connection up,"
@@ -173,7 +190,7 @@ def openvpn_print_html(vpn):
     else:
         pingable = "not pingable."
 
-    print "<div><table><tr><td class=\"left\">%s - %s %s </td><td class=\"right\">[%s"% (vpn["name"], connection, pingable, vpn["state"]["local_ip"])
+    print "<div><table><tr><td class=\"left\">%s - %s %s </td><td class=\"right\">[ %s" % (vpn["name"], connection, pingable, vpn["state"]["local_ip"])
 
     tun_headers = ['Username', 'VPN IP Address', 'Remote IP Address', 'Port', 'Location', 'Recv', 'Sent', 'Connected Since', 'Last Ping', 'Time Online']
     tap_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read', 'TCP-UDP-Write', 'Auth-Read']
@@ -219,17 +236,34 @@ def openvpn_print_html(vpn):
         print "</tr>"
     print "</table></div><br /><br />"
 
+
 def google_map():
     print "<div id=\"map_canvas\" style=\"width:100%; height:300px\"></div>"
 
-def html_header(site_info):
+
+def html_header(site_info, vpns):
+
+    gi = GeoIP.open("/usr/share/GeoIP/GeoIPCity.dat", GeoIP.GEOIP_STANDARD)
+    sessions = 0
+
     print "Content-Type: text/html\n"
     print "<!doctype html>"
     print "<html><head><meta charset=\"utf-8\"><title>%s OpenVPN Status Monitor</title>" % site_info["site"]
     print "<meta http-equiv='refresh' content='300' />"
-# TODO: refactor and add google maps markers for each connection
-#    print "<script type=\"text/javascript\" src=\"https://maps.google.com/maps/api/js?sensor=true\"></script>"
-#    print "<script type=\"text/javascript\"> function initialize() { var latlng = new google.maps.LatLng(-37.470, 144.580); var myOptions = { zoom: 8, center: latlng, mapTypeId: google.maps.MapTypeId.ROADMAP }; var map = new google.maps.Map(document.getElementById(\"map_canvas\"), myOptions); } </script>"
+    print "<script type=\"text/javascript\" src=\"https://maps.google.com/maps/api/js?sensor=true\"></script>"
+    print "<script type=\"text/javascript\"> function initialize() { var bounds = new google.maps.LatLngBounds();"
+    for vkey, vpn in vpns:
+        if 'sessions' in vpn:
+            for skey, session in vpn['sessions'].items():
+                gir = gi.record_by_addr(session['remote_ip'])
+                if gir != None:
+                    print "bounds.extend(new google.maps.LatLng(%s, %s);" % (gir['latitude'], gir['longitude'])
+                    sessions = sessions + 1
+    if sessions != 0:
+        print "var myOptions = { mapTypeId: google.maps.MapTypeId.ROADMAP }; var map = new google.maps.Map(document.getElementById(\"map_canvas\"), myOptions); map.fitBounds(bounds); }</script>"
+    else:
+        print "var latlng = new google.maps.LatLng(-37.470, 144.580);"
+        print "var myOptions = { zoom: 8, center: latlng, mapTypeId: google.maps.MapTypeId.ROADMAP }; var map = new google.maps.Map(document.getElementById(\"map_canvas\"), myOptions); }</script>"
     print "<style type=\"text/css\">"
     print "body { font-family: sans-serif; font-size: 12px; background-color: #FFFFFF; margin: auto; }"
     print "h1 { color: #222222; font-size: 20px; text-align: center; padding-bottom: 0; margin-bottom: 0; }"
@@ -238,21 +272,24 @@ def html_header(site_info):
     print "td.right {text-align: right; color: #656511; font-weight: bold; font-size: 14px; }"
     print "th { background: #555555; color: white; text-align: left; padding-left: 10px;}"
     print "td { padding: 10px 10px 5px 5px; }"
-    print "div { padding: 7px 4px 6px 6px; margin:0px auto; text-align:center; }"
+    print "div { padding: 7px 4px 6px 6px; margin: 0px auto; text-align: center; }"
     print "div.footer { text-align: center; }"
     print "</style></head><body onload=\"initialize()\">"
     if site_info["logo"]:
         print "<div><img src=\"%s\" /></div>" % site_info["logo"]
     print "<h1>%s OpenVPN Status Monitor</h1><br />" % site_info["site"]
 
+
 def sort_dict(adict):
     keys = adict.keys()
     keys.sort()
     return map(adict.get, keys)
 
+
 def usage(script_name, exit_code):
     print "%s, [--help] [--debug]" % script_name
     sys.exit(exit_code)
+
 
 def main():
     global debug
@@ -273,23 +310,31 @@ def main():
             assert False, "Unhandled option."
 
     vpns = get_config(CONFIG_FILE)
-
-    html_header(vpns['OpenVPN-Monitor'])
+    settings = vpns['OpenVPN-Monitor']
     del vpns['OpenVPN-Monitor']
 
     sort_dict(vpns)
 
     for key, vpn in vpns.items():
 
-            data = openvpn_connect(vpn, "state\n")
+        data = openvpn_connect(vpn, 'state\n')
+        if vpn['socket_connect'] == True:
             state = openvpn_parse_state(data)
             vpns[key]['state'] = state
 
-            data = openvpn_connect(vpn, "status\n")
+            data = openvpn_connect(vpn, 'status\n')
             sessions = openvpn_parse_status(data)
             vpns[key]['sessions'] = sessions
 
+    html_header(settings, vpns.items())
+
+    for key, vpn in vpns.items():
+
+        if vpn['socket_connect'] == True:
             openvpn_print_html(vpn)
+        else:
+            print "<div><table><tr><td class=\"left\">%s - Connection refused to %s:%s </td>" % (vpn['name'], vpn['host'], vpn['port'])
+            print "</tr></table></div><br /><br />"
 
     google_map()
 
@@ -301,4 +346,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
