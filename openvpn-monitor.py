@@ -18,39 +18,54 @@ debug = False
 
 
 def get_config(config_file):
-    cfg = {}
+    settings = {}
+    vpns = {}
     try:
         f = open(config_file)
     except:
         print "Config file doesn't exist or is unreadable,"
-        print "Using default of localhost:5555"
-        cfg['OpenVPN-Monitor'] = {'site': 'Default Site', 'logo': ''}
-        cfg['Default VPN'] = {'name': 'default', 'host': 'localhost',
-                              'port': '5555', 'order': '1'}
-        return cfg
+        return default_settings()
     config = ConfigParser.RawConfigParser()
     config.read(config_file)
     sections = []
     try:
         sections = config.sections()
         for section in sections:
-            if section != "OpenVPN-Monitor":
-                cfg[section] = parse_cfg_section(config, section)
-        cfg['OpenVPN-Monitor'] = {'site': config.get('OpenVPN-Monitor', 'site'),
-                                  'logo': config.get('OpenVPN-Monitor', 'logo'),
-                                   'lat': config.get('OpenVPN-Monitor', 'lat'),
-                                  'long': config.get('OpenVPN-Monitor', 'long')}
+            if section == 'OpenVPN-Monitor':
+                settings = parse_global_section(config)
+            else:
+                vpns[section] = parse_vpn_section(config, section)
     except:
         print "Syntax error reading config file."
-        print "Using default of localhost:5555"
-        cfg = {}
-        cfg['OpenVPN-Monitor'] = {'site': 'Default Site', 'logo': ''}
-        cfg['Default VPN'] = {'name': 'default', 'host': 'localhost',
+        return default_settings()
+    return settings, vpns
+
+
+def default_settings():
+    print "Using default of localhost:5555"
+    settings = {}
+    vpns = {}
+    settings = {'site': 'Default Site'}
+    vpns['Default VPN'] = {'name': 'default', 'host': 'localhost',
                               'port': '5555', 'order': '1'}
-    return cfg
+    return settings, vpns
 
 
-def parse_cfg_section(config, section):
+def parse_global_section(config):
+    global debug
+    vars = ['site', 'logo', 'height', 'width', 'lat', 'long']
+    tmp = {}
+    for var in vars:
+        try:
+            tmp[var] = config.get('OpenVPN-Monitor', var)
+        except ConfigParser.NoOptionError:
+            pass
+    if debug:
+        print "=== begin section\n%s\n=== end section" % tmp
+    return tmp
+
+
+def parse_vpn_section(config, section):
     global debug
     tmp = {}
     options = config.options(section)
@@ -197,16 +212,16 @@ def openvpn_print_html(vpn):
     tun_headers = ['Username', 'VPN IP Address', 'Remote IP Address', 'Port', 'Location', 'Recv', 'Sent', 'Connected Since', 'Last Ping', 'Time Online']
     tap_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read', 'TCP-UDP-Write', 'Auth-Read']
 
-    vpn_type = vpn["state"]["type"]
-    vpn_sessions = vpn["sessions"]
+    vpn_type = vpn['state']['type']
+    vpn_sessions = vpn['sessions']
 
     print vpn_type
 
-    if vpn_type == "tun":
+    if vpn_type == 'tun':
         print "]</td></tr></table>"
         print_table_headers(tun_headers)
-    elif vpn_type == "tap":
-        print " &lt;-&gt; %s]</td></tr></table>" % vpn["state"]["remote_ip"]
+    elif vpn_type == 'tap':
+        print " &lt;-&gt; %s]</td></tr></table>" % vpn['state']['remote_ip']
         print_table_headers(tap_headers)
 
     for key, session in vpn_sessions.items():
@@ -248,21 +263,24 @@ def html_header(settings, vpns):
     gi = GeoIP.open("/usr/share/GeoIP/GeoIPCity.dat", GeoIP.GEOIP_STANDARD)
     sessions = 0
 
-    if settings['lat']:
+    if 'lat' in settings:
         lat = settings['lat']
     else:
-        lat = -37.470
-    if settings['long']:
+        lat = -37.8067
+    if 'long' in settings:
         long = settings['long']
     else:
-        long = 144.580
+        long = 144.9635
 
     print "Content-Type: text/html\n"
     print "<!doctype html>"
     print "<html><head><meta charset=\"utf-8\"><title>%s OpenVPN Status Monitor</title>" % settings["site"]
     print "<meta http-equiv='refresh' content='300' />"
     print "<script type=\"text/javascript\" src=\"https://maps.google.com/maps/api/js?sensor=true\"></script>"
-    print "<script type=\"text/javascript\"> function initialize() { var bounds = new google.maps.LatLngBounds(); var markers=new Array();"
+    print "<script type=\"text/javascript\">"
+    print "function initialize() {"
+    print "var bounds = new google.maps.LatLngBounds();"
+    print "var markers=new Array();"
     for vkey, vpn in vpns:
         if 'sessions' in vpn:
             for skey, session in vpn['sessions'].items():
@@ -270,15 +288,23 @@ def html_header(settings, vpns):
                 if gir != None:
                     print "var latlng = new google.maps.LatLng(%s, %s);" % (gir['latitude'], gir['longitude'])
                     print "bounds.extend(latlng);"
-                    print "markers.push(new google.maps.Marker({position: latlng}));"
+                    print "markers.push(new google.maps.Marker({position: latlng, title: \"%s\\n%s\"}));" % (session['username'], session['remote_ip'])
                     sessions = sessions + 1
     if sessions != 0:
         if sessions == 1:
-            print "bounds.extend(new google.maps.LatLng(%s, %s));" % (lat, long)    
-        print "var myOptions = { mapTypeId: google.maps.MapTypeId.ROADMAP }; var map = new google.maps.Map(document.getElementById(\"map_canvas\"), myOptions); map.fitBounds(bounds); for ( var i=markers.length-1; i>=0; --i ) { markers[i].setMap(map); } }</script>"
+            print "bounds.extend(new google.maps.LatLng(%s, %s));" % (lat, long)
+        print "var myOptions = { mapTypeId: google.maps.MapTypeId.ROADMAP };"
+        print "var map = new google.maps.Map(document.getElementById(\"map_canvas\"), myOptions);"
+        print "map.fitBounds(bounds);"
+        print "for ( var i=markers.length-1; i>=0; --i ) { markers[i].setMap(map); }"
+        print "}"
+        print "</script>"
     else:
         print "var latlng = new google.maps.LatLng(%s, %s);" % (lat, long)
-        print "var myOptions = { zoom: 8, center: latlng, mapTypeId: google.maps.MapTypeId.ROADMAP }; var map = new google.maps.Map(document.getElementById(\"map_canvas\"), myOptions); map.fitBounds(bounds);}</script>"
+        print "var myOptions = { zoom: 8, center: latlng, mapTypeId: google.maps.MapTypeId.ROADMAP };"
+        print "var map = new google.maps.Map(document.getElementById(\"map_canvas\"), myOptions);"
+        print "}"
+        print "</script>"
     print "<style type=\"text/css\">"
     print "body { font-family: sans-serif; font-size: 12px; background-color: #FFFFFF; margin: auto; }"
     print "h1 { color: #222222; font-size: 20px; text-align: center; padding-bottom: 0; margin-bottom: 0; }"
@@ -290,8 +316,11 @@ def html_header(settings, vpns):
     print "div { padding: 7px 4px 6px 6px; margin: 0px auto; text-align: center; }"
     print "div.footer { text-align: center; }"
     print "</style></head><body onload=\"initialize()\">"
-    if settings['logo']:
-        print "<div><img src=\"%s\" alt=\"logo\"/></div>" % settings['logo']
+    if 'logo' in settings:
+        print "<div><img class=\"logo\" src=\"%s\" alt=\"logo\" " % settings['logo']
+    if 'height' in settings and 'width' in settings:
+        print "height=\"%s\" width=\"%s\"" % (settings['height'], settings['width'])
+    print "/></div>"
     print "<h1>%s OpenVPN Status Monitor</h1><br />" % settings['site']
 
 
@@ -309,24 +338,22 @@ def usage(script_name, exit_code):
 def main():
     global debug
 
-    locale.setlocale(locale.LC_ALL, "en_GB.UTF-8")
+    locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "h:d", ["help", "debug"])
+        opts, args = getopt.getopt(sys.argv[1:], 'h:d', ['help', 'debug'])
     except getopt.GetoptError, err:
         print str(err)
         usage(sys.argv[0], 2)
     for o, a in opts:
-        if o in ("-d", "--debug"):
+        if o in ('-d', '--debug'):
             debug = True
-        elif o in ("-h", "--help"):
+        elif o in ('-h', '--help'):
             usage(sys.argv[0], 0)
         else:
-            assert False, "Unhandled option."
+            assert False, 'Unhandled option.'
 
-    vpns = get_config(CONFIG_FILE)
-    settings = vpns['OpenVPN-Monitor']
-    del vpns['OpenVPN-Monitor']
+    settings, vpns = get_config(CONFIG_FILE)
 
     sort_dict(vpns)
 
@@ -359,5 +386,5 @@ def main():
     print "<div class=\"footer\">Page automatically reloads every 5 minutes.<br/>Last update: <b>%s</b></div>" % datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')
     print "</body>\n</html>"
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
