@@ -317,7 +317,7 @@ def html_header(settings, vpns):
     print "div.footer { text-align: center; }"
     print "</style></head><body onload=\"initialize()\">"
     if 'logo' in settings:
-        print "<img class=\"logo\" src=\"%s\" alt=\"logo\" " % settings['logo']
+        print "<div><img class=\"logo\" src=\"%s\" alt=\"logo\" " % settings['logo']
         if 'height' in settings and 'width' in settings:
             print "height=\"%s\" width=\"%s\"" % (settings['height'], settings['width'])
         print "/></div>"
