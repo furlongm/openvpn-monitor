@@ -1,12 +1,15 @@
 OpenVPN-Monitor is a simple python program to generate html to display the
 status of an OpenVPN server, including all current connections. It uses the
 openvpn management console. It typically runs on the same host as the openvpn
-server.
+server, though does not necessarily need to.
 
 Adding the following line to your openvpn connection will run the management
 console on 127.0.0.1 port 5555:
 
    management 127.0.0.1 5555
+
+For remote managment, refer to the openvpn man pages about how to secure access
+to the management interface.
 
 The example configuration file should give some indication of how to set site
 name, add a logo, etc. You can also set the default location (latitude and
@@ -18,12 +21,34 @@ To run under apache, mod_python will probably need to be enabled, and
 
    AddHandler cgi-script .py
 
-added to the virtualhost you are using.
+added to the virtualhost/directory you are using.
+
+Quick setup on debian:
+
+cd /var/www
+git clone https://github.com/furlongm/openvpn-monitor.git
+aptitude install libapache2-mod-python python-geoip
+a2enmod python
+
+add the following to /etc/apache2/sites-enabled/000-default
+
+#    AddHandler cgi-script .cgi
+    <Directory "/var/www/openvpn-monitor">
+        Options +ExecCGI
+        AddHandler cgi-script .py
+    </Directory>
+
+/etc/init.d/apache2 restart
+
+cd /usr/share/GeoIP/
+wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz
+gunzip GeoLiteCity.dat.gz
+mv GeoLiteCity.dat GeoIPCity.dat
+
+
 
 This software is licensed under the GPL, v3, a copy of which can be found in
 the COPYING file.
 
 Flags are taken from http://flags.blogpotato.de/ and are licensed under
-Creative Commons License Deed Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)
-
-
+Creative Commons License Deed Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0).

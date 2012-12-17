@@ -241,7 +241,7 @@ def openvpn_print_html(vpn):
             print "<td>%s</td>" % session['local_ip']
             print "<td>%s</td>" % session['remote_ip']
             print "<td>%s</td>" % session['port']
-            if gir != None:
+            if gir is not None:
                 print '<td><img src="%s" title="%s, %s" /></td>' % ('flags/%s.png' % gir['country_code'].lower(), gir['city'], gir['country_name'])
             else:
                 print "<td>Unknown</td>"
@@ -285,7 +285,7 @@ def html_header(settings, vpns):
         if 'sessions' in vpn:
             for skey, session in vpn['sessions'].items():
                 gir = gi.record_by_addr(session['remote_ip'])
-                if gir != None:
+                if gir is not None:
                     print "var latlng = new google.maps.LatLng(%s, %s);" % (gir['latitude'], gir['longitude'])
                     print "bounds.extend(latlng);"
                     print "markers.push(new google.maps.Marker({position: latlng, title: \"%s\\n%s\"}));" % (session['username'], session['remote_ip'])
@@ -317,10 +317,10 @@ def html_header(settings, vpns):
     print "div.footer { text-align: center; }"
     print "</style></head><body onload=\"initialize()\">"
     if 'logo' in settings:
-        print "<div><img class=\"logo\" src=\"%s\" alt=\"logo\" " % settings['logo']
-    if 'height' in settings and 'width' in settings:
-        print "height=\"%s\" width=\"%s\"" % (settings['height'], settings['width'])
-    print "/></div>"
+        print "<img class=\"logo\" src=\"%s\" alt=\"logo\" " % settings['logo']
+        if 'height' in settings and 'width' in settings:
+            print "height=\"%s\" width=\"%s\"" % (settings['height'], settings['width'])
+        print "/></div>"
     print "<h1>%s OpenVPN Status Monitor</h1><br />" % settings['site']
 
 
@@ -360,7 +360,7 @@ def main():
     for key, vpn in vpns.items():
 
         data = openvpn_connect(vpn, 'state\n')
-        if vpn['socket_connect'] == True:
+        if vpn['socket_connect']:
             state = openvpn_parse_state(data)
             vpns[key]['state'] = state
 
@@ -372,7 +372,7 @@ def main():
 
     for key, vpn in vpns.items():
 
-        if vpn['socket_connect'] == True:
+        if vpn['socket_connect']:
             openvpn_print_html(vpn)
         else:
             print "<div><table><tr><td class=\"left\">%s - Connection refused to %s:%s </td>" % (vpn['name'], vpn['host'], vpn['port'])
