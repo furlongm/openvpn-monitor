@@ -2,7 +2,7 @@
 
 # Licensed under GPL v3
 # Copyright 2011 VPAC <http://www.vpac.org>
-# Copyright 2012 Marcus Furlong <furlongm@vpac.org>
+# Copyright 2012, 2013 Marcus Furlong <furlongm@gmail.com>
 
 
 import getopt
@@ -12,6 +12,7 @@ import ConfigParser
 import locale
 from datetime import datetime
 import GeoIP
+from ipaddr import IPv4Address
 
 CONFIG_FILE = './openvpn-monitor.cfg'
 debug = False
@@ -53,7 +54,7 @@ def default_settings():
 
 def parse_global_section(config):
     global debug
-    vars = ['site', 'logo', 'height', 'width', 'lat', 'long']
+    vars = ['site', 'logo', 'height', 'width', 'lat', 'long', 'maps']
     tmp = {}
     for var in vars:
         try:
@@ -209,7 +210,7 @@ def openvpn_print_html(vpn):
 
     print "<div><table><tr><td class=\"left\">%s - %s %s </td><td class=\"right\">[ %s" % (vpn["name"], connection, pingable, vpn["state"]["local_ip"])
 
-    tun_headers = ['Username', 'VPN IP Address', 'Remote IP Address', 'Port', 'Location', 'Recv', 'Sent', 'Connected Since', 'Last Ping', 'Time Online']
+    tun_headers = ['Username / Hostname', 'VPN IP Address', 'Remote IP Address', 'Port', 'Location', 'Recv', 'Sent', 'Connected Since', 'Last Ping', 'Time Online']
     tap_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read', 'TCP-UDP-Write', 'Auth-Read']
 
     vpn_type = vpn['state']['type']
@@ -233,18 +234,29 @@ def openvpn_print_html(vpn):
             print "<td>%s</td>" % locale.format('%d', int(session['tcpudp_write']), True)
             print "<td>%s</td>" % locale.format('%d', int(session['auth_read']), True)
         else:
+            country = None
+            gir = None
             total_time = str(datetime.now() - session['connected_since'])[:-7]
             bytes_recv = int(session['bytes_recv'])
             bytes_sent = int(session['bytes_sent'])
-            gir = gi.record_by_addr(session['remote_ip'])
             print "<td>%s</td>" % session['username']
             print "<td>%s</td>" % session['local_ip']
             print "<td>%s</td>" % session['remote_ip']
             print "<td>%s</td>" % session['port']
-            if gir is not None:
-                print '<td><img src="%s" title="%s, %s" /></td>' % ('flags/%s.png' % gir['country_code'].lower(), gir['city'], gir['country_name'])
+
+            ipaddr = IPv4Address(session['remote_ip'])
+            if ipaddr.is_private:
+                country = "RFC1918"
             else:
-                print "<td>Unknown</td>"
+                gir = gi.record_by_addr(session['remote_ip'])
+                country = gir['country_code']
+            if gir is not None:
+                print '<td><img src="%s" title="%s, %s" /></td>' % ('flags/%s.png' % country.lower(), gir['city'], gir['country_name'])
+            else:
+                if country == "RFC1918":
+                    print "<td>RFC1918</td>"
+                else:
+                    print "<td>Unknown</td>"
             print "<td>%s</td>" % locale.format('%d', bytes_recv, True)
             print "<td>%s</td>" % locale.format('%d', bytes_sent, True)
             print "<td>%s</td>" % str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))
@@ -254,33 +266,15 @@ def openvpn_print_html(vpn):
     print "</table></div><br /><br />"
 
 
-def google_map():
-    print "<div id=\"map_canvas\" style=\"width:100%; height:300px\"></div>"
-
-
-def html_header(settings, vpns):
+def google_maps_js(vpns, loc_lat, loc_long):
 
     gi = GeoIP.open("/usr/share/GeoIP/GeoIPCity.dat", GeoIP.GEOIP_STANDARD)
     sessions = 0
-
-    if 'lat' in settings:
-        lat = settings['lat']
-    else:
-        lat = -37.8067
-    if 'long' in settings:
-        long = settings['long']
-    else:
-        long = 144.9635
-
-    print "Content-Type: text/html\n"
-    print "<!doctype html>"
-    print "<html><head><meta charset=\"utf-8\"><title>%s OpenVPN Status Monitor</title>" % settings["site"]
-    print "<meta http-equiv='refresh' content='300' />"
     print "<script type=\"text/javascript\" src=\"https://maps.google.com/maps/api/js?sensor=true\"></script>"
     print "<script type=\"text/javascript\">"
     print "function initialize() {"
     print "var bounds = new google.maps.LatLngBounds();"
-    print "var markers=new Array();"
+    print "var markers = new Array();"
     for vkey, vpn in vpns:
         if 'sessions' in vpn:
             for skey, session in vpn['sessions'].items():
@@ -292,19 +286,43 @@ def html_header(settings, vpns):
                     sessions = sessions + 1
     if sessions != 0:
         if sessions == 1:
-            print "bounds.extend(new google.maps.LatLng(%s, %s));" % (lat, long)
-        print "var myOptions = { mapTypeId: google.maps.MapTypeId.ROADMAP };"
+            print "bounds.extend(new google.maps.LatLng(%s, %s));" % (loc_lat, loc_long)
+        print "var myOptions = { zoom: 8, mapTypeId: google.maps.MapTypeId.ROADMAP };"
         print "var map = new google.maps.Map(document.getElementById(\"map_canvas\"), myOptions);"
         print "map.fitBounds(bounds);"
         print "for ( var i=markers.length-1; i>=0; --i ) { markers[i].setMap(map); }"
         print "}"
         print "</script>"
     else:
-        print "var latlng = new google.maps.LatLng(%s, %s);" % (lat, long)
+        print "var latlng = new google.maps.LatLng(%s, %s);" % (loc_lat, loc_long)
         print "var myOptions = { zoom: 8, center: latlng, mapTypeId: google.maps.MapTypeId.ROADMAP };"
         print "var map = new google.maps.Map(document.getElementById(\"map_canvas\"), myOptions);"
         print "}"
         print "</script>"
+
+def google_maps_html():
+    print "<div id=\"map_canvas\" style=\"width:100%; height:300px\"></div>"
+
+
+def html_header(settings, vpns, maps):
+
+    if 'lat' in settings:
+        loc_lat = settings['lat']
+    else:
+        loc_lat = -37.8067
+    if 'long' in settings:
+        loc_long = settings['long']
+    else:
+        loc_long = 144.9635
+
+    print "Content-Type: text/html\n"
+    print "<!doctype html>"
+    print "<html><head><meta charset=\"utf-8\"><title>%s OpenVPN Status Monitor</title>" % settings["site"]
+    print "<meta http-equiv='refresh' content='300' />"
+
+    if maps:
+        google_maps_js(vpns, loc_lat, loc_long)
+
     print "<style type=\"text/css\">"
     print "body { font-family: sans-serif; font-size: 12px; background-color: #FFFFFF; margin: auto; }"
     print "h1 { color: #222222; font-size: 20px; text-align: center; padding-bottom: 0; margin-bottom: 0; }"
@@ -368,7 +386,12 @@ def main():
             sessions = openvpn_parse_status(data)
             vpns[key]['sessions'] = sessions
 
-    html_header(settings, vpns.items())
+    if 'maps' in settings and settings['maps'] == 'True':
+        maps = True
+    else:
+        maps = False
+
+    html_header(settings, vpns.items(), maps)
 
     for key, vpn in vpns.items():
 
@@ -378,7 +401,8 @@ def main():
             print "<div><table><tr><td class=\"left\">%s - Connection refused to %s:%s </td>" % (vpn['name'], vpn['host'], vpn['port'])
             print "</tr></table></div><br /><br />"
 
-    google_map()
+    if maps:
+        google_maps_html()
 
     if debug:
         print "=== begin vpns\n%s\n=== end vpns" % vpns
