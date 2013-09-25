@@ -5,22 +5,22 @@
 # Copyright 2012, 2013 Marcus Furlong <furlongm@gmail.com>
 
 
-import getopt
 import sys
 import socket
 import ConfigParser
 import locale
+import re
+import argparse
 from datetime import datetime
 import GeoIP
 from ipaddr import IPv4Address
 
-CONFIG_FILE = './openvpn-monitor.cfg'
-debug = False
-
 
 def get_config(config_file):
+
     settings = {}
     vpns = {}
+
     try:
         f = open(config_file)
     except:
@@ -39,37 +39,48 @@ def get_config(config_file):
     except:
         print "Syntax error reading config file."
         return default_settings()
+
     return settings, vpns
 
 
 def default_settings():
+
     print "Using default of localhost:5555"
-    settings = {}
+
     vpns = {}
     settings = {'site': 'Default Site'}
     vpns['Default VPN'] = {'name': 'default', 'host': 'localhost',
-                              'port': '5555', 'order': '1'}
+                           'port': '5555', 'order': '1'}
+
     return settings, vpns
 
 
 def parse_global_section(config):
+
     global debug
-    vars = ['site', 'logo', 'height', 'width', 'lat', 'long', 'maps']
+
     tmp = {}
+    vars = ['site', 'logo', 'height', 'width', 'lat', 'long', 'maps']
+
     for var in vars:
         try:
             tmp[var] = config.get('OpenVPN-Monitor', var)
         except ConfigParser.NoOptionError:
             pass
+
     if debug:
         print "=== begin section\n%s\n=== end section" % tmp
+
     return tmp
 
 
 def parse_vpn_section(config, section):
+
     global debug
+
     tmp = {}
     options = config.options(section)
+
     for option in options:
         try:
             tmp[option] = config.get(section, option)
@@ -78,16 +89,22 @@ def parse_vpn_section(config, section):
         except:
             print("CONFIG: exception on %s!" % option)
             tmp[option] = None
+
     if debug:
         print "=== begin section\n%s\n=== end section" % tmp
+
     return tmp
 
 
 def openvpn_connect(vpn, command):
+
     global debug
+
     host = vpn['host']
     port = int(vpn['port'])
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    data = ''
+
     try:
         s.connect((host, port))
         vpn['socket_connect'] = True
@@ -95,27 +112,35 @@ def openvpn_connect(vpn, command):
         vpn['socket_connect'] = False
         return False
     s.send(command)
-    data = ""
+
     while 1:
-        tmp = s.recv(1024)
-        data += tmp
-        if data.endswith("END\r\n"):
+        socket_data = s.recv(1024)
+        socket_data = re.sub('>INFO(.)*\r\n', '', socket_data)
+        data += socket_data
+        if command == 'load-stats\n' and data != '':
+            break
+        elif data.endswith("\nEND\r\n"):
             break
     s.send('quit\n')
     s.close()
+
     if debug:
         print "=== begin raw data\n%s\n=== end raw data" % data
+
     return data
 
 
 def openvpn_parse_state(data):
+
     global debug
+
     state = {}
+
     for line in data.splitlines():
         tmp = line.split(",")
-        if (debug):
+        if debug:
             print "=== begin split line\n%s\n=== end split line" % tmp
-        if tmp[0].startswith(">INFO") or tmp[0].startswith("END"):
+        if tmp[0].startswith(">INFO") or tmp[0].startswith("END") or tmp[0].startswith(">CLIENT"):
             continue
         else:
             state['identifier'] = tmp[0]
@@ -127,20 +152,44 @@ def openvpn_parse_state(data):
                 state['type'] = "tap"
             else:
                 state['type'] = "tun"
+
     return state
 
 
-def openvpn_parse_status(data):
+def openvpn_parse_stats(data):
+
     global debug
-    lines = data.splitlines()
-    sec_client = False
-    sec_routes = False
+
+    stats = {}
+
+    line = re.sub('SUCCESS: ', '', data)
+    tmp = line.split(",")
+
+    if debug:
+        print "=== begin split line\n%s\n=== end split line" % tmp
+
+    stats['nclients'] = re.sub('nclients=', '', tmp[0])
+    stats['bytesin'] = re.sub('bytesin=', '', tmp[1])
+    stats['bytesout'] = re.sub('bytesout=', '', tmp[2])
+
+    return stats
+
+
+def openvpn_parse_status(data):
+
+    global debug
+
+    client_section = False
+    routes_section = False
     sessions = {}
     tap_session = {}
     last_update = ''
-    for line in lines:
+
+    for line in data.splitlines():
+
         tmp = line.split(",")
-        if (debug):
+
+        if debug:
             print "=== begin split line\n%s\n=== end split line" % tmp
         if tmp[0] == "GLOBAL STATS":
             break
@@ -148,12 +197,15 @@ def openvpn_parse_status(data):
             last_update = datetime.strptime(tmp[1], "%a %b %d %H:%M:%S %Y")
             continue
         if tmp[0] == "Common Name":
-            sec_client = True
+            client_section = True
             continue
         if tmp[0] == "ROUTING TABLE" or tmp[0] == "Virtual Address":
-            sec_routes = True
-            sec_client = False
+            routes_section = True
+            client_section = False
             continue
+        if tmp[0].startswith(">CLIENT"):
+            continue
+
         session = {}
         if tmp[0] == "TUN/TAP read bytes":
             tap_session['tuntap_read'] = tmp[1]
@@ -171,23 +223,26 @@ def openvpn_parse_status(data):
             tap_session['auth_read'] = tmp[1]
             sessions['tuntap'] = tap_session
             continue
-        if sec_client and not sec_routes:
+        if client_section and not routes_section:
             session['username'] = tmp[0]
             session['remote_ip'], session['port'] = tmp[1].split(":")
             session['bytes_recv'] = tmp[2]
             session['bytes_sent'] = tmp[3]
             session['connected_since'] = datetime.strptime(tmp[4], "%a %b %d %H:%M:%S %Y")
             sessions[tmp[1]] = session
-        if sec_routes and not sec_client:
+        if routes_section and not client_section:
             sessions[tmp[2]]['local_ip'] = tmp[0]
             sessions[tmp[2]]['last_seen'] = datetime.strptime(tmp[3], "%a %b %d %H:%M:%S %Y")
-        if debug:
-            if sessions:
-                print "=== begin sessions\n%s\n=== end sessions" % sessions
+
+    if debug:
+        if sessions:
+            print "=== begin sessions\n%s\n=== end sessions" % sessions
+
     return sessions
 
 
 def print_table_headers(headers):
+
     print "<table><tr>"
     for header in headers:
         print "<th>%s</th>" % header
@@ -199,16 +254,20 @@ def openvpn_print_html(vpn):
     gi = GeoIP.open("/usr/share/GeoIP/GeoIPCity.dat", GeoIP.GEOIP_STANDARD)
 
     if vpn["state"]["connected"] == "CONNECTED":
-        connection = "Connection up,"
+        connection = "Connection up"
     else:
-        connection = "Connection down,"
+        connection = "Connection down"
 
     if vpn["state"]["success"] == "SUCCESS":
-        pingable = "pingable."
+        pingable = "pingable"
     else:
-        pingable = "not pingable."
+        pingable = "not pingable"
 
-    print "<div><table><tr><td class=\"left\">%s - %s %s </td><td class=\"right\">[ %s" % (vpn["name"], connection, pingable, vpn["state"]["local_ip"])
+    nclients = vpn["stats"]["nclients"]
+    bytesin  = vpn["stats"]["bytesin"]
+    bytesout = vpn["stats"]["bytesout"]
+
+    print "<div><table><tr><td class=\"left\">%s - %s, %s. %s clients, %s bytes in, %s bytes out </td><td class=\"right\">[ %s" % (vpn["name"], connection, pingable, nclients, bytesin, bytesout, vpn["state"]["local_ip"])
 
     tun_headers = ['Username / Hostname', 'VPN IP Address', 'Remote IP Address', 'Port', 'Location', 'Recv', 'Sent', 'Connected Since', 'Last Ping', 'Time Online']
     tap_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read', 'TCP-UDP-Write', 'Auth-Read']
@@ -240,7 +299,10 @@ def openvpn_print_html(vpn):
             bytes_recv = int(session['bytes_recv'])
             bytes_sent = int(session['bytes_sent'])
             print "<td>%s</td>" % session['username']
-            print "<td>%s</td>" % session['local_ip']
+            if 'local_ip' in session:
+                print "<td>%s</td>" % session['local_ip']
+            else:
+                print "<td>ERROR</td>"
             print "<td>%s</td>" % session['remote_ip']
             print "<td>%s</td>" % session['port']
 
@@ -260,7 +322,10 @@ def openvpn_print_html(vpn):
             print "<td>%s</td>" % locale.format('%d', bytes_recv, True)
             print "<td>%s</td>" % locale.format('%d', bytes_sent, True)
             print "<td>%s</td>" % str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))
-            print "<td>%s</td>" % str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))
+            if 'last_seen'  in session:
+                print "<td>%s</td>" % str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))
+            else:
+                print "<td>ERROR</td>"
             print "<td>%s</td>" % total_time
         print "</tr>"
     print "</table></div><br /><br />"
@@ -300,7 +365,9 @@ def google_maps_js(vpns, loc_lat, loc_long):
         print "}"
         print "</script>"
 
+
 def google_maps_html():
+
     print "<div id=\"map_canvas\" style=\"width:100%; height:300px\"></div>"
 
 
@@ -343,44 +410,33 @@ def html_header(settings, vpns, maps):
 
 
 def sort_dict(adict):
+
     keys = adict.keys()
     keys.sort()
+
     return map(adict.get, keys)
 
 
-def usage(script_name, exit_code):
-    print "%s, [--help] [--debug]" % script_name
-    sys.exit(exit_code)
+def main(args):
 
-
-def main():
     global debug
-
-    locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
-
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], 'h:d', ['help', 'debug'])
-    except getopt.GetoptError, err:
-        print str(err)
-        usage(sys.argv[0], 2)
-    for o, a in opts:
-        if o in ('-d', '--debug'):
-            debug = True
-        elif o in ('-h', '--help'):
-            usage(sys.argv[0], 0)
-        else:
-            assert False, 'Unhandled option.'
-
-    settings, vpns = get_config(CONFIG_FILE)
+    debug = args.debug
+    settings, vpns = get_config(args.config)
 
     sort_dict(vpns)
 
     for key, vpn in vpns.items():
 
         data = openvpn_connect(vpn, 'state\n')
+
         if vpn['socket_connect']:
+
             state = openvpn_parse_state(data)
             vpns[key]['state'] = state
+
+            data = openvpn_connect(vpn, 'load-stats\n')
+            stats = openvpn_parse_stats(data)
+            vpns[key]['stats'] = stats
 
             data = openvpn_connect(vpn, 'status\n')
             sessions = openvpn_parse_status(data)
@@ -410,5 +466,19 @@ def main():
     print "<div class=\"footer\">Page automatically reloads every 5 minutes.<br/>Last update: <b>%s</b></div>" % datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')
     print "</body>\n</html>"
 
+
+def collect_args():
+
+    parser = argparse.ArgumentParser(description='Display a html page reporting openvpn status and connections.')
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Run in debug mode.')
+    parser.add_argument('-c', '--config', type=str,
+                        required=False, default='./openvpn-monitor.cfg',
+                        help='Path to config file openvpn.cfg')
+    return parser
+
+
 if __name__ == '__main__':
-    main()
+
+    args = collect_args().parse_args()
+    main(args)
