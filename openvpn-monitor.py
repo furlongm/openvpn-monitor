@@ -185,6 +185,7 @@ def openvpn_parse_status(data):
 
     client_section = False
     routes_section = False
+    status_version = 1
     sessions = {}
     tap_session = {}
 
@@ -197,14 +198,26 @@ def openvpn_parse_status(data):
 
         if tmp[0] == 'GLOBAL STATS':
             break
+        if tmp[0] == 'HEADER':
+            status_version = 3
+            if tmp[1] == 'CLIENT_LIST':
+                client_section = True
+                routes_section = False
+            if tmp[1] == 'ROUTING_TABLE':
+                client_section = False
+                routes_section = True
+            continue
         if tmp[0] == 'Updated':
             continue
         if tmp[0] == 'Common Name':
+            status_version = 1
             client_section = True
+            routes_section = False
             continue
         if tmp[0] == 'ROUTING TABLE' or tmp[0] == 'Virtual Address':
-            routes_section = True
+            status_version = 1
             client_section = False
+            routes_section = True
             continue
         if tmp[0].startswith('>CLIENT'):
             continue
@@ -227,15 +240,27 @@ def openvpn_parse_status(data):
             sessions['tuntap'] = tap_session
             continue
         if client_section and not routes_section:
-            session['username'] = tmp[0]
-            session['remote_ip'], session['port'] = tmp[1].split(":")
-            session['bytes_recv'] = tmp[2]
-            session['bytes_sent'] = tmp[3]
-            session['connected_since'] = get_date(tmp[4])
-            sessions[tmp[1]] = session
+            if status_version == 1:
+                session['username'] = tmp[0]
+                session['remote_ip'], session['port'] = tmp[1].split(':')
+                session['bytes_recv'] = tmp[2]
+                session['bytes_sent'] = tmp[3]
+                session['connected_since'] = get_date(tmp[4])
+                sessions[tmp[1]] = session
+            if status_version == 3:
+                session['username'] = tmp[1]
+                session['remote_ip'], session['port'] = tmp[2].split(':')
+                session['local_ip'] = tmp[3]
+                session['bytes_recv'] = tmp[4]
+                session['bytes_sent'] = tmp[5]
+                session['connected_since'] = get_date(tmp[6])
+                sessions[tmp[2]] = session
         if routes_section and not client_section:
-            sessions[tmp[2]]['local_ip'] = tmp[0]
-            sessions[tmp[2]]['last_seen'] = get_date(tmp[3])
+            if status_version == 1:
+                sessions[tmp[2]]['local_ip'] = tmp[0]
+                sessions[tmp[2]]['last_seen'] = get_date(tmp[3])
+            if status_version == 3:
+                sessions[tmp[3]]['last_seen'] = get_date(tmp[4])
 
     if debug:
         if sessions:
