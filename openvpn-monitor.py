@@ -244,9 +244,7 @@ def print_table_headers(headers):
     print "</tr>"
 
 
-def openvpn_print_html(vpn):
-
-    gi = GeoIP.open("/usr/share/GeoIP/GeoIPCity.dat", GeoIP.GEOIP_STANDARD)
+def openvpn_print_html(vpn, gi):
 
     if vpn["state"]["connected"] == "CONNECTED":
         connection = "Connection up"
@@ -326,9 +324,8 @@ def openvpn_print_html(vpn):
     print "</table></div><br /><br />"
 
 
-def google_maps_js(vpns, loc_lat, loc_long):
+def google_maps_js(vpns, loc_lat, loc_long, gi):
 
-    gi = GeoIP.open("/usr/share/GeoIP/GeoIPCity.dat", GeoIP.GEOIP_STANDARD)
     sessions = 0
     print "<script type=\"text/javascript\" src=\"https://maps.google.com/maps/api/js?sensor=true\"></script>"
     print "<script type=\"text/javascript\">"
@@ -366,7 +363,7 @@ def google_maps_html():
     print "<div id=\"map_canvas\" style=\"width:100%; height:300px\"></div>"
 
 
-def html_header(settings, vpns, maps):
+def html_header(settings, vpns, maps, gi):
 
     if 'lat' in settings:
         loc_lat = settings['lat']
@@ -383,7 +380,7 @@ def html_header(settings, vpns, maps):
     print "<meta http-equiv='refresh' content='300' />"
 
     if maps:
-        google_maps_js(vpns, loc_lat, loc_long)
+        google_maps_js(vpns, loc_lat, loc_long, gi)
 
     print "<style type=\"text/css\">"
     print "body { font-family: sans-serif; font-size: 12px; background-color: #FFFFFF; margin: auto; }"
@@ -442,12 +439,16 @@ def main(args):
     else:
         maps = False
 
-    html_header(settings, vpns.items(), maps)
+    try:
+        gi = GeoIP.open(args.geoip_data, GeoIP.GEOIP_STANDARD)
+    except SystemError:
+        gi = None
+
+    html_header(settings, vpns.items(), maps, gi)
 
     for key, vpn in vpns.items():
-
         if vpn['socket_connect']:
-            openvpn_print_html(vpn)
+            openvpn_print_html(vpn, gi)
         else:
             print "<div><table><tr><td class=\"left\">%s - Connection refused to %s:%s </td>" % (vpn['name'], vpn['host'], vpn['port'])
             print "</tr></table></div><br /><br />"
@@ -471,6 +472,9 @@ def collect_args():
     parser.add_argument('-c', '--config', type=str,
                         required=False, default='./openvpn-monitor.cfg',
                         help='Path to config file openvpn.cfg')
+    parser.add_argument('-g', '--geoip-data', type=str,
+                        required=False, default='/usr/share/GeoIP/GeoIPCity.dat',
+                        help='Path to GeoIPCity.dat')
     return parser
 
 
