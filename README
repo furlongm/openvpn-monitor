@@ -1,3 +1,6 @@
+OpenVPN-Monitor
+---------------
+
 OpenVPN-Monitor is a simple python program to generate html to display the
 status of an OpenVPN server, including all current connections. It uses the
 openvpn management console. It typically runs on the same host as the openvpn
@@ -17,11 +20,11 @@ longitude) for google maps. If not set, it will default to Melbourne, Australia.
 
 It can be run from the command line to test the html is generating correctly.
 
-To run under apache, mod_python will probably need to be enabled using e.g.
+To run under apache, mod_python will need to be enabled (a2enmod python), and
+a cgi-script handler added for .py files for the virtualhost/directory you are
+using, e.g.
 
-   AddHandler cgi-script .py
-
-and added to the virtualhost/directory you are using.
+        AddHandler cgi-script .py
 
 
 Quick Install on Debian/Ubuntu:
@@ -34,7 +37,6 @@ a2enmod python
 
 add the following to /etc/apache2/sites-enabled/000-default
 
-#    AddHandler cgi-script .cgi
     <Directory "/var/www/openvpn-monitor">
         Options +ExecCGI
         AddHandler cgi-script .py
