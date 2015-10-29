@@ -139,12 +139,12 @@ def openvpn_parse_state(data):
     state = {}
 
     for line in data.splitlines():
-        tmp = line.split(",")
+        tmp = line.split(',')
         if debug:
             print "=== begin split line\n%s\n=== end split line" % tmp
-        if tmp[0].startswith(">INFO") or \
-           tmp[0].startswith("END") or \
-           tmp[0].startswith(">CLIENT"):
+        if tmp[0].startswith('>INFO') or \
+           tmp[0].startswith('END') or \
+           tmp[0].startswith('>CLIENT'):
             continue
         else:
             state['identifier'] = tmp[0]
@@ -153,9 +153,9 @@ def openvpn_parse_state(data):
             state['local_ip'] = tmp[3]
             if tmp[4]:
                 state['remote_ip'] = tmp[4]
-                state['type'] = "tap"
+                state['type'] = 'tap'
             else:
-                state['type'] = "tun"
+                state['type'] = 'tun'
 
     return state
 
@@ -167,7 +167,7 @@ def openvpn_parse_stats(data):
     stats = {}
 
     line = re.sub('SUCCESS: ', '', data)
-    tmp = line.split(",")
+    tmp = line.split(',')
 
     if debug:
         print "=== begin split line\n%s\n=== end split line" % tmp
@@ -190,38 +190,39 @@ def openvpn_parse_status(data):
 
     for line in data.splitlines():
 
-        tmp = line.split(",")
+        tmp = line.split(',')
 
         if debug:
             print "=== begin split line\n%s\n=== end split line" % tmp
-        if tmp[0] == "GLOBAL STATS":
+
+        if tmp[0] == 'GLOBAL STATS':
             break
-        if tmp[0] == "Updated":
+        if tmp[0] == 'Updated':
             continue
-        if tmp[0] == "Common Name":
+        if tmp[0] == 'Common Name':
             client_section = True
             continue
-        if tmp[0] == "ROUTING TABLE" or tmp[0] == "Virtual Address":
+        if tmp[0] == 'ROUTING TABLE' or tmp[0] == 'Virtual Address':
             routes_section = True
             client_section = False
             continue
-        if tmp[0].startswith(">CLIENT"):
+        if tmp[0].startswith('>CLIENT'):
             continue
 
         session = {}
-        if tmp[0] == "TUN/TAP read bytes":
+        if tmp[0] == 'TUN/TAP read bytes':
             tap_session['tuntap_read'] = tmp[1]
             continue
-        if tmp[0] == "TUN/TAP write bytes":
+        if tmp[0] == 'TUN/TAP write bytes':
             tap_session['tuntap_write'] = tmp[1]
             continue
-        if tmp[0] == "TCP/UDP read bytes":
+        if tmp[0] == 'TCP/UDP read bytes':
             tap_session['tcpudp_read'] = tmp[1]
             continue
-        if tmp[0] == "TCP/UDP write bytes":
+        if tmp[0] == 'TCP/UDP write bytes':
             tap_session['tcpudp_write'] = tmp[1]
             continue
-        if tmp[0] == "Auth read bytes":
+        if tmp[0] == 'Auth read bytes':
             tap_session['auth_read'] = tmp[1]
             sessions['tuntap'] = tap_session
             continue
@@ -355,7 +356,7 @@ def google_maps_js(vpns, loc_lat, loc_long, gi):
                     print 'var latlng = new google.maps.LatLng(%s, %s);' % \
                         (gir['latitude'], gir['longitude'])
                     print 'bounds.extend(latlng);'
-                    print 'markers.push(new google.maps.Marker({position: latlng, title: "%s\\n%s"}));' % \
+                    print 'markers.push(new google.maps.Marker({position: latlng, title: "%s\n%s"}));' % \
                         (session['username'], session['remote_ip'])
                     sessions = sessions + 1
     if sessions != 0:
