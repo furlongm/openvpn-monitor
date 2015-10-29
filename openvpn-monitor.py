@@ -191,12 +191,15 @@ def openvpn_parse_status(data):
 
     for line in data.splitlines():
 
-        tmp = line.split(',')
+        if ',' in line:
+            tmp = line.split(',')
+        else:
+            tmp = line.split('\t')
 
         if debug:
             print "=== begin split line\n%s\n=== end split line" % tmp
 
-        if tmp[0] == 'GLOBAL STATS':
+        if tmp[0].startswith('GLOBAL'):
             break
         if tmp[0] == 'HEADER':
             status_version = 3
