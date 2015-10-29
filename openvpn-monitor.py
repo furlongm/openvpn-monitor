@@ -5,7 +5,6 @@
 # Copyright 2012, 2013 Marcus Furlong <furlongm@gmail.com>
 
 
-import sys
 import socket
 import ConfigParser
 import locale
@@ -181,7 +180,6 @@ def openvpn_parse_status(data):
     routes_section = False
     sessions = {}
     tap_session = {}
-    last_update = ''
 
     for line in data.splitlines():
 
@@ -192,7 +190,6 @@ def openvpn_parse_status(data):
         if tmp[0] == "GLOBAL STATS":
             break
         if tmp[0] == "Updated":
-            last_update = datetime.strptime(tmp[1], "%a %b %d %H:%M:%S %Y")
             continue
         if tmp[0] == "Common Name":
             client_section = True
@@ -262,7 +259,7 @@ def openvpn_print_html(vpn):
         pingable = "not pingable"
 
     nclients = vpn["stats"]["nclients"]
-    bytesin  = vpn["stats"]["bytesin"]
+    bytesin = vpn["stats"]["bytesin"]
     bytesout = vpn["stats"]["bytesout"]
 
     print "<div><table><tr><td class=\"left\">%s - %s, %s. %s clients, %s bytes in, %s bytes out </td><td class=\"right\">[ %s" % (vpn["name"], connection, pingable, nclients, bytesin, bytesout, vpn["state"]["local_ip"])
@@ -320,7 +317,7 @@ def openvpn_print_html(vpn):
             print "<td>%s</td>" % locale.format('%d', bytes_recv, True)
             print "<td>%s</td>" % locale.format('%d', bytes_sent, True)
             print "<td>%s</td>" % str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))
-            if 'last_seen'  in session:
+            if 'last_seen' in session:
                 print "<td>%s</td>" % str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))
             else:
                 print "<td>ERROR</td>"
@@ -467,9 +464,10 @@ def main(args):
 
 def collect_args():
 
-    parser = argparse.ArgumentParser(description='Display a html page reporting openvpn status and connections.')
+    parser = argparse.ArgumentParser(description='Display a html page reporting openvpn status and connections')
     parser.add_argument('-d', '--debug', action='store_true',
-                        help='Run in debug mode.')
+                        required=False, default=False,
+                        help='Run in debug mode')
     parser.add_argument('-c', '--config', type=str,
                         required=False, default='./openvpn-monitor.cfg',
                         help='Path to config file openvpn.cfg')
