@@ -20,7 +20,7 @@ def get_config(config_file):
     config = ConfigParser.RawConfigParser()
     data = config.read(config_file)
     if len(data) == 0:
-        print "Config file doesn't exist or is unreadable."
+        print 'Config file does not exist or is unreadable'
         return default_settings()
 
     vpns = {}
@@ -34,15 +34,20 @@ def get_config(config_file):
             else:
                 vpns[section] = parse_vpn_section(config, section)
     except:
-        print "Syntax error reading config file."
+        print 'Syntax error reading config file'
         return default_settings()
 
     return settings, vpns
 
 
+def get_date(string):
+
+    return datetime.strptime(string, "%a %b %d %H:%M:%S %Y")
+
+
 def default_settings():
 
-    print "Using default of localhost:5555"
+    print 'Using default of localhost:5555'
 
     vpns = {}
     settings = {'site': 'Default Site'}
@@ -82,9 +87,9 @@ def parse_vpn_section(config, section):
         try:
             tmp[option] = config.get(section, option)
             if tmp[option] == -1:
-                print("CONFIG: skipping: %s" % option)
+                print('CONFIG: skipping %s' % option)
         except:
-            print("CONFIG: exception on %s!" % option)
+            print('CONFIG: exception on %s' % option)
             tmp[option] = None
 
     if debug:
@@ -137,7 +142,9 @@ def openvpn_parse_state(data):
         tmp = line.split(",")
         if debug:
             print "=== begin split line\n%s\n=== end split line" % tmp
-        if tmp[0].startswith(">INFO") or tmp[0].startswith("END") or tmp[0].startswith(">CLIENT"):
+        if tmp[0].startswith(">INFO") or \
+           tmp[0].startswith("END") or \
+           tmp[0].startswith(">CLIENT"):
             continue
         else:
             state['identifier'] = tmp[0]
@@ -223,11 +230,11 @@ def openvpn_parse_status(data):
             session['remote_ip'], session['port'] = tmp[1].split(":")
             session['bytes_recv'] = tmp[2]
             session['bytes_sent'] = tmp[3]
-            session['connected_since'] = datetime.strptime(tmp[4], "%a %b %d %H:%M:%S %Y")
+            session['connected_since'] = get_date(tmp[4])
             sessions[tmp[1]] = session
         if routes_section and not client_section:
             sessions[tmp[2]]['local_ip'] = tmp[0]
-            sessions[tmp[2]]['last_seen'] = datetime.strptime(tmp[3], "%a %b %d %H:%M:%S %Y")
+            sessions[tmp[2]]['last_seen'] = get_date(tmp[3])
 
     if debug:
         if sessions:
@@ -238,32 +245,38 @@ def openvpn_parse_status(data):
 
 def print_table_headers(headers):
 
-    print "<table><tr>"
+    print '<table><tr>'
     for header in headers:
-        print "<th>%s</th>" % header
-    print "</tr>"
+        print '<th>%s</th>' % header
+    print '</tr>'
 
 
 def openvpn_print_html(vpn, gi):
 
-    if vpn["state"]["connected"] == "CONNECTED":
-        connection = "Connection up"
+    if vpn['state']['connected'] == 'CONNECTED':
+        connection = 'Connection up'
     else:
-        connection = "Connection down"
+        connection = 'Connection down'
 
-    if vpn["state"]["success"] == "SUCCESS":
-        pingable = "pingable"
+    if vpn['state']['success'] == 'SUCCESS':
+        pingable = 'pingable'
     else:
-        pingable = "not pingable"
+        pingable = 'not pingable'
 
-    nclients = vpn["stats"]["nclients"]
-    bytesin = vpn["stats"]["bytesin"]
-    bytesout = vpn["stats"]["bytesout"]
+    nclients = vpn['stats']['nclients']
+    bytesin = vpn['stats']['bytesin']
+    bytesout = vpn['stats']['bytesout']
 
-    print "<div><table><tr><td class=\"left\">%s - %s, %s. %s clients, %s bytes in, %s bytes out </td><td class=\"right\">[ %s" % (vpn["name"], connection, pingable, nclients, bytesin, bytesout, vpn["state"]["local_ip"])
+    print '<div><table><tr><td class="left">'
+    print '%s - %s, %s. %s clients, %s bytes in, %s bytes out ' % \
+        (vpn['name'], connection, pingable, nclients, bytesin, bytesout)
+    print '</td><td class="right">[ %s' % vpn['state']['local_ip']
 
-    tun_headers = ['Username / Hostname', 'VPN IP Address', 'Remote IP Address', 'Port', 'Location', 'Recv', 'Sent', 'Connected Since', 'Last Ping', 'Time Online']
-    tap_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read', 'TCP-UDP-Write', 'Auth-Read']
+    tun_headers = ['Username / Hostname', 'VPN IP Address',
+                   'Remote IP Address', 'Port', 'Location', 'Recv', 'Sent',
+                   'Connected Since', 'Last Ping', 'Time Online']
+    tap_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
+                   'TCP-UDP-Write', 'Auth-Read']
 
     vpn_type = vpn['state']['type']
     vpn_sessions = vpn['sessions']
@@ -271,96 +284,100 @@ def openvpn_print_html(vpn, gi):
     print vpn_type
 
     if vpn_type == 'tun':
-        print "]</td></tr></table>"
+        print ']</td></tr></table>'
         print_table_headers(tun_headers)
     elif vpn_type == 'tap':
         print " &lt;-&gt; %s]</td></tr></table>" % vpn['state']['remote_ip']
         print_table_headers(tap_headers)
 
     for key, session in vpn_sessions.items():
-        print "<tr>"
-        if vpn_type == "tap":
-            print "<td>%s</td>" % locale.format('%d', int(session['tuntap_read']), True)
-            print "<td>%s</td>" % locale.format('%d', int(session['tuntap_write']), True)
-            print "<td>%s</td>" % locale.format('%d', int(session['tcpudp_read']), True)
-            print "<td>%s</td>" % locale.format('%d', int(session['tcpudp_write']), True)
-            print "<td>%s</td>" % locale.format('%d', int(session['auth_read']), True)
+        print '<tr>'
+        if vpn_type == 'tap':
+            print '<td>%s</td>' % locale.format('%d', int(session['tuntap_read']), True)
+            print '<td>%s</td>' % locale.format('%d', int(session['tuntap_write']), True)
+            print '<td>%s</td>' % locale.format('%d', int(session['tcpudp_read']), True)
+            print '<td>%s</td>' % locale.format('%d', int(session['tcpudp_write']), True)
+            print '<td>%s</td>' % locale.format('%d', int(session['auth_read']), True)
         else:
             country = None
             gir = None
             total_time = str(datetime.now() - session['connected_since'])[:-7]
             bytes_recv = int(session['bytes_recv'])
             bytes_sent = int(session['bytes_sent'])
-            print "<td>%s</td>" % session['username']
+            print '<td>%s</td>' % session['username']
             if 'local_ip' in session:
-                print "<td>%s</td>" % session['local_ip']
+                print '<td>%s</td>' % session['local_ip']
             else:
-                print "<td>ERROR</td>"
-            print "<td>%s</td>" % session['remote_ip']
-            print "<td>%s</td>" % session['port']
+                print '<td>ERROR</td>'
+            print '<td>%s</td>' % session['remote_ip']
+            print '<td>%s</td>' % session['port']
 
             ipaddr = IPv4Address(session['remote_ip'])
             if ipaddr.is_private:
-                country = "RFC1918"
+                country = 'RFC1918'
             else:
                 gir = gi.record_by_addr(session['remote_ip'])
                 country = gir['country_code']
             if gir is not None:
-                print '<td><img src="%s" title="%s, %s" /></td>' % ('flags/%s.png' % country.lower(), gir['city'], gir['country_name'])
+                print '<td><img src="%s" title="%s, %s" /></td>' % \
+                    ('flags/%s.png' % country.lower(),
+                     gir['city'], gir['country_name'])
             else:
-                if country == "RFC1918":
-                    print "<td>RFC1918</td>"
+                if country == 'RFC1918':
+                    print '<td>RFC1918</td>'
                 else:
-                    print "<td>Unknown</td>"
-            print "<td>%s</td>" % locale.format('%d', bytes_recv, True)
-            print "<td>%s</td>" % locale.format('%d', bytes_sent, True)
-            print "<td>%s</td>" % str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))
+                    print '<td>Unknown</td>'
+            print '<td>%s</td>' % locale.format('%d', bytes_recv, True)
+            print '<td>%s</td>' % locale.format('%d', bytes_sent, True)
+            print '<td>%s</td>' % str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))
             if 'last_seen' in session:
-                print "<td>%s</td>" % str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))
+                print '<td>%s</td>' % str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))
             else:
-                print "<td>ERROR</td>"
-            print "<td>%s</td>" % total_time
-        print "</tr>"
-    print "</table></div><br /><br />"
+                print '<td>ERROR</td>'
+            print '<td>%s</td>' % total_time
+        print '</tr>'
+    print '</table></div><br /><br />'
 
 
 def google_maps_js(vpns, loc_lat, loc_long, gi):
 
     sessions = 0
-    print "<script type=\"text/javascript\" src=\"https://maps.google.com/maps/api/js?sensor=true\"></script>"
-    print "<script type=\"text/javascript\">"
-    print "function initialize() {"
-    print "var bounds = new google.maps.LatLngBounds();"
-    print "var markers = new Array();"
+    print '<script type="text/javascript" src="https://maps.google.com/maps/api/js?sensor=true"></script>'
+    print '<script type="text/javascript">'
+    print 'function initialize() {'
+    print 'var bounds = new google.maps.LatLngBounds();'
+    print 'var markers = new Array();'
     for vkey, vpn in vpns:
         if 'sessions' in vpn:
             for skey, session in vpn['sessions'].items():
                 gir = gi.record_by_addr(session['remote_ip'])
                 if gir is not None:
-                    print "var latlng = new google.maps.LatLng(%s, %s);" % (gir['latitude'], gir['longitude'])
-                    print "bounds.extend(latlng);"
-                    print "markers.push(new google.maps.Marker({position: latlng, title: \"%s\\n%s\"}));" % (session['username'], session['remote_ip'])
+                    print 'var latlng = new google.maps.LatLng(%s, %s);' % \
+                        (gir['latitude'], gir['longitude'])
+                    print 'bounds.extend(latlng);'
+                    print 'markers.push(new google.maps.Marker({position: latlng, title: "%s\\n%s"}));' % \
+                        (session['username'], session['remote_ip'])
                     sessions = sessions + 1
     if sessions != 0:
         if sessions == 1:
-            print "bounds.extend(new google.maps.LatLng(%s, %s));" % (loc_lat, loc_long)
-        print "var myOptions = { zoom: 8, mapTypeId: google.maps.MapTypeId.ROADMAP };"
-        print "var map = new google.maps.Map(document.getElementById(\"map_canvas\"), myOptions);"
-        print "map.fitBounds(bounds);"
-        print "for ( var i=markers.length-1; i>=0; --i ) { markers[i].setMap(map); }"
-        print "}"
-        print "</script>"
+            print 'bounds.extend(new google.maps.LatLng(%s, %s));' % (loc_lat, loc_long)
+        print 'var myOptions = { zoom: 8, mapTypeId: google.maps.MapTypeId.ROADMAP };'
+        print 'var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);'
+        print 'map.fitBounds(bounds);'
+        print 'for ( var i=markers.length-1; i>=0; --i ) { markers[i].setMap(map); }'
+        print '}'
+        print '</script>'
     else:
-        print "var latlng = new google.maps.LatLng(%s, %s);" % (loc_lat, loc_long)
-        print "var myOptions = { zoom: 8, center: latlng, mapTypeId: google.maps.MapTypeId.ROADMAP };"
-        print "var map = new google.maps.Map(document.getElementById(\"map_canvas\"), myOptions);"
-        print "}"
-        print "</script>"
+        print 'var latlng = new google.maps.LatLng(%s, %s);' % (loc_lat, loc_long)
+        print 'var myOptions = { zoom: 8, center: latlng, mapTypeId: google.maps.MapTypeId.ROADMAP };'
+        print 'var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);'
+        print '}'
+        print '</script>'
 
 
 def google_maps_html():
 
-    print "<div id=\"map_canvas\" style=\"width:100%; height:300px\"></div>"
+    print '<div id="map_canvas" style="width:100%; height:300px"></div>'
 
 
 def html_header(settings, vpns, maps, gi):
@@ -375,30 +392,32 @@ def html_header(settings, vpns, maps, gi):
         loc_long = 144.9635
 
     print "Content-Type: text/html\n"
-    print "<!doctype html>"
-    print "<html><head><meta charset=\"utf-8\"><title>%s OpenVPN Status Monitor</title>" % settings["site"]
-    print "<meta http-equiv='refresh' content='300' />"
+    print '<!doctype html>'
+    print '<html><head><meta charset="utf-8">'
+    print '<title>%s OpenVPN Status Monitor</title>' % settings['site']
+    print '<meta http-equiv="refresh" content="300" />'
 
     if maps:
         google_maps_js(vpns, loc_lat, loc_long, gi)
 
-    print "<style type=\"text/css\">"
-    print "body { font-family: sans-serif; font-size: 12px; background-color: #FFFFFF; margin: auto; }"
-    print "h1 { color: #222222; font-size: 20px; text-align: center; padding-bottom: 0; margin-bottom: 0; }"
-    print "table { margin: auto; width:900px; border-collapse: collapse; }"
-    print "td.left {text-align: left; color: #232355; font-weight: bold; font-size: 14px; }"
-    print "td.right {text-align: right; color: #656511; font-weight: bold; font-size: 14px; }"
-    print "th { background: #555555; color: white; text-align: left; padding-left: 10px;}"
-    print "td { padding: 10px 10px 5px 5px; }"
-    print "div { padding: 7px 4px 6px 6px; margin: 0px auto; text-align: center; }"
-    print "div.footer { text-align: center; }"
-    print "</style></head><body onload=\"initialize()\">"
+    print '<style type="text/css">'
+    print 'body { font-family: sans-serif; font-size: 12px; background-color: #FFFFFF; margin: auto; }'
+    print 'h1 { color: #222222; font-size: 20px; text-align: center; padding-bottom: 0; margin-bottom: 0; }'
+    print 'table { margin: auto; width:900px; border-collapse: collapse; }'
+    print 'td.left {text-align: left; color: #232355; font-weight: bold; font-size: 14px; }'
+    print 'td.right {text-align: right; color: #656511; font-weight: bold; font-size: 14px; }'
+    print 'th { background: #555555; color: white; text-align: left; padding-left: 10px;}'
+    print 'td { padding: 10px 10px 5px 5px; }'
+    print 'div { padding: 7px 4px 6px 6px; margin: 0px auto; text-align: center; }'
+    print 'div.footer { text-align: center; }'
+    print '</style></head><body onload="initialize()">'
     if 'logo' in settings:
-        print "<div><img class=\"logo\" src=\"%s\" alt=\"logo\" " % settings['logo']
+        print '<div><img class="logo" src="%s" alt="logo" ' % settings['logo']
         if 'height' in settings and 'width' in settings:
-            print "height=\"%s\" width=\"%s\"" % (settings['height'], settings['width'])
-        print "/></div>"
-    print "<h1>%s OpenVPN Status Monitor</h1><br />" % settings['site']
+            print 'height="%s" width="%s"' % \
+                (settings['height'], settings['width'])
+        print '/></div>'
+    print '<h1>%s OpenVPN Status Monitor</h1><br />' % settings['site']
 
 
 def sort_dict(adict):
@@ -450,8 +469,10 @@ def main(args):
         if vpn['socket_connect']:
             openvpn_print_html(vpn, gi)
         else:
-            print "<div><table><tr><td class=\"left\">%s - Connection refused to %s:%s </td>" % (vpn['name'], vpn['host'], vpn['port'])
-            print "</tr></table></div><br /><br />"
+            print '<div><table><tr><td class="left">'
+            print '%s - Connection refused to %s:%s </td>' % \
+                (vpn['name'], vpn['host'], vpn['port'])
+            print '</tr></table></div><br /><br />'
 
     if maps:
         google_maps_html()
@@ -459,13 +480,16 @@ def main(args):
     if debug:
         print "=== begin vpns\n%s\n=== end vpns" % vpns
 
-    print "<div class=\"footer\">Page automatically reloads every 5 minutes.<br/>Last update: <b>%s</b></div>" % datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')
-    print "</body>\n</html>"
+    print '<div class="footer">Page automatically reloads every 5 minutes'
+    print '<br/>Last update: <b>%s</b></div>' % \
+        datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')
+    print '</body></html>'
 
 
 def collect_args():
 
-    parser = argparse.ArgumentParser(description='Display a html page reporting openvpn status and connections')
+    parser = argparse.ArgumentParser(
+        description='Display a html page with openvpn status and connections')
     parser.add_argument('-d', '--debug', action='store_true',
                         required=False, default=False,
                         help='Run in debug mode')
@@ -473,7 +497,8 @@ def collect_args():
                         required=False, default='./openvpn-monitor.cfg',
                         help='Path to config file openvpn.cfg')
     parser.add_argument('-g', '--geoip-data', type=str,
-                        required=False, default='/usr/share/GeoIP/GeoIPCity.dat',
+                        required=False,
+                        default='/usr/share/GeoIP/GeoIPCity.dat',
                         help='Path to GeoIPCity.dat')
     return parser
 
