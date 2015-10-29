@@ -188,6 +188,7 @@ def openvpn_parse_status(data):
     status_version = 1
     sessions = {}
     tap_session = {}
+    gi = GeoIP.open(args.geoip_data, GeoIP.GEOIP_STANDARD)
 
     for line in data.splitlines():
 
@@ -244,20 +245,32 @@ def openvpn_parse_status(data):
             continue
         if client_section and not routes_section:
             if status_version == 1:
+                sessions[tmp[1]] = session
                 session['username'] = tmp[0]
                 session['remote_ip'], session['port'] = tmp[1].split(':')
                 session['bytes_recv'] = tmp[2]
                 session['bytes_sent'] = tmp[3]
                 session['connected_since'] = get_date(tmp[4])
-                sessions[tmp[1]] = session
             if status_version == 3:
+                sessions[tmp[2]] = session
                 session['username'] = tmp[1]
                 session['remote_ip'], session['port'] = tmp[2].split(':')
                 session['local_ip'] = tmp[3]
                 session['bytes_recv'] = tmp[4]
                 session['bytes_sent'] = tmp[5]
                 session['connected_since'] = get_date(tmp[6])
-                sessions[tmp[2]] = session
+            session['country'] = 'Unknown'
+            ipaddr = IPv4Address(session['remote_ip'])
+            if ipaddr.is_private:
+                session['country'] = 'RFC1918'
+            else:
+                gir = gi.record_by_addr(session['remote_ip'])
+                if gir is not None:
+                    session['country'] = gir['country_code']
+                    session['city'] = gir['city']
+                    session['country_name'] = gir['country_name']
+                    session['longitude'] = gir['longitude']
+                    session['latitude'] = gir['latitude']
         if routes_section and not client_section:
             if status_version == 1:
                 sessions[tmp[2]]['local_ip'] = tmp[0]
@@ -280,7 +293,7 @@ def print_table_headers(headers):
     print '</tr>'
 
 
-def openvpn_print_html(vpn, gi):
+def openvpn_print_html(vpn):
 
     if vpn['state']['connected'] == 'CONNECTED':
         connection = 'Connection up'
@@ -316,7 +329,7 @@ def openvpn_print_html(vpn, gi):
         print ']</td></tr></table>'
         print_table_headers(tun_headers)
     elif vpn_type == 'tap':
-        print " &lt;-&gt; %s]</td></tr></table>" % vpn['state']['remote_ip']
+        print ' &lt;-&gt; %s]</td></tr></table>' % vpn['state']['remote_ip']
         print_table_headers(tap_headers)
 
     for key, session in vpn_sessions.items():
@@ -341,21 +354,13 @@ def openvpn_print_html(vpn, gi):
             print '<td>%s</td>' % session['remote_ip']
             print '<td>%s</td>' % session['port']
 
-            ipaddr = IPv4Address(session['remote_ip'])
-            if ipaddr.is_private:
-                country = 'RFC1918'
-            else:
-                gir = gi.record_by_addr(session['remote_ip'])
-                country = gir['country_code']
-            if gir is not None:
+            if 'city' in session and 'country_name' in session:
                 print '<td><img src="%s" title="%s, %s" /></td>' % \
-                    ('flags/%s.png' % country.lower(),
-                     gir['city'], gir['country_name'])
+                    ('flags/%s.png' % session['country'].lower(),
+                     session['city'], session['country_name'])
             else:
-                if country == 'RFC1918':
-                    print '<td>RFC1918</td>'
-                else:
-                    print '<td>Unknown</td>'
+                print '<td>%s</td>' % session['country']
+
             print '<td>%s</td>' % locale.format('%d', bytes_recv, True)
             print '<td>%s</td>' % locale.format('%d', bytes_sent, True)
             print '<td>%s</td>' % str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))
@@ -368,7 +373,7 @@ def openvpn_print_html(vpn, gi):
     print '</table></div><br /><br />'
 
 
-def google_maps_js(vpns, loc_lat, loc_long, gi):
+def google_maps_js(vpns, loc_lat, loc_long):
 
     sessions = 0
     print '<script type="text/javascript" src="https://maps.google.com/maps/api/js?sensor=true"></script>'
@@ -379,10 +384,9 @@ def google_maps_js(vpns, loc_lat, loc_long, gi):
     for vkey, vpn in vpns:
         if 'sessions' in vpn:
             for skey, session in vpn['sessions'].items():
-                gir = gi.record_by_addr(session['remote_ip'])
-                if gir is not None:
+                if 'longitude' in session and 'latitude' in session:
                     print 'var latlng = new google.maps.LatLng(%s, %s);' % \
-                        (gir['latitude'], gir['longitude'])
+                        (session['latitude'], session['longitude'])
                     print 'bounds.extend(latlng);'
                     print 'markers.push(new google.maps.Marker({position: latlng, title: "%s\n%s"}));' % \
                         (session['username'], session['remote_ip'])
@@ -409,7 +413,7 @@ def google_maps_html():
     print '<div id="map_canvas" style="width:100%; height:300px"></div>'
 
 
-def html_header(settings, vpns, maps, gi):
+def html_header(settings, vpns, maps):
 
     if 'lat' in settings:
         loc_lat = settings['lat']
@@ -427,7 +431,7 @@ def html_header(settings, vpns, maps, gi):
     print '<meta http-equiv="refresh" content="300" />'
 
     if maps:
-        google_maps_js(vpns, loc_lat, loc_long, gi)
+        google_maps_js(vpns, loc_lat, loc_long)
 
     print '<style type="text/css">'
     print 'body { font-family: sans-serif; font-size: 12px; background-color: #FFFFFF; margin: auto; }'
@@ -487,16 +491,11 @@ def main(args):
     else:
         maps = False
 
-    try:
-        gi = GeoIP.open(args.geoip_data, GeoIP.GEOIP_STANDARD)
-    except SystemError:
-        gi = None
-
-    html_header(settings, vpns.items(), maps, gi)
+    html_header(settings, vpns.items(), maps)
 
     for key, vpn in vpns.items():
         if vpn['socket_connect']:
-            openvpn_print_html(vpn, gi)
+            openvpn_print_html(vpn)
         else:
             print '<div><table><tr><td class="left">'
             print '%s - Connection refused to %s:%s </td>' % \
