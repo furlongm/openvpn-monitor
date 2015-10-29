@@ -18,16 +18,14 @@ from ipaddr import IPv4Address
 
 def get_config(config_file):
 
-    settings = {}
-    vpns = {}
-
-    try:
-        f = open(config_file)
-    except:
-        print "Config file doesn't exist or is unreadable,"
-        return default_settings()
     config = ConfigParser.RawConfigParser()
-    config.read(config_file)
+    data = config.read(config_file)
+    if len(data) == 0:
+        print "Config file doesn't exist or is unreadable."
+        return default_settings()
+
+    vpns = {}
+    settings = {}
     sections = []
     try:
         sections = config.sections()
