@@ -2,7 +2,7 @@
 
 # Licensed under GPL v3
 # Copyright 2011 VPAC <http://www.vpac.org>
-# Copyright 2012, 2013 Marcus Furlong <furlongm@gmail.com>
+# Copyright 2012-2015 Marcus Furlong <furlongm@gmail.com>
 
 
 import socket
