@@ -352,9 +352,10 @@ def openvpn_print_html(vpn):
             print '<td>%s</td>' % session['port']
 
             if 'city' in session and 'country_name' in session:
-                print '<td><img src="%s" title="%s, %s" /></td>' % \
+                print '<td><img src="%s" title="%s, %s" alt="%s" /></td>' % \
                     ('flags/%s.png' % session['country'].lower(),
-                     session['city'], session['country_name'])
+                     session['city'], session['country_name'],
+                     session['country_name'])
             else:
                 print '<td>%s</td>' % session['country']
 
