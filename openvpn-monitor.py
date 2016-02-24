@@ -4,17 +4,28 @@
 # Copyright 2011 VPAC <http://www.vpac.org>
 # Copyright 2012-2016 Marcus Furlong <furlongm@gmail.com>
 
-
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
+from __future__ import unicode_literals
+
+try:
+    import ConfigParser as configparser
+except ImportError:
+    import configparser
+
+try:
+    from ipaddr import IPv4Address
+except ImportError:
+    from ipaddress import IPv4Address
+
 
 import socket
-import ConfigParser
 import re
 import argparse
 import GeoIP
 import sys
 from datetime import datetime
-from ipaddr import IPv4Address
 from humanize import naturalsize
 from collections import OrderedDict
 from pprint import pformat
@@ -28,9 +39,23 @@ def debug(*objs):
     print("DEBUG:\n", *objs, file=sys.stderr)
 
 
+def socket_send(s, command):
+    if sys.version_info[0] == 2:
+        s.send(command)
+    else:
+        s.send(bytes(command, 'utf-8'))
+
+
+def socket_recv(s, length):
+    if sys.version_info[0] == 2:
+        return s.recv(length)
+    else:
+        return s.recv(length).decode('utf-8')
+
+
 def get_config(config_file):
 
-    config = ConfigParser.RawConfigParser()
+    config = configparser.RawConfigParser()
     data = config.read(config_file)
     if not data:
         print('Config file does not exist or is unreadable')
@@ -78,7 +103,7 @@ def parse_global_section(config):
     for var in vars:
         try:
             tmp[var] = config.get('OpenVPN-Monitor', var)
-        except ConfigParser.NoOptionError:
+        except configparser.NoOptionError:
             pass
 
     if args.debug:
@@ -116,21 +141,24 @@ def openvpn_connect(vpn, command):
 
     try:
         s = socket.create_connection((host, port), timeout)
-        vpn['socket_connect'] = True
+        vpn['socket_connected'] = True
     except socket.error:
-        vpn['socket_connect'] = False
+        vpn['socket_connected'] = False
         return False
-    s.send(command)
+
+    socket_send(s, command)
 
     while 1:
-        socket_data = s.recv(1024)
+        socket_data = socket_recv(s, 1024)
         socket_data = re.sub('>INFO(.)*\r\n', '', socket_data)
         data += socket_data
         if command == 'load-stats\n' and data != '':
             break
         elif data.endswith("\nEND\r\n"):
             break
-    s.send('quit\n')
+
+    socket_send(s, 'quit\n')
+
     s.close()
 
     if args.debug:
@@ -350,7 +378,7 @@ def openvpn_print_html(vpn):
     elif vpn_type == 'tap':
         connection_table_headers(tap_headers)
 
-    for key, session in vpn_sessions.items():
+    for key, session in list(vpn_sessions.items()):
         print('<tr>')
         if vpn_type == 'tap':
             print('<td>{0!s}</td>'.format(session['tuntap_read']))
@@ -409,7 +437,7 @@ def google_maps_js(vpns, loc_lat, loc_long):
     print('var markers = new Array();')
     for key, vpn in vpns:
         if 'sessions' in vpn:
-            for skey, session in vpn['sessions'].items():
+            for skey, session in list(vpn['sessions'].items()):
                 if 'longitude' in session and 'latitude' in session:
                     print('var latlng = new google.maps.LatLng({0!s}, {1!s});'.format(session['latitude'], session['longitude']))
                     print('bounds.extend(latlng);')
@@ -507,11 +535,11 @@ def main(args):
 
     settings, vpns = get_config(args.config)
 
-    for key, vpn in vpns.items():
+    for key, vpn in list(vpns.items()):
 
         data = openvpn_connect(vpn, 'state\n')
 
-        if vpn['socket_connect']:
+        if vpn['socket_connected']:
 
             state = openvpn_parse_state(data)
             vpns[key]['state'] = state
@@ -529,10 +557,10 @@ def main(args):
     else:
         maps = False
 
-    html_header(settings, vpns.items(), maps)
+    html_header(settings, list(vpns.items()), maps)
 
-    for key, vpn in vpns.items():
-        if vpn['socket_connect']:
+    for key, vpn in list(vpns.items()):
+        if vpn['socket_connected']:
             openvpn_print_html(vpn)
         else:
             anchor = vpn['name'].lower().replace(' ', '_')
