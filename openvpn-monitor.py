@@ -373,7 +373,7 @@ def openvpn_print_html(vpn):
 def google_maps_js(vpns, loc_lat, loc_long):
 
     sessions = 0
-    print '<script type="text/javascript" src="https://maps.google.com/maps/api/js?sensor=true"></script>'
+    print '<script type="text/javascript" src="https://maps.google.com/maps/api/js"></script>'
     print '<script type="text/javascript">'
     print 'function initialize() {'
     print 'var bounds = new google.maps.LatLngBounds();'
