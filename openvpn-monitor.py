@@ -318,7 +318,18 @@ def openvpn_parse_status(data):
     return sessions
 
 
-def connection_table_headers(headers):
+def session_table_headers(vpn_type):
+
+    tun_headers = ['Username / Hostname', 'VPN IP Address',
+                   'Remote IP Address', 'Port', 'Location', 'Bytes In',
+                   'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
+    tap_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
+                   'TCP-UDP-Write', 'Auth-Read']
+
+    if vpn_type == 'tap':
+        headers = tap_headers
+    elif vpn_type == 'tun':
+        headers = tun_headers
 
     print('<table class="table table-striped table-bordered table-hover ')
     print('table-condensed table-responsive">')
@@ -367,16 +378,8 @@ def openvpn_print_html(vpn):
         print('<td>{0!s}</td>'.format(remote_ip))
     print('</tr></tbody></table>')
 
-    tun_headers = ['Username / Hostname', 'VPN IP Address',
-                   'Remote IP Address', 'Port', 'Location', 'Bytes In',
-                   'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
-    tap_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
-                   'TCP-UDP-Write', 'Auth-Read']
-
-    if vpn_type == 'tun':
-        connection_table_headers(tun_headers)
-    elif vpn_type == 'tap':
-        connection_table_headers(tap_headers)
+    if int(nclients) > 0:
+        session_table_headers(vpn_type)
 
     for key, session in list(vpn_sessions.items()):
         print('<tr>')
