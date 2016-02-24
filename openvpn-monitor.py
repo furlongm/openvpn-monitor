@@ -484,21 +484,11 @@ def html_header(settings, vpns, maps):
     print '<div class="container-fluid">'
 
 
-def sort_dict(adict):
-
-    keys = adict.keys()
-    keys.sort()
-
-    return map(adict.get, keys)
-
-
 def main(args):
 
     global debug
     debug = args.debug
     settings, vpns = get_config(args.config)
-
-    sort_dict(vpns)
 
     for key, vpn in vpns.items():
 
