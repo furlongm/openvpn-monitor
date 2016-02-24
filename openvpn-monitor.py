@@ -71,7 +71,7 @@ def parse_global_section(config):
             pass
 
     if debug:
-        print "=== begin section\n%s\n=== end section" % tmp
+        print "=== begin section\n{0!s}\n=== end section".format(tmp)
 
     return tmp
 
@@ -87,13 +87,13 @@ def parse_vpn_section(config, section):
         try:
             tmp[option] = config.get(section, option)
             if tmp[option] == -1:
-                print('CONFIG: skipping %s' % option)
+                print('CONFIG: skipping {0!s}'.format(option))
         except:
-            print('CONFIG: exception on %s' % option)
+            print('CONFIG: exception on {0!s}'.format(option))
             tmp[option] = None
 
     if debug:
-        print "=== begin section\n%s\n=== end section" % tmp
+        print "=== begin section\n{0!s}\n=== end section".format(tmp)
 
     return tmp
 
@@ -127,7 +127,7 @@ def openvpn_connect(vpn, command):
     s.close()
 
     if debug:
-        print "=== begin raw data\n%s\n=== end raw data" % data
+        print "=== begin raw data\n{0!s}\n=== end raw data".format(data)
 
     return data
 
@@ -141,7 +141,7 @@ def openvpn_parse_state(data):
     for line in data.splitlines():
         tmp = line.split(',')
         if debug:
-            print "=== begin split line\n%s\n=== end split line" % tmp
+            print "=== begin split line\n{0!s}\n=== end split line".format(tmp)
         if tmp[0].startswith('>INFO') or \
            tmp[0].startswith('END') or \
            tmp[0].startswith('>CLIENT'):
@@ -171,7 +171,7 @@ def openvpn_parse_stats(data):
     tmp = line.split(',')
 
     if debug:
-        print "=== begin split line\n%s\n=== end split line" % tmp
+        print "=== begin split line\n{0!s}\n=== end split line".format(tmp)
 
     stats['nclients'] = re.sub('nclients=', '', tmp[0])
     stats['bytesin'] = re.sub('bytesin=', '', tmp[1])
@@ -199,7 +199,7 @@ def openvpn_parse_status(data):
             tmp = line.split('\t')
 
         if debug:
-            print "=== begin split line\n%s\n=== end split line" % tmp
+            print "=== begin split line\n{0!s}\n=== end split line".format(tmp)
 
         if tmp[0].startswith('GLOBAL'):
             break
@@ -280,7 +280,7 @@ def openvpn_parse_status(data):
                 sessions[tmp[3]]['last_seen'] = get_date(tmp[4])
 
     if debug and sessions:
-        print "=== begin sessions\n%s\n=== end sessions" % sessions
+        print "=== begin sessions\n{0!s}\n=== end sessions".format(sessions)
 
     return sessions
 
@@ -291,7 +291,7 @@ def connection_table_headers(headers):
     print 'table-condensed table-responsive">'
     print '<thead><tr>'
     for header in headers:
-        print '<th>%s</th>' % header
+        print '<th>{0!s}</th>'.format(header)
     print '</tr></thead><tbody>'
 
 
@@ -312,9 +312,9 @@ def openvpn_print_html(vpn):
     remote_ip = vpn['state']['remote_ip']
 
     anchor = vpn['name'].lower().replace(' ', '_')
-    print '<div class="panel panel-success" id="%s">' % anchor
-    print '<div class="panel-heading"><h3 class="panel-title">%s</h3>' % \
-        vpn['name']
+    print '<div class="panel panel-success" id="{0!s}">'.format(anchor)
+    print '<div class="panel-heading"><h3 class="panel-title">{0!s}</h3>'.format( \
+        vpn['name'])
     print '</div><div class="panel-body">'
     print '<table class="table table-condensed table-responsive">'
     print '<thead><tr><th>VPN Type</th><th>Status</th><th>Pingable</th>'
@@ -323,15 +323,15 @@ def openvpn_print_html(vpn):
     if vpn_type == 'tap':
         print '<th>Remote IP Address</th>'
     print '</tr></thead><tbody>'
-    print '<tr><td>%s</td>' % vpn_type
-    print '<td>%s</td>' % connection
-    print '<td>%s</td>' % pingable
-    print '<td>%s</td>' % nclients
-    print '<td>%s (%s)</td>' % (bytesin, naturalsize(bytesin, binary=True))
-    print '<td>%s (%s)</td>' % (bytesout, naturalsize(bytesout, binary=True))
-    print '<td>%s</td>' % local_ip
+    print '<tr><td>{0!s}</td>'.format(vpn_type)
+    print '<td>{0!s}</td>'.format(connection)
+    print '<td>{0!s}</td>'.format(pingable)
+    print '<td>{0!s}</td>'.format(nclients)
+    print '<td>{0!s} ({1!s})</td>'.format(bytesin, naturalsize(bytesin, binary=True))
+    print '<td>{0!s} ({1!s})</td>'.format(bytesout, naturalsize(bytesout, binary=True))
+    print '<td>{0!s}</td>'.format(local_ip)
     if vpn_type == 'tap':
-        print '<td>%s</td>' % remote_ip
+        print '<td>{0!s}</td>'.format(remote_ip)
     print '</tr></tbody></table>'
 
     tun_headers = ['Username / Hostname', 'VPN IP Address',
@@ -348,46 +348,43 @@ def openvpn_print_html(vpn):
     for key, session in vpn_sessions.items():
         print '<tr>'
         if vpn_type == 'tap':
-            print '<td>%s</td>' % session['tuntap_read']
-            print '<td>%s</td>' % session['tuntap_write']
-            print '<td>%s</td>' % session['tcpudp_read']
-            print '<td>%s</td>' % session['tcpudp_write']
-            print '<td>%s</td>' % session['auth_read']
+            print '<td>{0!s}</td>'.format(session['tuntap_read'])
+            print '<td>{0!s}</td>'.format(session['tuntap_write'])
+            print '<td>{0!s}</td>'.format(session['tcpudp_read'])
+            print '<td>{0!s}</td>'.format(session['tcpudp_write'])
+            print '<td>{0!s}</td>'.format(session['auth_read'])
         else:
             total_time = str(datetime.now() - session['connected_since'])[:-7]
             bytes_recv = session['bytes_recv']
             bytes_sent = session['bytes_sent']
-            print '<td>%s</td>' % session['username']
+            print '<td>{0!s}</td>'.format(session['username'])
 
             if 'local_ip' in session:
-                print '<td>%s</td>' % session['local_ip']
+                print '<td>{0!s}</td>'.format(session['local_ip'])
             else:
                 print '<td>ERROR</td>'
-            print '<td>%s</td>' % session['remote_ip']
-            print '<td>%s</td>' % session['port']
+            print '<td>{0!s}</td>'.format(session['remote_ip'])
+            print '<td>{0!s}</td>'.format(session['port'])
 
             if 'city' in session and 'country_name' in session:
                 country = session['country_name']
                 city = session['city']
-                flag = 'flags/%s.png' % session['country'].lower()
-                print '<td><img src="%s" title="%s, %s" alt="%s" /> ' % \
-                    (flag, city, country, country)
-                print '%s, %s</td>' % (city, country)
+                flag = 'flags/{0!s}.png'.format(session['country'].lower())
+                print '<td><img src="{0!s}" title="{1!s}, {2!s}" alt="{3!s}" /> '.format(flag, city, country, country)
+                print '{0!s}, {1!s}</td>'.format(city, country)
             else:
-                print '<td>%s</td>' % session['country']
+                print '<td>{0!s}</td>'.format(session['country'])
 
-            print '<td>%s (%s)</td>' % \
-                (bytes_recv, naturalsize(bytes_recv, binary=True))
-            print '<td>%s (%s)</td>' % \
-                (bytes_sent, naturalsize(bytes_sent, binary=True))
-            print '<td>%s</td>' % \
-                str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))
+            print '<td>{0!s} ({1!s})</td>'.format(bytes_recv, naturalsize(bytes_recv, binary=True))
+            print '<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True))
+            print '<td>{0!s}</td>'.format( \
+                str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S')))
             if 'last_seen' in session:
-                print '<td>%s</td>' % \
-                    str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))
+                print '<td>{0!s}</td>'.format( \
+                    str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S')))
             else:
                 print '<td>ERROR</td>'
-            print '<td>%s</td>' % total_time
+            print '<td>{0!s}</td>'.format(total_time)
         print '</tr>'
     print '</tbody></table></div></div>'
 
@@ -405,16 +402,14 @@ def google_maps_js(vpns, loc_lat, loc_long):
         if 'sessions' in vpn:
             for skey, session in vpn['sessions'].items():
                 if 'longitude' in session and 'latitude' in session:
-                    print 'var latlng = new google.maps.LatLng(%s, %s);' % \
-                        (session['latitude'], session['longitude'])
+                    print 'var latlng = new google.maps.LatLng({0!s}, {1!s});'.format(session['latitude'], session['longitude'])
                     print 'bounds.extend(latlng);'
-                    marker = '{position: latlng, title: "%s - %s"}' % \
-                        (session['username'], session['remote_ip'])
-                    print 'markers.push(new google.maps.Marker(%s));' % marker
+                    marker = '{{position: latlng, title: "{0!s} - {1!s}"}}'.format(session['username'], session['remote_ip'])
+                    print 'markers.push(new google.maps.Marker({0!s}));'.format(marker)
                     sessions = sessions + 1
     if sessions != 0:
         if sessions == 1:
-            print 'bounds.extend(new google.maps.LatLng(%s, %s));' % (loc_lat, loc_long)
+            print 'bounds.extend(new google.maps.LatLng({0!s}, {1!s}));'.format(loc_lat, loc_long)
         print 'var myOptions = { zoom: 8, mapTypeId: google.maps.MapTypeId.ROADMAP };'
         print 'var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);'
         print 'map.fitBounds(bounds);'
@@ -422,7 +417,7 @@ def google_maps_js(vpns, loc_lat, loc_long):
         print '}'
         print '</script>'
     else:
-        print 'var latlng = new google.maps.LatLng(%s, %s);' % (loc_lat, loc_long)
+        print 'var latlng = new google.maps.LatLng({0!s}, {1!s});'.format(loc_lat, loc_long)
         print 'var myOptions = { zoom: 8, center: latlng, mapTypeId: google.maps.MapTypeId.ROADMAP };'
         print 'var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);'
         print '}'
@@ -453,7 +448,7 @@ def html_header(settings, vpns, maps):
     print '<meta charset="utf-8">'
     print '<meta http-equiv="X-UA-Compatible" content="IE=edge">'
     print '<meta name="viewport" content="width=device-width, initial-scale=1">'
-    print '<title>%s OpenVPN Status Monitor</title>' % settings['site']
+    print '<title>{0!s} OpenVPN Status Monitor</title>'.format(settings['site'])
     print '<meta http-equiv="refresh" content="300" />'
 
     if maps:
@@ -477,10 +472,10 @@ def html_header(settings, vpns, maps):
     if 'logo' in settings:
         print '<a href="#" class="pull-left"><img alt="logo" '
         print 'style="max-height:50px; padding-right: 10px" '
-        print 'src="%s"></a>' % settings['logo']
+        print 'src="{0!s}"></a>'.format(settings['logo'])
 
     print '<a class="navbar-brand" href="#">'
-    print '%s OpenVPN Status Monitor</a>' % settings['site']
+    print '{0!s} OpenVPN Status Monitor</a>'.format(settings['site'])
     print '</div><div class="collapse navbar-collapse" id="myNavbar">'
     print '<ul class="nav navbar-nav"><li class="dropdown">'
     print '<a class="dropdown-toggle" data-toggle="dropdown" href="#">VPN'
@@ -490,7 +485,7 @@ def html_header(settings, vpns, maps):
     for key, vpn in vpns:
         if vpn['name']:
             anchor = vpn['name'].lower().replace(' ', '_')
-            print '<li><a href="#%s">%s</a></li>' % (anchor, vpn['name'])
+            print '<li><a href="#{0!s}">{1!s}</a></li>'.format(anchor, vpn['name'])
 
     print '</ul></li><li><a href="#map_canvas">Map View</a></li></ul></div>'
     print '</div></nav>'
@@ -532,23 +527,22 @@ def main(args):
             openvpn_print_html(vpn)
         else:
             anchor = vpn['name'].lower().replace(' ', '_')
-            print '<div class="panel panel-danger" id="%s">' % anchor
+            print '<div class="panel panel-danger" id="{0!s}">'.format(anchor)
             print '<div class="panel-heading">'
-            print '<h3 class="panel-title">%s</h3></div>' % vpn['name']
+            print '<h3 class="panel-title">{0!s}</h3></div>'.format(vpn['name'])
             print '<div class="panel-body">'
-            print 'Connection refused to %s:%s </div></div>' % \
-                (vpn['host'], vpn['port'])
+            print 'Connection refused to {0!s}:{1!s} </div></div>'.format(vpn['host'], vpn['port'])
 
     if maps:
         google_maps_html()
 
     if debug:
-        print "=== begin vpns\n%s\n=== end vpns" % vpns
+        print "=== begin vpns\n{0!s}\n=== end vpns".format(vpns)
 
     print '<div class="well">'
     print 'Page automatically reloads every 5 minutes.'
-    print 'Last update: <b>%s</b></div>' % \
-        datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')
+    print 'Last update: <b>{0!s}</b></div>'.format( \
+        datetime.now().strftime('%a %d/%m/%Y %H:%M:%S'))
     print '</div></body></html>'
 
 
