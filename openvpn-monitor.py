@@ -316,7 +316,7 @@ def openvpn_print_html(vpn):
 
     anchor = vpn['name'].lower().replace(' ', '_')
     print('<div class="panel panel-success" id="{0!s}">'.format(anchor))
-    print('<div class="panel-heading"><h3 class="panel-title">{0!s}</h3>'.format( \
+    print('<div class="panel-heading"><h3 class="panel-title">{0!s}</h3>'.format(
         vpn['name']))
     print('</div><div class="panel-body">')
     print('<table class="table table-condensed table-responsive">')
@@ -384,10 +384,10 @@ def openvpn_print_html(vpn):
 
             print('<td>{0!s} ({1!s})</td>'.format(bytes_recv, naturalsize(bytes_recv, binary=True)))
             print('<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True)))
-            print('<td>{0!s}</td>'.format( \
+            print('<td>{0!s}</td>'.format(
                 str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))))
             if 'last_seen' in session:
-                print('<td>{0!s}</td>'.format( \
+                print('<td>{0!s}</td>'.format(
                     str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))))
             else:
                 print('<td>ERROR</td>')
@@ -550,7 +550,7 @@ def main(args):
 
     print('<div class="well">')
     print('Page automatically reloads every 5 minutes.')
-    print('Last update: <b>{0!s}</b></div>'.format( \
+    print('Last update: <b>{0!s}</b></div>'.format(
         datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')))
     print('</div></body></html>')
 
