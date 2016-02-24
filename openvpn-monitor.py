@@ -432,7 +432,7 @@ def google_maps_html():
 
     print '<div class="panel panel-primary"><div class="panel-heading">'
     print '<h3 class="panel-title">Map View</h3></div><div class="panel-body">'
-    print '<div id="map_canvas" style="height:400px"></div></div></div>'
+    print '<div id="map_canvas" style="height:500px"></div></div></div>'
 
 
 def html_header(settings, vpns, maps):
@@ -474,11 +474,6 @@ def html_header(settings, vpns, maps):
     print '<span class="icon-bar"></span>'
     print '</button>'
 
-    if 'logo' in settings:
-        print '<a href="#" class="pull-left"><img alt="logo" '
-        print 'style="max-height:50px; padding-right: 10px" '
-        print 'src="{0!s}"></a>'.format(settings['logo'])
-
     print '<a class="navbar-brand" href="#">'
     print '{0!s} OpenVPN Status Monitor</a>'.format(settings['site'])
     print '</div><div class="collapse navbar-collapse" id="myNavbar">'
@@ -492,8 +487,14 @@ def html_header(settings, vpns, maps):
             anchor = vpn['name'].lower().replace(' ', '_')
             print '<li><a href="#{0!s}">{1!s}</a></li>'.format(anchor, vpn['name'])
 
-    print '</ul></li><li><a href="#map_canvas">Map View</a></li></ul></div>'
-    print '</div></nav>'
+    print '</ul></li><li><a href="#map_canvas">Map View</a></li></ul>'
+
+    if 'logo' in settings:
+        print '<a href="#" class="pull-right"><img alt="logo" '
+        print 'style="max-height:46px; padding-top:3px;" '
+        print 'src="{0!s}"></a>'.format(settings['logo'])
+
+    print '</div></div></nav>'
     print '<div class="container-fluid">'
 
 
