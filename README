@@ -18,7 +18,7 @@ The example configuration file should give some indication of how to set site
 name, add a logo, etc. You can also set the default location (latitude and
 longitude) for google maps. If not set, it will default to Melbourne, Australia.
 
-It can be run from the command line to test the html is generating correctly.
+It can be run from the command line to test if the html generates correctly.
 
 To run under apache, mod_python will need to be enabled (a2enmod python), and
 a cgi-script handler added for .py files for the virtualhost/directory you are
@@ -27,21 +27,22 @@ using, e.g.
         AddHandler cgi-script .py
 
 
-Quick Install on Debian/Ubuntu:
--------------------------------
+Quick Install on Debian 8
+-------------------------
 
-cd /var/www
+apt-get install libapache2-mod-python python-geoip python-ipaddr \
+python-humanize apache2 git
+cd /var/www/html
 git clone https://github.com/furlongm/openvpn-monitor.git
-aptitude install libapache2-mod-python python-geoip python-ipaddr
 a2enmod python
 
-add the following to /etc/apache2/sites-enabled/000-default
+Add the following to /etc/apache2/sites-enabled/000-default.conf
 
-    <Directory "/var/www/openvpn-monitor">
-        Options +ExecCGI
-        AddHandler cgi-script .py
-        DirectoryIndex openvpn-monitor.py
-    </Directory>
+        <Directory "/var/www/html/openvpn-monitor">
+            Options +ExecCGI
+            AddHandler cgi-script .py
+            DirectoryIndex openvpn-monitor.py
+        </Directory>
 
 /etc/init.d/apache2 restart
 
@@ -50,11 +51,15 @@ wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz
 gunzip GeoLiteCity.dat.gz
 mv GeoLiteCity.dat GeoIPCity.dat
 
+Edit /var/www/openvpn.cfg to match your site and navigate to
+
+   http://myipaddress/openvpn-monitor
+
 
 LICENSE
 -------
 
-This software is licensed under the GPL, v3, a copy of which can be found in
+This software is licensed under the GPLv3, a copy of which can be found in
 the COPYING file.
 
 Flags are created by Matthias Slovig (flags@slovig.de) and are licensed under
