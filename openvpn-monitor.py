@@ -104,11 +104,11 @@ def openvpn_connect(vpn, command):
 
     host = vpn['host']
     port = int(vpn['port'])
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    timeout = 3
     data = ''
 
     try:
-        s.connect((host, port))
+        s = socket.create_connection((host, port), timeout)
         vpn['socket_connect'] = True
     except socket.error:
         vpn['socket_connect'] = False
