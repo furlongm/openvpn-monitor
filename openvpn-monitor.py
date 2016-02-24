@@ -13,6 +13,7 @@ import argparse
 from datetime import datetime
 import GeoIP
 from ipaddr import IPv4Address
+from humanize import naturalsize
 
 
 def get_config(config_file):
@@ -326,16 +327,16 @@ def openvpn_print_html(vpn):
     print '<td>%s</td>' % connection
     print '<td>%s</td>' % pingable
     print '<td>%s</td>' % nclients
-    print '<td>%s</td>' % bytesin
-    print '<td>%s</td>' % bytesout
+    print '<td>%s (%s)</td>' % (bytesin, naturalsize(bytesin, binary=True))
+    print '<td>%s (%s)</td>' % (bytesout, naturalsize(bytesout, binary=True))
     print '<td>%s</td>' % local_ip
     if vpn_type == 'tap':
         print '<td>%s</td>' % remote_ip
     print '</tr></tbody></table>'
 
     tun_headers = ['Username / Hostname', 'VPN IP Address',
-                   'Remote IP Address', 'Port', 'Location', 'Recv', 'Sent',
-                   'Connected Since', 'Last Ping', 'Time Online']
+                   'Remote IP Address', 'Port', 'Location', 'Bytes In',
+                   'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
     tap_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
                    'TCP-UDP-Write', 'Auth-Read']
 
@@ -354,8 +355,8 @@ def openvpn_print_html(vpn):
             print '<td>%s</td>' % locale.format('%d', int(session['auth_read']), True)
         else:
             total_time = str(datetime.now() - session['connected_since'])[:-7]
-            bytes_recv = int(session['bytes_recv'])
-            bytes_sent = int(session['bytes_sent'])
+            bytes_recv = session['bytes_recv']
+            bytes_sent = session['bytes_sent']
             print '<td>%s</td>' % session['username']
 
             if 'local_ip' in session:
@@ -375,8 +376,9 @@ def openvpn_print_html(vpn):
             else:
                 print '<td>%s</td>' % session['country']
 
-            print '<td>%s</td>' % locale.format('%d', bytes_recv, True)
-            print '<td>%s</td>' % locale.format('%d', bytes_sent, True)
+
+            print '<td>%s (%s)</td>' % (bytes_recv, naturalsize(bytes_recv, binary=True))
+            print '<td>%s (%s)</td>' % (bytes_sent, naturalsize(bytes_sent, binary=True))
             print '<td>%s</td>' % str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))
             if 'last_seen' in session:
                 print '<td>%s</td>' % str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))
