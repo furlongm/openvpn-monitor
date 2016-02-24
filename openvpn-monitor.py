@@ -379,7 +379,7 @@ def google_maps_js(vpns, loc_lat, loc_long):
     print 'function initialize() {'
     print 'var bounds = new google.maps.LatLngBounds();'
     print 'var markers = new Array();'
-    for vkey, vpn in vpns:
+    for key, vpn in vpns:
         if 'sessions' in vpn:
             for skey, session in vpn['sessions'].items():
                 if 'longitude' in session and 'latitude' in session:
