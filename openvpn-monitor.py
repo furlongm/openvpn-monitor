@@ -178,7 +178,7 @@ def openvpn_parse_stats(data):
 
     stats['nclients'] = re.sub('nclients=', '', tmp[0])
     stats['bytesin'] = re.sub('bytesin=', '', tmp[1])
-    stats['bytesout'] = re.sub('bytesout=', '', tmp[2])
+    stats['bytesout'] = re.sub('bytesout=', '', tmp[2]).replace('\r\n', '')
 
     return stats
 
