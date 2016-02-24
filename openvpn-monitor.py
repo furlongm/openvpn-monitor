@@ -53,13 +53,17 @@ def socket_recv(s, length):
         return s.recv(length).decode('utf-8')
 
 
-def get_config(config_file):
+def get_date(string):
+    return datetime.strptime(string, "%a %b %d %H:%M:%S %Y")
+
+
+def cfg_load(config_file):
 
     config = configparser.RawConfigParser()
     data = config.read(config_file)
     if not data:
         print('Config file does not exist or is unreadable')
-        return default_settings()
+        return cfg_default_settings()
 
     vpns = OrderedDict()
     settings = {}
@@ -68,22 +72,17 @@ def get_config(config_file):
         sections = config.sections()
         for section in sections:
             if section == 'OpenVPN-Monitor':
-                settings = parse_global_section(config)
+                settings = cfg_parse_global_section(config)
             else:
-                vpns[section] = parse_vpn_section(config, section)
+                vpns[section] = cfg_parse_vpn_section(config, section)
     except:
         warning('Syntax error reading config file')
-        return default_settings()
+        return cfg_default_settings()
 
     return settings, vpns
 
 
-def get_date(string):
-
-    return datetime.strptime(string, "%a %b %d %H:%M:%S %Y")
-
-
-def default_settings():
+def cfg_default_settings():
 
     warning('Using default settings => localhost:5555')
 
@@ -95,10 +94,10 @@ def default_settings():
     return settings, vpns
 
 
-def parse_global_section(config):
+def cfg_parse_global_section(config):
 
     tmp = {}
-    vars = ['site', 'logo', 'lat', 'long', 'maps']
+    vars = ['site', 'logo', 'latitude', 'longitude', 'maps']
 
     for var in vars:
         try:
@@ -112,7 +111,7 @@ def parse_global_section(config):
     return tmp
 
 
-def parse_vpn_section(config, section):
+def cfg_parse_vpn_section(config, section):
 
     tmp = {}
     options = config.options(section)
@@ -132,20 +131,29 @@ def parse_vpn_section(config, section):
     return tmp
 
 
-def openvpn_connect(vpn, command):
+def openvpn_connect(vpn):
 
     host = vpn['host']
     port = int(vpn['port'])
     timeout = 3
-    data = ''
 
     try:
         s = socket.create_connection((host, port), timeout)
         vpn['socket_connected'] = True
+        return s
     except socket.error:
         vpn['socket_connected'] = False
         return False
 
+
+def openvpn_disconnect(s):
+    s.close()
+
+
+def openvpn_send_command(vpn, command):
+
+    s = openvpn_connect(vpn)
+    data = ''
     socket_send(s, command)
 
     while 1:
@@ -158,8 +166,7 @@ def openvpn_connect(vpn, command):
             break
 
     socket_send(s, 'quit\n')
-
-    s.close()
+    openvpn_disconnect(s)
 
     if args.debug:
         debug("=== begin raw data\n{0!s}\n=== end raw data".format(data))
@@ -339,6 +346,16 @@ def print_session_table_headers(vpn_type):
     print('</tr></thead><tbody>')
 
 
+def print_unavailable_vpn(vpn):
+
+    anchor = vpn['name'].lower().replace(' ', '_')
+    print('<div class="panel panel-danger" id="{0!s}">'.format(anchor))
+    print('<div class="panel-heading">')
+    print('<h3 class="panel-title">{0!s}</h3></div>'.format(vpn['name']))
+    print('<div class="panel-body">')
+    print('Connection refused to {0!s}:{1!s} </div></div>'.format(vpn['host'], vpn['port']))
+
+
 def print_vpn(vpn):
 
     if vpn['state']['success'] == 'SUCCESS':
@@ -386,6 +403,7 @@ def print_vpn(vpn):
 
 
 def print_tap_session(session):
+
     print('<td>{0!s}</td>'.format(session['tuntap_read']))
     print('<td>{0!s}</td>'.format(session['tuntap_write']))
     print('<td>{0!s}</td>'.format(session['tcpudp_read']))
@@ -394,6 +412,7 @@ def print_tap_session(session):
 
 
 def print_tun_session(session):
+
     total_time = str(datetime.now() - session['connected_since'])[:-7]
     bytes_recv = session['bytes_recv']
     bytes_sent = session['bytes_sent']
@@ -442,7 +461,7 @@ def print_session_table(vpn_type, sessions):
         print('</tr>')
 
 
-def google_maps_js(vpns, loc_lat, loc_long):
+def print_google_maps_js(vpns, latitude, longitude):
 
     sessions = 0
     print('<script type="text/javascript" ')
@@ -462,7 +481,7 @@ def google_maps_js(vpns, loc_lat, loc_long):
                     sessions = sessions + 1
     if sessions != 0:
         if sessions == 1:
-            print('bounds.extend(new google.maps.LatLng({0!s}, {1!s}));'.format(loc_lat, loc_long))
+            print('bounds.extend(new google.maps.LatLng({0!s}, {1!s}));'.format(latitude, longitude))
         print('var myOptions = { zoom: 8, mapTypeId: google.maps.MapTypeId.ROADMAP };')
         print('var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);')
         print('map.fitBounds(bounds);')
@@ -470,30 +489,21 @@ def google_maps_js(vpns, loc_lat, loc_long):
         print('}')
         print('</script>')
     else:
-        print('var latlng = new google.maps.LatLng({0!s}, {1!s});'.format(loc_lat, loc_long))
+        print('var latlng = new google.maps.LatLng({0!s}, {1!s});'.format(latitude, longitude))
         print('var myOptions = { zoom: 8, center: latlng, mapTypeId: google.maps.MapTypeId.ROADMAP };')
         print('var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);')
         print('}')
         print('</script>')
 
 
-def google_maps_html():
+def print_google_maps_html():
 
-    print('<div class="panel panel-primary"><div class="panel-heading">')
+    print('<div class="panel panel-info"><div class="panel-heading">')
     print('<h3 class="panel-title">Map View</h3></div><div class="panel-body">')
     print('<div id="map_canvas" style="height:500px"></div></div></div>')
 
 
-def html_header(settings, vpns, maps):
-
-    if 'lat' in settings:
-        loc_lat = settings['lat']
-    else:
-        loc_lat = -37.8067
-    if 'long' in settings:
-        loc_long = settings['long']
-    else:
-        loc_long = 144.9635
+def print_html_header(site, logo, vpns, maps, latitude, longitude):
 
     print("Content-Type: text/html\n")
     print('<!doctype html>')
@@ -501,11 +511,11 @@ def html_header(settings, vpns, maps):
     print('<meta charset="utf-8">')
     print('<meta http-equiv="X-UA-Compatible" content="IE=edge">')
     print('<meta name="viewport" content="width=device-width, initial-scale=1">')
-    print('<title>{0!s} OpenVPN Status Monitor</title>'.format(settings['site']))
+    print('<title>{0!s} OpenVPN Status Monitor</title>'.format(site))
     print('<meta http-equiv="refresh" content="300" />')
 
     if maps:
-        google_maps_js(vpns, loc_lat, loc_long)
+        print_google_maps_js(vpns, latitude, longitude)
 
     print('<script src="//code.jquery.com/jquery-1.12.1.min.js"></script>')
     print('<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">')
@@ -524,7 +534,7 @@ def html_header(settings, vpns, maps):
     print('</button>')
 
     print('<a class="navbar-brand" href="#">')
-    print('{0!s} OpenVPN Status Monitor</a>'.format(settings['site']))
+    print('{0!s} OpenVPN Status Monitor</a>'.format(site))
     print('</div><div class="collapse navbar-collapse" id="myNavbar">')
     print('<ul class="nav navbar-nav"><li class="dropdown">')
     print('<a class="dropdown-toggle" data-toggle="dropdown" href="#">VPN')
@@ -538,66 +548,87 @@ def html_header(settings, vpns, maps):
 
     print('</ul></li><li><a href="#map_canvas">Map View</a></li></ul>')
 
-    if 'logo' in settings:
+    if logo:
         print('<a href="#" class="pull-right"><img alt="logo" ')
         print('style="max-height:46px; padding-top:3px;" ')
-        print('src="{0!s}"></a>'.format(settings['logo']))
+        print('src="{0!s}"></a>'.format(logo))
 
     print('</div></div></nav>')
     print('<div class="container-fluid">')
 
 
-def main(args):
-
-    settings, vpns = get_config(args.config)
-
-    for key, vpn in list(vpns.items()):
-
-        data = openvpn_connect(vpn, 'state\n')
-
-        if vpn['socket_connected']:
-
-            state = openvpn_parse_state(data)
-            vpns[key]['state'] = state
-
-            data = openvpn_connect(vpn, 'load-stats\n')
-            stats = openvpn_parse_stats(data)
-            vpns[key]['stats'] = stats
-
-            data = openvpn_connect(vpn, 'status\n')
-            sessions = openvpn_parse_status(data)
-            vpns[key]['sessions'] = sessions
-
-    if 'maps' in settings and settings['maps'] == 'True':
-        maps = True
-    else:
-        maps = False
-
-    html_header(settings, list(vpns.items()), maps)
-
-    for key, vpn in list(vpns.items()):
-        if vpn['socket_connected']:
-            print_vpn(vpn)
-        else:
-            anchor = vpn['name'].lower().replace(' ', '_')
-            print('<div class="panel panel-danger" id="{0!s}">'.format(anchor))
-            print('<div class="panel-heading">')
-            print('<h3 class="panel-title">{0!s}</h3></div>'.format(vpn['name']))
-            print('<div class="panel-body">')
-            print('Connection refused to {0!s}:{1!s} </div></div>'.format(vpn['host'], vpn['port']))
-
-    if maps:
-        google_maps_html()
-
-    if args.debug:
-        pretty_vpns = pformat((dict(vpns)))
-        debug("=== begin vpns\n{0!s}\n=== end vpns".format(pretty_vpns))
+def print_html_footer():
 
     print('<div class="well">')
     print('Page automatically reloads every 5 minutes.')
     print('Last update: <b>{0!s}</b></div>'.format(
         datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')))
     print('</div></body></html>')
+
+
+def openvpn_collect_data(vpn):
+
+    state = openvpn_send_command(vpn, 'state\n')
+    vpn['state'] = openvpn_parse_state(state)
+
+    stats = openvpn_send_command(vpn, 'load-stats\n')
+    vpn['stats'] = openvpn_parse_stats(stats)
+
+    status = openvpn_send_command(vpn, 'status\n')
+    vpn['sessions'] = openvpn_parse_status(status)
+
+
+def init_vars(settings):
+
+    site = 'Example'
+    if site in settings:
+        site = settings['site']
+
+    logo = None
+    if logo in settings:
+        logo = settings['logo']
+
+    maps = False
+    if 'maps' in settings and settings['maps'] == 'True':
+        maps = True
+
+    latitude = -37.8067
+    longitude = 144.9635
+    if 'latitude' in settings:
+        latitude = settings['latitude']
+    if 'longitude' in settings:
+        longitude = settings['longitude']
+
+    return site, logo, maps, latitude, longitude
+
+
+def main():
+
+    settings, vpns = cfg_load(args.config)
+    site, logo, maps, latitude, longitude = init_vars(settings)
+
+    for key, vpn in list(vpns.items()):
+        s = openvpn_connect(vpn)
+        if s:
+            openvpn_disconnect(s)
+            openvpn_collect_data(vpn)
+
+    print_html_header(site, logo, list(vpns.items()), maps, latitude, longitude)
+
+    for key, vpn in list(vpns.items()):
+        if vpn['socket_connected']:
+            print_vpn(vpn)
+        else:
+            print_unavailable_vpn(vpn)
+
+    if maps:
+        print_google_maps_html()
+
+    print_html_footer()
+
+    if args.debug:
+        pretty_vpns = pformat((dict(vpns)))
+        debug("=== begin vpns\n{0!s}\n=== end vpns".format(pretty_vpns))
 
 
 def collect_args():
@@ -620,4 +651,4 @@ def collect_args():
 if __name__ == '__main__':
 
     args = collect_args().parse_args()
-    main(args)
+    main()
