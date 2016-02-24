@@ -318,7 +318,7 @@ def openvpn_parse_status(data):
     return sessions
 
 
-def session_table_headers(vpn_type):
+def print_session_table_headers(vpn_type):
 
     tun_headers = ['Username / Hostname', 'VPN IP Address',
                    'Remote IP Address', 'Port', 'Location', 'Bytes In',
@@ -339,7 +339,7 @@ def session_table_headers(vpn_type):
     print('</tr></thead><tbody>')
 
 
-def openvpn_print_html(vpn):
+def print_vpn(vpn):
 
     if vpn['state']['success'] == 'SUCCESS':
         pingable = 'Yes'
@@ -379,54 +379,67 @@ def openvpn_print_html(vpn):
     print('</tr></tbody></table>')
 
     if int(nclients) > 0:
-        session_table_headers(vpn_type)
+        print_session_table_headers(vpn_type)
+        print_session_table(vpn_type, vpn_sessions)
+        print('</tbody></table>')
+    print('</div></div>')
 
-    for key, session in list(vpn_sessions.items()):
+
+def print_tap_session(session):
+    print('<td>{0!s}</td>'.format(session['tuntap_read']))
+    print('<td>{0!s}</td>'.format(session['tuntap_write']))
+    print('<td>{0!s}</td>'.format(session['tcpudp_read']))
+    print('<td>{0!s}</td>'.format(session['tcpudp_write']))
+    print('<td>{0!s}</td>'.format(session['auth_read']))
+
+
+def print_tun_session(session):
+    total_time = str(datetime.now() - session['connected_since'])[:-7]
+    bytes_recv = session['bytes_recv']
+    bytes_sent = session['bytes_sent']
+    print('<td>{0!s}</td>'.format(session['username']))
+
+    if 'local_ip' in session:
+        print('<td>{0!s}</td>'.format(session['local_ip']))
+    else:
+        print('<td>ERROR</td>')
+    print('<td>{0!s}</td>'.format(session['remote_ip']))
+    print('<td>{0!s}</td>'.format(session['port']))
+
+    if 'city' in session and 'country_name' in session:
+        country = session['country_name']
+        city = session['city']
+        if city:
+            location = '{0!s}, {1!s}'.format(city, country)
+        else:
+            location = country
+        flag = 'flags/{0!s}.png'.format(session['country'].lower())
+        print('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, location))
+        print('{0!s}</td>'.format(location))
+    else:
+        print('<td>{0!s}</td>'.format(session['country']))
+
+    print('<td>{0!s} ({1!s})</td>'.format(bytes_recv, naturalsize(bytes_recv, binary=True)))
+    print('<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True)))
+    print('<td>{0!s}</td>'.format(
+        str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))))
+    if 'last_seen' in session:
+        print('<td>{0!s}</td>'.format(
+            str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))))
+    else:
+        print('<td>ERROR</td>')
+    print('<td>{0!s}</td>'.format(total_time))
+
+
+def print_session_table(vpn_type, sessions):
+
+    for key, session in list(sessions.items()):
         print('<tr>')
         if vpn_type == 'tap':
-            print('<td>{0!s}</td>'.format(session['tuntap_read']))
-            print('<td>{0!s}</td>'.format(session['tuntap_write']))
-            print('<td>{0!s}</td>'.format(session['tcpudp_read']))
-            print('<td>{0!s}</td>'.format(session['tcpudp_write']))
-            print('<td>{0!s}</td>'.format(session['auth_read']))
-        else:
-            total_time = str(datetime.now() - session['connected_since'])[:-7]
-            bytes_recv = session['bytes_recv']
-            bytes_sent = session['bytes_sent']
-            print('<td>{0!s}</td>'.format(session['username']))
-
-            if 'local_ip' in session:
-                print('<td>{0!s}</td>'.format(session['local_ip']))
-            else:
-                print('<td>ERROR</td>')
-            print('<td>{0!s}</td>'.format(session['remote_ip']))
-            print('<td>{0!s}</td>'.format(session['port']))
-
-            if 'city' in session and 'country_name' in session:
-                country = session['country_name']
-                city = session['city']
-                if city:
-                    location = '{0!s}, {1!s}'.format(city, country)
-                else:
-                    location = country
-                flag = 'flags/{0!s}.png'.format(session['country'].lower())
-                print('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, location))
-                print('{0!s}</td>'.format(location))
-            else:
-                print('<td>{0!s}</td>'.format(session['country']))
-
-            print('<td>{0!s} ({1!s})</td>'.format(bytes_recv, naturalsize(bytes_recv, binary=True)))
-            print('<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True)))
-            print('<td>{0!s}</td>'.format(
-                str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))))
-            if 'last_seen' in session:
-                print('<td>{0!s}</td>'.format(
-                    str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))))
-            else:
-                print('<td>ERROR</td>')
-            print('<td>{0!s}</td>'.format(total_time))
+            print_tap_session(session)
+        elif vpn_type == 'tun':
+            print_tun_session(session)
         print('</tr>')
-    print('</tbody></table></div></div>')
 
 
 def google_maps_js(vpns, loc_lat, loc_long):
@@ -564,7 +577,7 @@ def main(args):
 
     for key, vpn in list(vpns.items()):
         if vpn['socket_connected']:
-            openvpn_print_html(vpn)
+            print_vpn(vpn)
         else:
             anchor = vpn['name'].lower().replace(' ', '_')
             print('<div class="panel panel-danger" id="{0!s}">'.format(anchor))
