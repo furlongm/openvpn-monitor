@@ -19,7 +19,7 @@ def get_config(config_file):
 
     config = ConfigParser.RawConfigParser()
     data = config.read(config_file)
-    if len(data) == 0:
+    if not data:
         print 'Config file does not exist or is unreadable'
         return default_settings()
 
@@ -278,9 +278,8 @@ def openvpn_parse_status(data):
             if status_version == 3:
                 sessions[tmp[3]]['last_seen'] = get_date(tmp[4])
 
-    if debug:
-        if sessions:
-            print "=== begin sessions\n%s\n=== end sessions" % sessions
+    if debug and sessions:
+        print "=== begin sessions\n%s\n=== end sessions" % sessions
 
     return sessions
 
@@ -341,8 +340,6 @@ def openvpn_print_html(vpn):
             print '<td>%s</td>' % locale.format('%d', int(session['tcpudp_write']), True)
             print '<td>%s</td>' % locale.format('%d', int(session['auth_read']), True)
         else:
-            country = None
-            gir = None
             total_time = str(datetime.now() - session['connected_since'])[:-7]
             bytes_recv = int(session['bytes_recv'])
             bytes_sent = int(session['bytes_sent'])
