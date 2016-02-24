@@ -7,7 +7,6 @@
 
 import socket
 import ConfigParser
-import locale
 import re
 import argparse
 from datetime import datetime
@@ -288,7 +287,8 @@ def openvpn_parse_status(data):
 
 def connection_table_headers(headers):
 
-    print '<table class="table table-striped table-bordered table-hover table-condensed table-responsive">'
+    print '<table class="table table-striped table-bordered table-hover '
+    print 'table-condensed table-responsive">'
     print '<thead><tr>'
     for header in headers:
         print '<th>%s</th>' % header
@@ -348,11 +348,11 @@ def openvpn_print_html(vpn):
     for key, session in vpn_sessions.items():
         print '<tr>'
         if vpn_type == 'tap':
-            print '<td>%s</td>' % locale.format('%d', int(session['tuntap_read']), True)
-            print '<td>%s</td>' % locale.format('%d', int(session['tuntap_write']), True)
-            print '<td>%s</td>' % locale.format('%d', int(session['tcpudp_read']), True)
-            print '<td>%s</td>' % locale.format('%d', int(session['tcpudp_write']), True)
-            print '<td>%s</td>' % locale.format('%d', int(session['auth_read']), True)
+            print '<td>%s</td>' % session['tuntap_read']
+            print '<td>%s</td>' % session['tuntap_write']
+            print '<td>%s</td>' % session['tcpudp_read']
+            print '<td>%s</td>' % session['tcpudp_write']
+            print '<td>%s</td>' % session['auth_read']
         else:
             total_time = str(datetime.now() - session['connected_since'])[:-7]
             bytes_recv = session['bytes_recv']
@@ -370,18 +370,21 @@ def openvpn_print_html(vpn):
                 country = session['country_name']
                 city = session['city']
                 flag = 'flags/%s.png' % session['country'].lower()
-                print '<td><img src="%s" title="%s, %s" alt="%s" />' % \
+                print '<td><img src="%s" title="%s, %s" alt="%s" /> ' % \
                     (flag, city, country, country)
-                print ' %s, %s</td>' % (city, country)
+                print '%s, %s</td>' % (city, country)
             else:
                 print '<td>%s</td>' % session['country']
 
-
-            print '<td>%s (%s)</td>' % (bytes_recv, naturalsize(bytes_recv, binary=True))
-            print '<td>%s (%s)</td>' % (bytes_sent, naturalsize(bytes_sent, binary=True))
-            print '<td>%s</td>' % str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))
+            print '<td>%s (%s)</td>' % \
+                (bytes_recv, naturalsize(bytes_recv, binary=True))
+            print '<td>%s (%s)</td>' % \
+                (bytes_sent, naturalsize(bytes_sent, binary=True))
+            print '<td>%s</td>' % \
+                str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))
             if 'last_seen' in session:
-                print '<td>%s</td>' % str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))
+                print '<td>%s</td>' % \
+                    str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))
             else:
                 print '<td>ERROR</td>'
             print '<td>%s</td>' % total_time
@@ -392,7 +395,8 @@ def openvpn_print_html(vpn):
 def google_maps_js(vpns, loc_lat, loc_long):
 
     sessions = 0
-    print '<script type="text/javascript" src="https://maps.google.com/maps/api/js"></script>'
+    print '<script type="text/javascript" '
+    print 'src="https://maps.google.com/maps/api/js"></script>'
     print '<script type="text/javascript">'
     print 'function initialize() {'
     print 'var bounds = new google.maps.LatLngBounds();'
@@ -404,8 +408,9 @@ def google_maps_js(vpns, loc_lat, loc_long):
                     print 'var latlng = new google.maps.LatLng(%s, %s);' % \
                         (session['latitude'], session['longitude'])
                     print 'bounds.extend(latlng);'
-                    print 'markers.push(new google.maps.Marker({position: latlng, title: "%s - %s"}));' % \
+                    marker = '{position: latlng, title: "%s - %s"}' % \
                         (session['username'], session['remote_ip'])
+                    print 'markers.push(new google.maps.Marker(%s));' % marker
                     sessions = sessions + 1
     if sessions != 0:
         if sessions == 1:
@@ -462,17 +467,24 @@ def html_header(settings, vpns, maps):
     print '<nav class="navbar navbar-inverse">'
     print '<div class="container-fluid">'
     print '<div class="navbar-header">'
-    print '<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#myNavbar">'
-    print '<span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span>'
+    print '<button type="button" class="navbar-toggle" '
+    print 'data-toggle="collapse" data-target="#myNavbar">'
+    print '<span class="icon-bar"></span>'
+    print '<span class="icon-bar"></span>'
+    print '<span class="icon-bar"></span>'
     print '</button>'
 
     if 'logo' in settings:
-        print '<a href="#" class="pull-left"><img alt="logo" style="max-height:50px; padding-right: 10px" src="%s"></a>' % settings['logo']
+        print '<a href="#" class="pull-left"><img alt="logo" '
+        print 'style="max-height:50px; padding-right: 10px" '
+        print 'src="%s"></a>' % settings['logo']
 
-    print '<a class="navbar-brand" href="#">%s OpenVPN Status Monitor</a>' % settings['site']
+    print '<a class="navbar-brand" href="#">'
+    print '%s OpenVPN Status Monitor</a>' % settings['site']
     print '</div><div class="collapse navbar-collapse" id="myNavbar">'
     print '<ul class="nav navbar-nav"><li class="dropdown">'
-    print '<a class="dropdown-toggle" data-toggle="dropdown" href="#">VPN<span class="caret"></span></a>'
+    print '<a class="dropdown-toggle" data-toggle="dropdown" href="#">VPN'
+    print '<span class="caret"></span></a>'
     print '<ul class="dropdown-menu">'
 
     for key, vpn in vpns:
@@ -480,7 +492,8 @@ def html_header(settings, vpns, maps):
             anchor = vpn['name'].lower().replace(' ', '_')
             print '<li><a href="#%s">%s</a></li>' % (anchor, vpn['name'])
 
-    print '</ul></li><li><a href="#map_canvas">Map View</a></li></ul></div></div></nav>'
+    print '</ul></li><li><a href="#map_canvas">Map View</a></li></ul></div>'
+    print '</div></nav>'
     print '<div class="container-fluid">'
 
 
@@ -532,7 +545,9 @@ def main(args):
     if debug:
         print "=== begin vpns\n%s\n=== end vpns" % vpns
 
-    print '<div class="well">Page automatically reloads every 5 minutes. Last update: <b>%s</b></div>' % \
+    print '<div class="well">'
+    print 'Page automatically reloads every 5 minutes.'
+    print 'Last update: <b>%s</b></div>' % \
         datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')
     print '</div></body></html>'
 
