@@ -13,6 +13,7 @@ from datetime import datetime
 import GeoIP
 from ipaddr import IPv4Address
 from humanize import naturalsize
+from collections import OrderedDict
 
 
 def get_config(config_file):
@@ -23,7 +24,7 @@ def get_config(config_file):
         print 'Config file does not exist or is unreadable'
         return default_settings()
 
-    vpns = {}
+    vpns = OrderedDict()
     settings = {}
     sections = []
     try:
