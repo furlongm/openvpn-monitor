@@ -12,10 +12,20 @@ import ConfigParser
 import re
 import argparse
 import GeoIP
+import sys
 from datetime import datetime
 from ipaddr import IPv4Address
 from humanize import naturalsize
 from collections import OrderedDict
+from pprint import pformat
+
+
+def warning(*objs):
+    print("WARNING: ", *objs, file=sys.stderr)
+
+
+def debug(*objs):
+    print("DEBUG:\n", *objs, file=sys.stderr)
 
 
 def get_config(config_file):
@@ -37,7 +47,7 @@ def get_config(config_file):
             else:
                 vpns[section] = parse_vpn_section(config, section)
     except:
-        print('Syntax error reading config file')
+        warning('Syntax error reading config file')
         return default_settings()
 
     return settings, vpns
@@ -50,7 +60,7 @@ def get_date(string):
 
 def default_settings():
 
-    print('Using default of localhost:5555')
+    warning('Using default settings => localhost:5555')
 
     vpns = {}
     settings = {'site': 'Default Site'}
@@ -62,8 +72,6 @@ def default_settings():
 
 def parse_global_section(config):
 
-    global debug
-
     tmp = {}
     vars = ['site', 'logo', 'lat', 'long', 'maps']
 
@@ -73,15 +81,13 @@ def parse_global_section(config):
         except ConfigParser.NoOptionError:
             pass
 
-    if debug:
-        print("=== begin section\n{0!s}\n=== end section".format(tmp))
+    if args.debug:
+        debug("=== begin section\n{0!s}\n=== end section".format(tmp))
 
     return tmp
 
 
 def parse_vpn_section(config, section):
-
-    global debug
 
     tmp = {}
     options = config.options(section)
@@ -95,15 +101,13 @@ def parse_vpn_section(config, section):
             print(('CONFIG: exception on {0!s}'.format(option)))
             tmp[option] = None
 
-    if debug:
-        print("=== begin section\n{0!s}\n=== end section".format(tmp))
+    if args.debug:
+        debug("=== begin section\n{0!s}\n=== end section".format(tmp))
 
     return tmp
 
 
 def openvpn_connect(vpn, command):
-
-    global debug
 
     host = vpn['host']
     port = int(vpn['port'])
@@ -129,22 +133,20 @@ def openvpn_connect(vpn, command):
     s.send('quit\n')
     s.close()
 
-    if debug:
-        print("=== begin raw data\n{0!s}\n=== end raw data".format(data))
+    if args.debug:
+        debug("=== begin raw data\n{0!s}\n=== end raw data".format(data))
 
     return data
 
 
 def openvpn_parse_state(data):
 
-    global debug
-
     state = {}
 
     for line in data.splitlines():
         tmp = line.split(',')
-        if debug:
-            print("=== begin split line\n{0!s}\n=== end split line".format(tmp))
+        if args.debug:
+            debug("=== begin split line\n{0!s}\n=== end split line".format(tmp))
         if tmp[0].startswith('>INFO') or \
            tmp[0].startswith('END') or \
            tmp[0].startswith('>CLIENT'):
@@ -166,15 +168,13 @@ def openvpn_parse_state(data):
 
 def openvpn_parse_stats(data):
 
-    global debug
-
     stats = {}
 
     line = re.sub('SUCCESS: ', '', data)
     tmp = line.split(',')
 
-    if debug:
-        print("=== begin split line\n{0!s}\n=== end split line".format(tmp))
+    if args.debug:
+        debug("=== begin split line\n{0!s}\n=== end split line".format(tmp))
 
     stats['nclients'] = re.sub('nclients=', '', tmp[0])
     stats['bytesin'] = re.sub('bytesin=', '', tmp[1])
@@ -184,8 +184,6 @@ def openvpn_parse_stats(data):
 
 
 def openvpn_parse_status(data):
-
-    global debug
 
     client_section = False
     routes_section = False
@@ -201,8 +199,8 @@ def openvpn_parse_status(data):
         else:
             tmp = line.split('\t')
 
-        if debug:
-            print("=== begin split line\n{0!s}\n=== end split line".format(tmp))
+        if args.debug:
+            debug("=== begin split line\n{0!s}\n=== end split line".format(tmp))
 
         if tmp[0].startswith('GLOBAL'):
             break
@@ -282,8 +280,12 @@ def openvpn_parse_status(data):
             if status_version == 3:
                 sessions[tmp[3]]['last_seen'] = get_date(tmp[4])
 
-    if debug and sessions:
-        print("=== begin sessions\n{0!s}\n=== end sessions".format(sessions))
+    if args.debug:
+        if sessions:
+            pretty_sessions = pformat(sessions)
+            debug("=== begin sessions\n{0!s}\n=== end sessions".format(pretty_sessions))
+        else:
+            debug("no sessions")
 
     return sessions
 
@@ -503,8 +505,6 @@ def html_header(settings, vpns, maps):
 
 def main(args):
 
-    global debug
-    debug = args.debug
     settings, vpns = get_config(args.config)
 
     for key, vpn in vpns.items():
@@ -545,8 +545,9 @@ def main(args):
     if maps:
         google_maps_html()
 
-    if debug:
-        print("=== begin vpns\n{0!s}\n=== end vpns".format(vpns))
+    if args.debug:
+        pretty_vpns = pformat((dict(vpns)))
+        debug("=== begin vpns\n{0!s}\n=== end vpns".format(pretty_vpns))
 
     print('<div class="well">')
     print('Page automatically reloads every 5 minutes.')
