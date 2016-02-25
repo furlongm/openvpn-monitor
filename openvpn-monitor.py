@@ -196,10 +196,10 @@ def openvpn_parse_state(data):
             state['local_ip'] = tmp[3]
             if tmp[4]:
                 state['remote_ip'] = tmp[4]
-                state['type'] = 'tap'
+                state['mode'] = 'Client'
             else:
                 state['remote_ip'] = ''
-                state['type'] = 'tun'
+                state['mode'] = 'Server'
 
     return state
 
@@ -227,7 +227,7 @@ def openvpn_parse_status(data):
     routes_section = False
     status_version = 1
     sessions = {}
-    tap_session = {}
+    client_session = {}
     gi = GeoIP.open(args.geoip_data, GeoIP.GEOIP_STANDARD)
 
     for line in data.splitlines():
@@ -268,20 +268,20 @@ def openvpn_parse_status(data):
 
         session = {}
         if tmp[0] == 'TUN/TAP read bytes':
-            tap_session['tuntap_read'] = tmp[1]
+            client_session['tuntap_read'] = tmp[1]
             continue
         if tmp[0] == 'TUN/TAP write bytes':
-            tap_session['tuntap_write'] = tmp[1]
+            client_session['tuntap_write'] = tmp[1]
             continue
         if tmp[0] == 'TCP/UDP read bytes':
-            tap_session['tcpudp_read'] = tmp[1]
+            client_session['tcpudp_read'] = tmp[1]
             continue
         if tmp[0] == 'TCP/UDP write bytes':
-            tap_session['tcpudp_write'] = tmp[1]
+            client_session['tcpudp_write'] = tmp[1]
             continue
         if tmp[0] == 'Auth read bytes':
-            tap_session['auth_read'] = tmp[1]
-            sessions['tuntap'] = tap_session
+            client_session['auth_read'] = tmp[1]
+            sessions['Client'] = client_session
             continue
         if client_section and not routes_section:
             if status_version == 1:
@@ -335,18 +335,18 @@ def openvpn_parse_version(data):
             return line.replace('OpenVPN Version: ', '')
 
 
-def print_session_table_headers(vpn_type):
+def print_session_table_headers(vpn_mode):
 
-    tun_headers = ['Username / Hostname', 'VPN IP Address',
-                   'Remote IP Address', 'Port', 'Location', 'Bytes In',
-                   'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
-    tap_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
-                   'TCP-UDP-Write', 'Auth-Read']
+    server_headers = ['Username / Hostname', 'VPN IP Address',
+                      'Remote IP Address', 'Port', 'Location', 'Bytes In',
+                      'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
+    client_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
+                      'TCP-UDP-Write', 'Auth-Read']
 
-    if vpn_type == 'tap':
-        headers = tap_headers
-    elif vpn_type == 'tun':
-        headers = tun_headers
+    if vpn_mode == 'Client':
+        headers = client_headers
+    elif vpn_mode == 'Server':
+        headers = server_headers
 
     print('<table class="table table-striped table-bordered table-hover ')
     print('table-condensed table-responsive">')
@@ -381,7 +381,7 @@ def print_vpn(vpn):
     nclients = vpn['stats']['nclients']
     bytesin = vpn['stats']['bytesin']
     bytesout = vpn['stats']['bytesout']
-    vpn_type = vpn['state']['type']
+    vpn_mode = vpn['state']['mode']
     vpn_sessions = vpn['sessions']
     local_ip = vpn['state']['local_ip']
     remote_ip = vpn['state']['remote_ip']
@@ -393,13 +393,13 @@ def print_vpn(vpn):
         vpn['name']))
     print('</div><div class="panel-body">')
     print('<table class="table table-condensed table-responsive">')
-    print('<thead><tr><th>VPN Type</th><th>Status</th><th>Pingable</th>')
+    print('<thead><tr><th>VPN Mode</th><th>Status</th><th>Pingable</th>')
     print('<th>Clients</th><th>Total Bytes In</th><th>Total Bytes Out</th>')
     print('<th>Up Since</th><th>Local IP Address</th>')
-    if vpn_type == 'tap':
+    if vpn_mode == 'Client':
         print('<th>Remote IP Address</th>')
     print('</tr></thead><tbody>')
-    print('<tr><td>{0!s}</td>'.format(vpn_type))
+    print('<tr><td>{0!s}</td>'.format(vpn_mode))
     print('<td>{0!s}</td>'.format(connection))
     print('<td>{0!s}</td>'.format(pingable))
     print('<td>{0!s}</td>'.format(nclients))
@@ -407,20 +407,20 @@ def print_vpn(vpn):
     print('<td>{0!s} ({1!s})</td>'.format(bytesout, naturalsize(bytesout, binary=True)))
     print('<td>{0!s}</td>'.format(up_since.strftime('%d/%m/%Y %H:%M:%S')))
     print('<td>{0!s}</td>'.format(local_ip))
-    if vpn_type == 'tap':
+    if vpn_mode == 'Client':
         print('<td>{0!s}</td>'.format(remote_ip))
     print('</tr></tbody></table>')
 
-    if int(nclients) > 0:
-        print_session_table_headers(vpn_type)
-        print_session_table(vpn_type, vpn_sessions)
+    if vpn_mode == 'Client' or int(nclients) > 0:
+        print_session_table_headers(vpn_mode)
+        print_session_table(vpn_mode, vpn_sessions)
         print_session_table_footer()
 
     print('<span class="label label-default">{0!s}</span>'.format(vpn['version']))
     print('</div></div>')
 
 
-def print_tap_session(session):
+def print_client_session(session):
 
     print('<td>{0!s}</td>'.format(session['tuntap_read']))
     print('<td>{0!s}</td>'.format(session['tuntap_write']))
@@ -429,7 +429,7 @@ def print_tap_session(session):
     print('<td>{0!s}</td>'.format(session['auth_read']))
 
 
-def print_tun_session(session):
+def print_server_session(session):
 
     total_time = str(datetime.now() - session['connected_since'])[:-7]
     bytes_recv = session['bytes_recv']
@@ -468,14 +468,14 @@ def print_tun_session(session):
     print('<td>{0!s}</td>'.format(total_time))
 
 
-def print_session_table(vpn_type, sessions):
+def print_session_table(vpn_mode, sessions):
 
     for key, session in list(sessions.items()):
         print('<tr>')
-        if vpn_type == 'tap':
-            print_tap_session(session)
-        elif vpn_type == 'tun':
-            print_tun_session(session)
+        if vpn_mode == 'Client':
+            print_client_session(session)
+        elif vpn_mode == 'Server':
+            print_server_session(session)
         print('</tr>')
 
 
