@@ -53,8 +53,11 @@ def socket_recv(s, length):
         return s.recv(length).decode('utf-8')
 
 
-def get_date(string):
-    return datetime.strptime(string, "%a %b %d %H:%M:%S %Y")
+def get_date(string, uts=False):
+    if not uts:
+        return datetime.strptime(string, "%a %b %d %H:%M:%S %Y")
+    else:
+        return datetime.fromtimestamp(float(string))
 
 
 def cfg_load(config_file):
@@ -187,7 +190,7 @@ def openvpn_parse_state(data):
            tmp[0].startswith('>CLIENT'):
             continue
         else:
-            state['identifier'] = tmp[0]
+            state['up_since'] = get_date(string=tmp[0], uts=True)
             state['connected'] = tmp[1]
             state['success'] = tmp[2]
             state['local_ip'] = tmp[3]
@@ -371,6 +374,7 @@ def print_vpn(vpn):
     vpn_sessions = vpn['sessions']
     local_ip = vpn['state']['local_ip']
     remote_ip = vpn['state']['remote_ip']
+    up_since = vpn['state']['up_since']
 
     anchor = vpn['name'].lower().replace(' ', '_')
     print('<div class="panel panel-success" id="{0!s}">'.format(anchor))
@@ -380,7 +384,7 @@ def print_vpn(vpn):
     print('<table class="table table-condensed table-responsive">')
     print('<thead><tr><th>VPN Type</th><th>Status</th><th>Pingable</th>')
     print('<th>Clients</th><th>Total Bytes In</th><th>Total Bytes Out</th>')
-    print('<th>Local IP Address</th>')
+    print('<th>Up Since</th><th>Local IP Address</th>')
     if vpn_type == 'tap':
         print('<th>Remote IP Address</th>')
     print('</tr></thead><tbody>')
@@ -390,6 +394,7 @@ def print_vpn(vpn):
     print('<td>{0!s}</td>'.format(nclients))
     print('<td>{0!s} ({1!s})</td>'.format(bytesin, naturalsize(bytesin, binary=True)))
     print('<td>{0!s} ({1!s})</td>'.format(bytesout, naturalsize(bytesout, binary=True)))
+    print('<td>{0!s}</td>'.format(up_since.strftime('%d/%m/%Y %H:%M:%S')))
     print('<td>{0!s}</td>'.format(local_ip))
     if vpn_type == 'tap':
         print('<td>{0!s}</td>'.format(remote_ip))
