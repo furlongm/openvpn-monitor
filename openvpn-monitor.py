@@ -328,6 +328,13 @@ def openvpn_parse_status(data):
     return sessions
 
 
+def openvpn_parse_version(data):
+
+    for line in data.splitlines():
+        if line.startswith('OpenVPN'):
+            return line.replace('OpenVPN Version: ', '')
+
+
 def print_session_table_headers(vpn_type):
 
     tun_headers = ['Username / Hostname', 'VPN IP Address',
@@ -347,6 +354,10 @@ def print_session_table_headers(vpn_type):
     for header in headers:
         print('<th>{0!s}</th>'.format(header))
     print('</tr></thead><tbody>')
+
+
+def print_session_table_footer():
+    print('</tbody></table>')
 
 
 def print_unavailable_vpn(vpn):
@@ -403,7 +414,9 @@ def print_vpn(vpn):
     if int(nclients) > 0:
         print_session_table_headers(vpn_type)
         print_session_table(vpn_type, vpn_sessions)
-        print('</tbody></table>')
+        print_session_table_footer()
+
+    print('<span class="label label-default">{0!s}</span>'.format(vpn['version']))
     print('</div></div>')
 
 
@@ -572,6 +585,9 @@ def print_html_footer():
 
 
 def openvpn_collect_data(vpn):
+
+    version = openvpn_send_command(vpn, 'version\n')
+    vpn['version'] = openvpn_parse_version(version)
 
     state = openvpn_send_command(vpn, 'state\n')
     vpn['state'] = openvpn_parse_state(state)
