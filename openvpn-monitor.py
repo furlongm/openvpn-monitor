@@ -595,7 +595,7 @@ def openvpn_collect_data(vpn):
     stats = openvpn_send_command(vpn, 'load-stats\n')
     vpn['stats'] = openvpn_parse_stats(stats)
 
-    status = openvpn_send_command(vpn, 'status\n')
+    status = openvpn_send_command(vpn, 'status 3\n')
     vpn['sessions'] = openvpn_parse_status(status)
 
 
