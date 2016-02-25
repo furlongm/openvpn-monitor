@@ -577,7 +577,7 @@ def print_html_header(site, logo, vpns, maps, latitude, longitude):
 
 def print_html_footer():
 
-    print('<div class="well">')
+    print('<div class="well well-sm">')
     print('Page automatically reloads every 5 minutes.')
     print('Last update: <b>{0!s}</b></div>'.format(
         datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')))
