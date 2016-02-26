@@ -53,11 +53,11 @@ def socket_recv(s, length):
         return s.recv(length).decode('utf-8')
 
 
-def get_date(string, uts=False):
+def get_date(date_string, uts=False):
     if not uts:
-        return datetime.strptime(string, "%a %b %d %H:%M:%S %Y")
+        return datetime.strptime(date_string, "%a %b %d %H:%M:%S %Y")
     else:
-        return datetime.fromtimestamp(float(string))
+        return datetime.fromtimestamp(float(date_string))
 
 
 def cfg_load(config_file):
@@ -190,7 +190,7 @@ def openvpn_parse_state(data):
            tmp[0].startswith('>CLIENT'):
             continue
         else:
-            state['up_since'] = get_date(string=tmp[0], uts=True)
+            state['up_since'] = get_date(date_string=tmp[0], uts=True)
             state['connected'] = tmp[1]
             state['success'] = tmp[2]
             if tmp[3]:
@@ -299,9 +299,9 @@ def openvpn_parse_status(data):
                 session['username'] = tmp[1]
                 session['bytes_recv'] = tmp[4]
                 session['bytes_sent'] = tmp[5]
-                session['connected_since'] = get_date(tmp[6])
                 remote_ip, port = tmp[2].split(':')
                 session['local_ip'] = ip_address(tmp[3])
+                session['connected_since'] = get_date(tmp[7], uts=True)
             session['location'] = 'Unknown'
             session['remote_ip'] = ip_address(remote_ip)
             session['port'] = int(port)
@@ -321,7 +321,7 @@ def openvpn_parse_status(data):
                 sessions[ident]['local_ip'] = ip_address(tmp[0])
                 sessions[ident]['last_seen'] = get_date(tmp[3])
             if status_version == 3:
-                sessions[tmp[3]]['last_seen'] = get_date(tmp[4])
+                sessions[ident]['last_seen'] = get_date(tmp[5], uts=True)
 
     if args.debug:
         if sessions:
