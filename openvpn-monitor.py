@@ -288,14 +288,16 @@ def openvpn_parse_status(data):
             continue
         if client_section and not routes_section:
             if status_version == 1:
-                sessions[tmp[1]] = session
+                ident = tmp[1]
+                sessions[ident] = session
                 session['username'] = tmp[0]
                 remote_ip, port = tmp[1].split(':')
                 session['bytes_recv'] = int(tmp[2])
                 session['bytes_sent'] = int(tmp[3])
                 session['connected_since'] = get_date(tmp[4])
             if status_version == 3:
-                sessions[tmp[2]] = session
+                ident = tmp[2]
+                sessions[ident] = session
                 session['username'] = tmp[1]
                 remote_ip, port = tmp[2].split(':')
                 session['local_ip'] = ip_address(tmp[3])
@@ -321,6 +323,7 @@ def openvpn_parse_status(data):
                 sessions[ident]['local_ip'] = ip_address(tmp[0])
                 sessions[ident]['last_seen'] = get_date(tmp[3])
             if status_version == 3:
+                ident = tmp[3]
                 sessions[ident]['last_seen'] = get_date(tmp[5], uts=True)
 
     if args.debug:
