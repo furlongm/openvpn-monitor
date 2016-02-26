@@ -15,9 +15,9 @@ except ImportError:
     import configparser
 
 try:
-    from ipaddr import IPv4Address
+    from ipaddr import IPAddress as ip_address
 except ImportError:
-    from ipaddress import IPv4Address
+    from ipaddress import ip_address
 
 
 import socket
@@ -193,9 +193,12 @@ def openvpn_parse_state(data):
             state['up_since'] = get_date(string=tmp[0], uts=True)
             state['connected'] = tmp[1]
             state['success'] = tmp[2]
-            state['local_ip'] = tmp[3]
+            if tmp[3]:
+                state['local_ip'] = ip_address(tmp[3])
+            else:
+                state['local_ip'] = ''
             if tmp[4]:
-                state['remote_ip'] = tmp[4]
+                state['remote_ip'] = ip_address(tmp[4])
                 state['mode'] = 'Client'
             else:
                 state['remote_ip'] = ''
@@ -287,34 +290,36 @@ def openvpn_parse_status(data):
             if status_version == 1:
                 sessions[tmp[1]] = session
                 session['username'] = tmp[0]
-                session['remote_ip'], session['port'] = tmp[1].split(':')
                 session['bytes_recv'] = tmp[2]
                 session['bytes_sent'] = tmp[3]
+                remote_ip, port = tmp[1].split(':')
                 session['connected_since'] = get_date(tmp[4])
             if status_version == 3:
                 sessions[tmp[2]] = session
                 session['username'] = tmp[1]
-                session['remote_ip'], session['port'] = tmp[2].split(':')
-                session['local_ip'] = tmp[3]
                 session['bytes_recv'] = tmp[4]
                 session['bytes_sent'] = tmp[5]
                 session['connected_since'] = get_date(tmp[6])
-            session['country'] = 'Unknown'
-            ipaddr = IPv4Address(session['remote_ip'])
-            if ipaddr.is_private:
-                session['country'] = 'RFC1918'
+                remote_ip, port = tmp[2].split(':')
+                session['local_ip'] = ip_address(tmp[3])
+            session['location'] = 'Unknown'
+            session['remote_ip'] = ip_address(remote_ip)
+            session['port'] = int(port)
+            if session['remote_ip'].is_private:
+                session['location'] = 'RFC1918'
             else:
-                gir = gi.record_by_addr(session['remote_ip'])
+                gir = gi.record_by_addr(remote_ip)
                 if gir is not None:
-                    session['country'] = gir['country_code']
+                    session['location'] = gir['country_code']
                     session['city'] = gir['city']
                     session['country_name'] = gir['country_name']
                     session['longitude'] = gir['longitude']
                     session['latitude'] = gir['latitude']
         if routes_section and not client_section:
             if status_version == 1:
-                sessions[tmp[2]]['local_ip'] = tmp[0]
-                sessions[tmp[2]]['last_seen'] = get_date(tmp[3])
+                ident = tmp[2]
+                sessions[ident]['local_ip'] = ip_address(tmp[0])
+                sessions[ident]['last_seen'] = get_date(tmp[3])
             if status_version == 3:
                 sessions[tmp[3]]['last_seen'] = get_date(tmp[4])
 
@@ -435,11 +440,7 @@ def print_server_session(session):
     bytes_recv = session['bytes_recv']
     bytes_sent = session['bytes_sent']
     print('<td>{0!s}</td>'.format(session['username']))
-
-    if 'local_ip' in session:
-        print('<td>{0!s}</td>'.format(session['local_ip']))
-    else:
-        print('<td>ERROR</td>')
+    print('<td>{0!s}</td>'.format(session['local_ip']))
     print('<td>{0!s}</td>'.format(session['remote_ip']))
     print('<td>{0!s}</td>'.format(session['port']))
 
@@ -447,14 +448,14 @@ def print_server_session(session):
         country = session['country_name']
         city = session['city']
         if city:
-            location = '{0!s}, {1!s}'.format(city, country)
+            full_location = '{0!s}, {1!s}'.format(city, country)
         else:
-            location = country
-        flag = 'flags/{0!s}.png'.format(session['country'].lower())
-        print('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, location))
-        print('{0!s}</td>'.format(location))
+            full_location = country
+        flag = 'flags/{0!s}.png'.format(session['location'].lower())
+        print('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, full_location))
+        print('{0!s}</td>'.format(full_location))
     else:
-        print('<td>{0!s}</td>'.format(session['country']))
+        print('<td>{0!s}</td>'.format(session['location']))
 
     print('<td>{0!s} ({1!s})</td>'.format(bytes_recv, naturalsize(bytes_recv, binary=True)))
     print('<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True)))
