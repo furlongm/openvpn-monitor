@@ -217,9 +217,9 @@ def openvpn_parse_stats(data):
     if args.debug:
         debug("=== begin split line\n{0!s}\n=== end split line".format(tmp))
 
-    stats['nclients'] = re.sub('nclients=', '', tmp[0])
-    stats['bytesin'] = re.sub('bytesin=', '', tmp[1])
-    stats['bytesout'] = re.sub('bytesout=', '', tmp[2]).replace('\r\n', '')
+    stats['nclients'] = int(re.sub('nclients=', '', tmp[0]))
+    stats['bytesin'] = int(re.sub('bytesin=', '', tmp[1]))
+    stats['bytesout'] = int(re.sub('bytesout=', '', tmp[2]).replace('\r\n', ''))
 
     return stats
 
@@ -271,36 +271,36 @@ def openvpn_parse_status(data):
 
         session = {}
         if tmp[0] == 'TUN/TAP read bytes':
-            client_session['tuntap_read'] = tmp[1]
+            client_session['tuntap_read'] = int(tmp[1])
             continue
         if tmp[0] == 'TUN/TAP write bytes':
-            client_session['tuntap_write'] = tmp[1]
+            client_session['tuntap_write'] = int(tmp[1])
             continue
         if tmp[0] == 'TCP/UDP read bytes':
-            client_session['tcpudp_read'] = tmp[1]
+            client_session['tcpudp_read'] = int(tmp[1])
             continue
         if tmp[0] == 'TCP/UDP write bytes':
-            client_session['tcpudp_write'] = tmp[1]
+            client_session['tcpudp_write'] = int(tmp[1])
             continue
         if tmp[0] == 'Auth read bytes':
-            client_session['auth_read'] = tmp[1]
+            client_session['auth_read'] = int(tmp[1])
             sessions['Client'] = client_session
             continue
         if client_section and not routes_section:
             if status_version == 1:
                 sessions[tmp[1]] = session
                 session['username'] = tmp[0]
-                session['bytes_recv'] = tmp[2]
-                session['bytes_sent'] = tmp[3]
                 remote_ip, port = tmp[1].split(':')
+                session['bytes_recv'] = int(tmp[2])
+                session['bytes_sent'] = int(tmp[3])
                 session['connected_since'] = get_date(tmp[4])
             if status_version == 3:
                 sessions[tmp[2]] = session
                 session['username'] = tmp[1]
-                session['bytes_recv'] = tmp[4]
-                session['bytes_sent'] = tmp[5]
                 remote_ip, port = tmp[2].split(':')
                 session['local_ip'] = ip_address(tmp[3])
+                session['bytes_recv'] = int(tmp[4])
+                session['bytes_sent'] = int(tmp[5])
                 session['connected_since'] = get_date(tmp[7], uts=True)
             session['location'] = 'Unknown'
             session['remote_ip'] = ip_address(remote_ip)
@@ -416,7 +416,7 @@ def print_vpn(vpn):
         print('<td>{0!s}</td>'.format(remote_ip))
     print('</tr></tbody></table>')
 
-    if vpn_mode == 'Client' or int(nclients) > 0:
+    if vpn_mode == 'Client' or nclients > 0:
         print_session_table_headers(vpn_mode)
         print_session_table(vpn_mode, vpn_sessions)
         print_session_table_footer()
@@ -460,10 +460,10 @@ def print_server_session(session):
     print('<td>{0!s} ({1!s})</td>'.format(bytes_recv, naturalsize(bytes_recv, binary=True)))
     print('<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True)))
     print('<td>{0!s}</td>'.format(
-        str(session['connected_since'].strftime('%d/%m/%Y %H:%M:%S'))))
+        session['connected_since'].strftime('%d/%m/%Y %H:%M:%S')))
     if 'last_seen' in session:
         print('<td>{0!s}</td>'.format(
-            str(session['last_seen'].strftime('%d/%m/%Y %H:%M:%S'))))
+            session['last_seen'].strftime('%d/%m/%Y %H:%M:%S')))
     else:
         print('<td>ERROR</td>')
     print('<td>{0!s}</td>'.format(total_time))
