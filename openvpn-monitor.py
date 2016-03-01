@@ -17,8 +17,9 @@ except ImportError:
 
 try:
     from ipaddr import IPAddress as ip_address
+    from ipaddr import IPv6Address
 except ImportError:
-    from ipaddress import ip_address
+    from ipaddress import ip_address, IPv6Address
 
 
 import socket
@@ -319,8 +320,8 @@ def openvpn_parse_status(data):
                 session['bytes_sent'] = int(tmp[5])
                 session['connected_since'] = get_date(tmp[7], uts=True)
             session['location'] = 'Unknown'
-            if type(remote_ip_address) == 'ipaddress.IPv6Address' and \
-                    remote_ip_address.ipv4_mapped:
+            if type(remote_ip_address) == IPv6Address and \
+                    remote_ip_address.ipv4_mapped is not None:
                 session['remote_ip'] = remote_ip_address.ipv4_mapped
             else:
                 session['remote_ip'] = remote_ip_address
