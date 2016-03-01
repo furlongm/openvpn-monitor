@@ -506,8 +506,8 @@ def print_session_table(vpn_mode, sessions):
 
 def print_maps_header():
 
-    print('<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />')
-    print('<script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>')
+    print('<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css" />')
+    print('<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js"></script>')
 
 
 def print_maps_html(vpns, latitude, longitude):
@@ -519,7 +519,7 @@ def print_maps_html(vpns, latitude, longitude):
     print('var map = L.map("map_canvas");')
     print('var centre = L.latLng({0!s}, {1!s});'.format(latitude, longitude))
     print('map.setView(centre, 8);')
-    print('url = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";')
+    print('url = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";')
     print('var layer = new L.TileLayer(url, {});')
     print('map.addLayer(layer);')
     print('var bounds = L.latLngBounds(centre);')
