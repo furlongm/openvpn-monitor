@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 # Licensed under GPL v3
 # Copyright 2011 VPAC <http://www.vpac.org>
@@ -29,6 +30,10 @@ from datetime import datetime
 from humanize import naturalsize
 from collections import OrderedDict
 from pprint import pformat
+
+if sys.version_info[0] == 2:
+    reload(sys)
+    sys.setdefaultencoding('utf-8')
 
 
 def warning(*objs):
