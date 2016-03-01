@@ -504,49 +504,44 @@ def print_session_table(vpn_mode, sessions):
         print('</tr>')
 
 
-def print_google_maps_js(vpns, latitude, longitude):
+def print_maps_header():
 
-    sessions = 0
-    print('<script type="text/javascript" ')
-    print('src="https://maps.google.com/maps/api/js"></script>')
-    print('<script type="text/javascript">')
-    print('function initialize() {')
-    print('var bounds = new google.maps.LatLngBounds();')
-    print('var markers = new Array();')
-    for key, vpn in vpns:
-        if 'sessions' in vpn:
-            for skey, session in list(vpn['sessions'].items()):
-                if 'longitude' in session and 'latitude' in session:
-                    print('var latlng = new google.maps.LatLng({0!s}, {1!s});'.format(session['latitude'], session['longitude']))
-                    print('bounds.extend(latlng);')
-                    marker = '{{position: latlng, title: "{0!s} - {1!s}"}}'.format(session['username'], session['remote_ip'])
-                    print('markers.push(new google.maps.Marker({0!s}));'.format(marker))
-                    sessions = sessions + 1
-    if sessions != 0:
-        if sessions == 1:
-            print('bounds.extend(new google.maps.LatLng({0!s}, {1!s}));'.format(latitude, longitude))
-        print('var myOptions = { zoom: 8, mapTypeId: google.maps.MapTypeId.ROADMAP };')
-        print('var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);')
-        print('map.fitBounds(bounds);')
-        print('for ( var i=markers.length-1; i>=0; --i ) { markers[i].setMap(map); }')
-        print('}')
-        print('</script>')
-    else:
-        print('var latlng = new google.maps.LatLng({0!s}, {1!s});'.format(latitude, longitude))
-        print('var myOptions = { zoom: 8, center: latlng, mapTypeId: google.maps.MapTypeId.ROADMAP };')
-        print('var map = new google.maps.Map(document.getElementById("map_canvas"), myOptions);')
-        print('}')
-        print('</script>')
+    print('<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />')
+    print('<script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>')
 
 
-def print_google_maps_html():
+def print_maps_html(vpns, latitude, longitude):
 
     print('<div class="panel panel-info"><div class="panel-heading">')
     print('<h3 class="panel-title">Map View</h3></div><div class="panel-body">')
-    print('<div id="map_canvas" style="height:500px"></div></div></div>')
+    print('<div id="map_canvas" style="height:500px"></div>')
+    print('<script type="text/javascript">')
+    print('var map = L.map("map_canvas");')
+    print('var centre = L.latLng({0!s}, {1!s});'.format(latitude, longitude))
+    print('map.setView(centre, 8);')
+    print('url = "http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";')
+    print('var layer = new L.TileLayer(url, {});')
+    print('map.addLayer(layer);')
+    print('var bounds = L.latLngBounds(centre);')
+    for vkey, vpn in list(vpns.items()):
+        if 'sessions' in vpn:
+            print('bounds.extend(centre);')
+            for skey, session in list(vpn['sessions'].items()):
+                if 'longitude' in session and 'latitude' in session:
+                    print('var latlng = new L.latLng({0!s}, {1!s});'.format(
+                        session['latitude'], session['longitude']))
+                    print('bounds.extend(latlng);')
+                    print('var marker = L.marker(latlng).addTo(map);')
+                    print('var popup = L.popup().setLatLng(latlng);')
+                    print('popup.setContent("{0!s} - {1!s}");'.format(
+                        session['username'], session['remote_ip']))
+                    print('marker.bindPopup(popup);')
+    print('map.fitBounds(bounds);')
+    print('</script>')
+    print('</div></div>')
 
 
-def print_html_header(site, logo, vpns, maps, latitude, longitude):
+def print_html_header(site, logo, vpns, maps):
 
     print("Content-Type: text/html\n")
     print('<!doctype html>')
@@ -558,13 +553,13 @@ def print_html_header(site, logo, vpns, maps, latitude, longitude):
     print('<meta http-equiv="refresh" content="300" />')
 
     if maps:
-        print_google_maps_js(vpns, latitude, longitude)
+        print_maps_header()
 
     print('<script src="//code.jquery.com/jquery-1.12.1.min.js"></script>')
     print('<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">')
     print('<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">')
     print('<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>')
-    print('<body onload="initialize()">')
+    print('<body>')
 
     print('<nav class="navbar navbar-inverse">')
     print('<div class="container-fluid">')
@@ -578,6 +573,7 @@ def print_html_header(site, logo, vpns, maps, latitude, longitude):
 
     print('<a class="navbar-brand" href="#">')
     print('{0!s} OpenVPN Status Monitor</a>'.format(site))
+
     print('</div><div class="collapse navbar-collapse" id="myNavbar">')
     print('<ul class="nav navbar-nav"><li class="dropdown">')
     print('<a class="dropdown-toggle" data-toggle="dropdown" href="#">VPN')
@@ -588,8 +584,12 @@ def print_html_header(site, logo, vpns, maps, latitude, longitude):
         if vpn['name']:
             anchor = vpn['name'].lower().replace(' ', '_')
             print('<li><a href="#{0!s}">{1!s}</a></li>'.format(anchor, vpn['name']))
+    print('</ul></li>')
 
-    print('</ul></li><li><a href="#map_canvas">Map View</a></li></ul>')
+    if maps:
+        print('<li><a href="#map_canvas">Map View</a></li>')
+
+    print('</ul>')
 
     if logo:
         print('<a href="#" class="pull-right"><img alt="logo" ')
@@ -653,22 +653,20 @@ def main():
     settings, vpns = cfg_load(args.config)
     site, logo, maps, latitude, longitude = init_vars(settings)
 
+    print_html_header(site, logo, list(vpns.items()), maps)
+
     for key, vpn in list(vpns.items()):
         s = openvpn_connect(vpn)
         if s:
             openvpn_disconnect(s)
             openvpn_collect_data(vpn)
-
-    print_html_header(site, logo, list(vpns.items()), maps, latitude, longitude)
-
-    for key, vpn in list(vpns.items()):
         if vpn['socket_connected']:
             print_vpn(vpn)
         else:
             print_unavailable_vpn(vpn)
 
     if maps:
-        print_google_maps_html()
+        print_maps_html(vpns, latitude, longitude)
 
     print_html_footer()
 
