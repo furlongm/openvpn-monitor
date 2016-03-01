@@ -299,18 +299,32 @@ def openvpn_parse_status(data):
                 ident = tmp[2]
                 sessions[ident] = session
                 session['username'] = tmp[1]
-                remote_ip, port = tmp[2].split(':')
-                session['local_ip'] = ip_address(tmp[3])
+                if tmp[2].count(':') == 1:
+                    remote_ip, port = tmp[2].split(':')
+                else:
+                    remote_ip = tmp[2]
+                    port = None
+                local_ip = tmp[3]
+                if local_ip == '':
+                    session['local_ip'] = ''
+                else:
+                    session['local_ip'] = ip_address(tmp[3])
                 session['bytes_recv'] = int(tmp[4])
                 session['bytes_sent'] = int(tmp[5])
                 session['connected_since'] = get_date(tmp[7], uts=True)
             session['location'] = 'Unknown'
-            session['remote_ip'] = ip_address(remote_ip)
-            session['port'] = int(port)
+            if ip_address(remote_ip).ipv4_mapped is not None:
+                session['remote_ip'] = ip_address(remote_ip).ipv4_mapped
+            else:
+                session['remote_ip'] = ip_address(remote_ip)
+            if port:
+                session['port'] = int(port)
+            else:
+                session['port'] = ''
             if session['remote_ip'].is_private:
                 session['location'] = 'RFC1918'
             else:
-                gir = gi.record_by_addr(remote_ip)
+                gir = gi.record_by_addr(str(session['remote_ip']))
                 if gir is not None:
                     session['location'] = gir['country_code']
                     session['city'] = gir['city']
