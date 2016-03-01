@@ -309,6 +309,7 @@ def openvpn_parse_status(data):
                 else:
                     remote_ip = tmp[2]
                     port = None
+                remote_ip_address = ip_address(remote_ip)
                 local_ip = tmp[3]
                 if local_ip == '':
                     session['local_ip'] = ''
@@ -318,10 +319,11 @@ def openvpn_parse_status(data):
                 session['bytes_sent'] = int(tmp[5])
                 session['connected_since'] = get_date(tmp[7], uts=True)
             session['location'] = 'Unknown'
-            if ip_address(remote_ip).ipv4_mapped is not None:
-                session['remote_ip'] = ip_address(remote_ip).ipv4_mapped
+            if type(remote_ip_address) == 'ipaddress.IPv6Address' and \
+                    remote_ip_address.ipv4_mapped:
+                session['remote_ip'] = remote_ip_address.ipv4_mapped
             else:
-                session['remote_ip'] = ip_address(remote_ip)
+                session['remote_ip'] = remote_ip_address
             if port:
                 session['port'] = int(port)
             else:
