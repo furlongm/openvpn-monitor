@@ -606,11 +606,11 @@ def openvpn_collect_data(vpn):
 def init_vars(settings):
 
     site = 'Example'
-    if site in settings:
+    if 'site' in settings:
         site = settings['site']
 
     logo = None
-    if logo in settings:
+    if 'logo' in settings:
         logo = settings['logo']
 
     maps = False
