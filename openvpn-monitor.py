@@ -66,78 +66,61 @@ def get_date(date_string, uts=False):
         return datetime.fromtimestamp(float(date_string))
 
 
-def cfg_load(config_file):
+class config_loader:
 
-    config = configparser.RawConfigParser()
-    data = config.read(config_file)
-    if not data:
-        print('Config file does not exist or is unreadable')
-        return cfg_default_settings()
+    def __init__(self, config_file):
 
-    vpns = OrderedDict()
-    settings = {}
-    sections = []
-    try:
-        sections = config.sections()
-        for section in sections:
+        self.settings = {}
+        self.vpns = OrderedDict()
+        config = configparser.RawConfigParser()
+        contents = config.read(config_file)
+
+        if not contents:
+            print('Config file does not exist or is unreadable')
+            return self.default_settings()
+
+        for section in config.sections():
             if section == 'OpenVPN-Monitor':
-                settings = cfg_parse_global_section(config)
+                self.parse_global_section(config)
             else:
-                vpns[section] = cfg_parse_vpn_section(config, section)
-    except:
-        warning('Syntax error reading config file')
-        return cfg_default_settings()
+                self.parse_vpn_section(config, section)
 
-    return settings, vpns
+    def get_settings(self):
+        return self.settings
 
+    def get_vpns(self):
+        return self.vpns
 
-def cfg_default_settings():
+    def default_settings(self):
+        warning('Using default settings => localhost:5555')
+        self.settings = {'site': 'Default Site'}
+        self.vpns['Default VPN'] = {'name': 'default', 'host': 'localhost',
+                                   'port': '5555', 'order': '1'}
 
-    warning('Using default settings => localhost:5555')
+    def parse_global_section(self, config):
+        vars = ['site', 'logo', 'latitude', 'longitude', 'maps']
+        for var in vars:
+            try:
+                self.settings[var] = config.get('OpenVPN-Monitor', var)
+            except configparser.NoOptionError:
+                pass
+        if args.debug:
+            debug("=== begin section\n{0!s}\n=== end section".format(self.settings))
 
-    vpns = {}
-    settings = {'site': 'Default Site'}
-    vpns['Default VPN'] = {'name': 'default', 'host': 'localhost',
-                           'port': '5555', 'order': '1'}
-
-    return settings, vpns
-
-
-def cfg_parse_global_section(config):
-
-    tmp = {}
-    vars = ['site', 'logo', 'latitude', 'longitude', 'maps']
-
-    for var in vars:
-        try:
-            tmp[var] = config.get('OpenVPN-Monitor', var)
-        except configparser.NoOptionError:
-            pass
-
-    if args.debug:
-        debug("=== begin section\n{0!s}\n=== end section".format(tmp))
-
-    return tmp
-
-
-def cfg_parse_vpn_section(config, section):
-
-    tmp = {}
-    options = config.options(section)
-
-    for option in options:
-        try:
-            tmp[option] = config.get(section, option)
-            if tmp[option] == -1:
-                print(('CONFIG: skipping {0!s}'.format(option)))
-        except:
-            print(('CONFIG: exception on {0!s}'.format(option)))
-            tmp[option] = None
-
-    if args.debug:
-        debug("=== begin section\n{0!s}\n=== end section".format(tmp))
-
-    return tmp
+    def parse_vpn_section(self, config, section):
+        self.vpns[section] = {}
+        vpn = self.vpns[section]
+        options = config.options(section)
+        for option in options:
+            try:
+                vpn[option] = config.get(section, option)
+                if vpn[option] == -1:
+                    print(('CONFIG: skipping {0!s}'.format(option)))
+            except:
+                print(('CONFIG: exception on {0!s}'.format(option)))
+                vpn[option] = None
+        if args.debug:
+            debug("=== begin section\n{0!s}\n=== end section".format(vpn))
 
 
 def openvpn_connect(vpn):
@@ -651,7 +634,10 @@ def init_vars(settings):
 
 def main():
 
-    settings, vpns = cfg_load(args.config)
+    cfg = config_loader(args.config)
+    settings = cfg.get_settings()
+    vpns = cfg.get_vpns()
+
     site, logo, maps, latitude, longitude = init_vars(settings)
 
     print_html_header(site, logo, list(vpns.items()), maps)
