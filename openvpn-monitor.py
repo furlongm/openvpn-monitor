@@ -95,7 +95,7 @@ class config_loader(object):
         warning('Using default settings => localhost:5555')
         self.settings = {'site': 'Default Site'}
         self.vpns['Default VPN'] = {'name': 'default', 'host': 'localhost',
-                                   'port': '5555', 'order': '1'}
+                                    'port': '5555', 'order': '1'}
 
     def parse_global_section(self, config):
         vars = ['site', 'logo', 'latitude', 'longitude', 'maps']
