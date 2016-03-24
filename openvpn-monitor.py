@@ -77,7 +77,7 @@ class config_loader:
 
         if not contents:
             print('Config file does not exist or is unreadable')
-            return self.default_settings()
+            self.load_default_settings()
 
         for section in config.sections():
             if section == 'OpenVPN-Monitor':
@@ -91,7 +91,7 @@ class config_loader:
     def get_vpns(self):
         return self.vpns
 
-    def default_settings(self):
+    def load_default_settings(self):
         warning('Using default settings => localhost:5555')
         self.settings = {'site': 'Default Site'}
         self.vpns['Default VPN'] = {'name': 'default', 'host': 'localhost',
