@@ -66,7 +66,7 @@ def get_date(date_string, uts=False):
         return datetime.fromtimestamp(float(date_string))
 
 
-class config_loader:
+class config_loader(object):
 
     def __init__(self, config_file):
 
