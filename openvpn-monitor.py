@@ -71,12 +71,6 @@ class config_loader(object):
             else:
                 self.parse_vpn_section(config, section)
 
-    def get_settings(self):
-        return self.settings
-
-    def get_vpns(self):
-        return self.vpns
-
     def load_default_settings(self):
         warning('Using default settings => localhost:5555')
         self.settings = {'site': 'Default Site'}
