@@ -463,6 +463,7 @@ class openvpn_html_printer(object):
     def print_session_table_footer():
         print('</tbody></table>')
 
+    @staticmethod
     def print_unavailable_vpn(vpn):
         anchor = vpn['name'].lower().replace(' ', '_')
         print('<div class="panel panel-danger" id="{0!s}">'.format(anchor))
