@@ -311,7 +311,10 @@ class openvpn_monitor(object):
                 if session['remote_ip'].is_private:
                     session['location'] = 'RFC1918'
                 else:
-                    gir = gi.record_by_addr(str(session['remote_ip']))
+                    try:
+                        gir = gi.record_by_addr(str(session['remote_ip']))
+                    except SystemError:
+                        gir = None
                     if gir is not None:
                         session['location'] = gir['country_code']
                         session['city'] = gir['city']
