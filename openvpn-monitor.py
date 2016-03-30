@@ -108,62 +108,59 @@ class openvpn_monitor(object):
     def __init__(self, vpns):
         self.vpns = vpns
         for key, vpn in list(self.vpns.items()):
-            s = self.connect(vpn)
-            if s:
-                self.disconnect(s)
+            self._socket_connect(vpn)
+            if self.s:
                 self.collect_data(vpn)
-
-    def _socket_send(self, s, command):
-        if sys.version_info[0] == 2:
-            s.send(command)
-        else:
-            s.send(bytes(command, 'utf-8'))
-
-    def _socket_recv(self, s, length):
-        if sys.version_info[0] == 2:
-            return s.recv(length)
-        else:
-            return s.recv(length).decode('utf-8')
+                self._socket_disconnect()
 
     def collect_data(self, vpn):
-        version = self.send_command(vpn, 'version\n')
+        version = self.send_command('version\n')
         vpn['version'] = self.parse_version(version)
-        state = self.send_command(vpn, 'state\n')
+        state = self.send_command('state\n')
         vpn['state'] = self.parse_state(state)
-        stats = self.send_command(vpn, 'load-stats\n')
+        stats = self.send_command('load-stats\n')
         vpn['stats'] = self.parse_stats(stats)
-        status = self.send_command(vpn, 'status 3\n')
+        status = self.send_command('status 3\n')
         vpn['sessions'] = self.parse_status(status)
 
-    def connect(self, vpn):
+    def _socket_send(self, command):
+        if sys.version_info[0] == 2:
+            self.s.send(command)
+        else:
+            self.s.send(bytes(command, 'utf-8'))
+
+    def _socket_recv(self, length):
+        if sys.version_info[0] == 2:
+            return self.s.recv(length)
+        else:
+            return self.s.recv(length).decode('utf-8')
+
+    def _socket_connect(self, vpn):
         host = vpn['host']
         port = int(vpn['port'])
         timeout = 3
         try:
-            s = socket.create_connection((host, port), timeout)
+            self.s = socket.create_connection((host, port), timeout)
             vpn['socket_connected'] = True
-            return s
         except socket.error:
+            self.s = False
             vpn['socket_connected'] = False
-            return False
 
-    def disconnect(self, s):
-        s.close()
+    def _socket_disconnect(self):
+        self._socket_send('quit\n')
+        self.s.close()
 
-    def send_command(self, vpn, command):
-        s = self.connect(vpn)
+    def send_command(self, command):
+        self._socket_send(command)
         data = ''
-        self._socket_send(s, command)
         while 1:
-            socket_data = self._socket_recv(s, 1024)
+            socket_data = self._socket_recv(1024)
             socket_data = re.sub('>INFO(.)*\r\n', '', socket_data)
             data += socket_data
             if command == 'load-stats\n' and data != '':
                 break
             elif data.endswith("\nEND\r\n"):
                 break
-        self._socket_send(s, 'quit\n')
-        self.disconnect(s)
         if args.debug:
             debug("=== begin raw data\n{0!s}\n=== end raw data".format(data))
         return data
