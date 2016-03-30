@@ -342,301 +342,289 @@ class openvpn_monitor(object):
                 return line.replace('OpenVPN Version: ', '')
 
 
-def print_session_table_headers(vpn_mode):
+class openvpn_html_printer(object):
 
-    server_headers = ['Username / Hostname', 'VPN IP Address',
-                      'Remote IP Address', 'Port', 'Location', 'Bytes In',
-                      'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
-    client_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
-                      'TCP-UDP-Write', 'Auth-Read']
+    def __init__(self, cfg, monitor):
 
-    if vpn_mode == 'Client':
-        headers = client_headers
-    elif vpn_mode == 'Server':
-        headers = server_headers
+        self.init_vars(cfg.settings, monitor)
+        self.print_html_header()
+        for key, vpn in self.vpns:
+            if vpn['socket_connected']:
+                self.print_vpn(vpn)
+            else:
+                self.print_unavailable_vpn(vpn)
+        if self.maps:
+            self.print_maps_html()
+            self.print_html_footer()
 
-    print('<table class="table table-striped table-bordered table-hover ')
-    print('table-condensed table-responsive">')
-    print('<thead><tr>')
-    for header in headers:
-        print('<th>{0!s}</th>'.format(header))
-    print('</tr></thead><tbody>')
+    def init_vars(self, settings, monitor):
 
+        self.vpns = list(monitor.vpns.items())
 
-def print_session_table_footer():
-    print('</tbody></table>')
+        self.site = 'Example'
+        if 'site' in settings:
+            self.site = settings['site']
 
+        self.logo = None
+        if 'logo' in settings:
+            self.logo = settings['logo']
 
-def print_unavailable_vpn(vpn):
+        self.maps = False
+        if 'maps' in settings and settings['maps'] == 'True':
+            self.maps = True
 
-    anchor = vpn['name'].lower().replace(' ', '_')
-    print('<div class="panel panel-danger" id="{0!s}">'.format(anchor))
-    print('<div class="panel-heading">')
-    print('<h3 class="panel-title">{0!s}</h3></div>'.format(vpn['name']))
-    print('<div class="panel-body">')
-    print('Connection refused to {0!s}:{1!s} </div></div>'.format(vpn['host'], vpn['port']))
+        self.latitude = -37.8067
+        self.longitude = 144.9635
+        if 'latitude' in settings:
+            self.latitude = settings['latitude']
+        if 'longitude' in settings:
+            self.longitude = settings['longitude']
 
+    def print_html_header(self):
 
-def print_vpn(vpn):
+        print("Content-Type: text/html\n")
+        print('<!doctype html>')
+        print('<html><head>')
+        print('<meta charset="utf-8">')
+        print('<meta http-equiv="X-UA-Compatible" content="IE=edge">')
+        print('<meta name="viewport" content="width=device-width, initial-scale=1">')
+        print('<title>{0!s} OpenVPN Status Monitor</title>'.format(self.site))
+        print('<meta http-equiv="refresh" content="300" />')
 
-    if vpn['state']['success'] == 'SUCCESS':
-        pingable = 'Yes'
-    else:
-        pingable = 'No'
+        if self.maps:
+            self.print_maps_header()
 
-    connection = vpn['state']['connected']
-    nclients = vpn['stats']['nclients']
-    bytesin = vpn['stats']['bytesin']
-    bytesout = vpn['stats']['bytesout']
-    vpn_mode = vpn['state']['mode']
-    vpn_sessions = vpn['sessions']
-    local_ip = vpn['state']['local_ip']
-    remote_ip = vpn['state']['remote_ip']
-    up_since = vpn['state']['up_since']
+        print('<script src="//code.jquery.com/jquery-1.12.1.min.js"></script>')
+        print('<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">')
+        print('<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">')
+        print('<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>')
+        print('<body>')
 
-    anchor = vpn['name'].lower().replace(' ', '_')
-    print('<div class="panel panel-success" id="{0!s}">'.format(anchor))
-    print('<div class="panel-heading"><h3 class="panel-title">{0!s}</h3>'.format(
-        vpn['name']))
-    print('</div><div class="panel-body">')
-    print('<table class="table table-condensed table-responsive">')
-    print('<thead><tr><th>VPN Mode</th><th>Status</th><th>Pingable</th>')
-    print('<th>Clients</th><th>Total Bytes In</th><th>Total Bytes Out</th>')
-    print('<th>Up Since</th><th>Local IP Address</th>')
-    if vpn_mode == 'Client':
-        print('<th>Remote IP Address</th>')
-    print('</tr></thead><tbody>')
-    print('<tr><td>{0!s}</td>'.format(vpn_mode))
-    print('<td>{0!s}</td>'.format(connection))
-    print('<td>{0!s}</td>'.format(pingable))
-    print('<td>{0!s}</td>'.format(nclients))
-    print('<td>{0!s} ({1!s})</td>'.format(bytesin, naturalsize(bytesin, binary=True)))
-    print('<td>{0!s} ({1!s})</td>'.format(bytesout, naturalsize(bytesout, binary=True)))
-    print('<td>{0!s}</td>'.format(up_since.strftime('%d/%m/%Y %H:%M:%S')))
-    print('<td>{0!s}</td>'.format(local_ip))
-    if vpn_mode == 'Client':
-        print('<td>{0!s}</td>'.format(remote_ip))
-    print('</tr></tbody></table>')
+        print('<nav class="navbar navbar-inverse">')
+        print('<div class="container-fluid">')
+        print('<div class="navbar-header">')
+        print('<button type="button" class="navbar-toggle" ')
+        print('data-toggle="collapse" data-target="#myNavbar">')
+        print('<span class="icon-bar"></span>')
+        print('<span class="icon-bar"></span>')
+        print('<span class="icon-bar"></span>')
+        print('</button>')
 
-    if vpn_mode == 'Client' or nclients > 0:
-        print_session_table_headers(vpn_mode)
-        print_session_table(vpn_mode, vpn_sessions)
-        print_session_table_footer()
+        print('<a class="navbar-brand" href="#">')
+        print('{0!s} OpenVPN Status Monitor</a>'.format(self.site))
 
-    print('<span class="label label-default">{0!s}</span>'.format(vpn['version']))
-    print('</div></div>')
+        print('</div><div class="collapse navbar-collapse" id="myNavbar">')
+        print('<ul class="nav navbar-nav"><li class="dropdown">')
+        print('<a class="dropdown-toggle" data-toggle="dropdown" href="#">VPN')
+        print('<span class="caret"></span></a>')
+        print('<ul class="dropdown-menu">')
 
+        for key, vpn in self.vpns:
+            if vpn['name']:
+                anchor = vpn['name'].lower().replace(' ', '_')
+                print('<li><a href="#{0!s}">{1!s}</a></li>'.format(anchor, vpn['name']))
+        print('</ul></li>')
 
-def print_client_session(session):
+        if self.maps:
+            print('<li><a href="#map_canvas">Map View</a></li>')
 
-    print('<td>{0!s}</td>'.format(session['tuntap_read']))
-    print('<td>{0!s}</td>'.format(session['tuntap_write']))
-    print('<td>{0!s}</td>'.format(session['tcpudp_read']))
-    print('<td>{0!s}</td>'.format(session['tcpudp_write']))
-    print('<td>{0!s}</td>'.format(session['auth_read']))
+        print('</ul>')
 
+        if self.logo:
+            print('<a href="#" class="pull-right"><img alt="self.logo" ')
+            print('style="max-height:46px; padding-top:3px;" ')
+            print('src="{0!s}"></a>'.format(self.logo))
 
-def print_server_session(session):
+        print('</div></div></nav>')
+        print('<div class="container-fluid">')
 
-    total_time = str(datetime.now() - session['connected_since'])[:-7]
-    bytes_recv = session['bytes_recv']
-    bytes_sent = session['bytes_sent']
-    print('<td>{0!s}</td>'.format(session['username']))
-    print('<td>{0!s}</td>'.format(session['local_ip']))
-    print('<td>{0!s}</td>'.format(session['remote_ip']))
-    print('<td>{0!s}</td>'.format(session['port']))
+    @staticmethod
+    def print_session_table_headers(vpn_mode):
 
-    if 'city' in session and 'country_name' in session:
-        country = session['country_name']
-        city = session['city']
-        if city:
-            full_location = '{0!s}, {1!s}'.format(city, country)
-        else:
-            full_location = country
-        flag = 'flags/{0!s}.png'.format(session['location'].lower())
-        print('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, full_location))
-        print('{0!s}</td>'.format(full_location))
-    else:
-        print('<td>{0!s}</td>'.format(session['location']))
+        server_headers = ['Username / Hostname', 'VPN IP Address',
+                          'Remote IP Address', 'Port', 'Location', 'Bytes In',
+                          'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
+        client_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
+                          'TCP-UDP-Write', 'Auth-Read']
 
-    print('<td>{0!s} ({1!s})</td>'.format(bytes_recv, naturalsize(bytes_recv, binary=True)))
-    print('<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True)))
-    print('<td>{0!s}</td>'.format(
-        session['connected_since'].strftime('%d/%m/%Y %H:%M:%S')))
-    if 'last_seen' in session:
-        print('<td>{0!s}</td>'.format(
-            session['last_seen'].strftime('%d/%m/%Y %H:%M:%S')))
-    else:
-        print('<td>ERROR</td>')
-    print('<td>{0!s}</td>'.format(total_time))
-
-
-def print_session_table(vpn_mode, sessions):
-
-    for key, session in list(sessions.items()):
-        print('<tr>')
         if vpn_mode == 'Client':
-            print_client_session(session)
+            headers = client_headers
         elif vpn_mode == 'Server':
-            print_server_session(session)
-        print('</tr>')
+            headers = server_headers
 
+        print('<table class="table table-striped table-bordered table-hover ')
+        print('table-condensed table-responsive">')
+        print('<thead><tr>')
+        for header in headers:
+            print('<th>{0!s}</th>'.format(header))
+        print('</tr></thead><tbody>')
 
-def print_maps_header():
+    @staticmethod
+    def print_session_table_footer():
+        print('</tbody></table>')
 
-    print('<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css" />')
-    print('<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js"></script>')
+    def print_unavailable_vpn(vpn):
+        anchor = vpn['name'].lower().replace(' ', '_')
+        print('<div class="panel panel-danger" id="{0!s}">'.format(anchor))
+        print('<div class="panel-heading">')
+        print('<h3 class="panel-title">{0!s}</h3></div>'.format(vpn['name']))
+        print('<div class="panel-body">')
+        print('Connection refused to {0!s}:{1!s} </div></div>'.format(vpn['host'], vpn['port']))
 
+    def print_vpn(self, vpn):
 
-def print_maps_html(vpns, latitude, longitude):
-
-    print('<div class="panel panel-info"><div class="panel-heading">')
-    print('<h3 class="panel-title">Map View</h3></div><div class="panel-body">')
-    print('<div id="map_canvas" style="height:500px"></div>')
-    print('<script type="text/javascript">')
-    print('var map = L.map("map_canvas");')
-    print('var centre = L.latLng({0!s}, {1!s});'.format(latitude, longitude))
-    print('map.setView(centre, 8);')
-    print('url = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";')
-    print('var layer = new L.TileLayer(url, {});')
-    print('map.addLayer(layer);')
-    print('var bounds = L.latLngBounds(centre);')
-    for vkey, vpn in list(vpns.items()):
-        if 'sessions' in vpn:
-            print('bounds.extend(centre);')
-            for skey, session in list(vpn['sessions'].items()):
-                if 'longitude' in session and 'latitude' in session:
-                    print('var latlng = new L.latLng({0!s}, {1!s});'.format(
-                        session['latitude'], session['longitude']))
-                    print('bounds.extend(latlng);')
-                    print('var marker = L.marker(latlng).addTo(map);')
-                    print('var popup = L.popup().setLatLng(latlng);')
-                    print('popup.setContent("{0!s} - {1!s}");'.format(
-                        session['username'], session['remote_ip']))
-                    print('marker.bindPopup(popup);')
-    print('map.fitBounds(bounds);')
-    print('</script>')
-    print('</div></div>')
-
-
-def print_html_header(site, logo, vpns, maps):
-
-    print("Content-Type: text/html\n")
-    print('<!doctype html>')
-    print('<html><head>')
-    print('<meta charset="utf-8">')
-    print('<meta http-equiv="X-UA-Compatible" content="IE=edge">')
-    print('<meta name="viewport" content="width=device-width, initial-scale=1">')
-    print('<title>{0!s} OpenVPN Status Monitor</title>'.format(site))
-    print('<meta http-equiv="refresh" content="300" />')
-
-    if maps:
-        print_maps_header()
-
-    print('<script src="//code.jquery.com/jquery-1.12.1.min.js"></script>')
-    print('<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">')
-    print('<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap-theme.min.css" integrity="sha384-fLW2N01lMqjakBkx3l/M9EahuwpSfeNvV63J5ezn3uZzapT0u7EYsXMjQV+0En5r" crossorigin="anonymous">')
-    print('<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>')
-    print('<body>')
-
-    print('<nav class="navbar navbar-inverse">')
-    print('<div class="container-fluid">')
-    print('<div class="navbar-header">')
-    print('<button type="button" class="navbar-toggle" ')
-    print('data-toggle="collapse" data-target="#myNavbar">')
-    print('<span class="icon-bar"></span>')
-    print('<span class="icon-bar"></span>')
-    print('<span class="icon-bar"></span>')
-    print('</button>')
-
-    print('<a class="navbar-brand" href="#">')
-    print('{0!s} OpenVPN Status Monitor</a>'.format(site))
-
-    print('</div><div class="collapse navbar-collapse" id="myNavbar">')
-    print('<ul class="nav navbar-nav"><li class="dropdown">')
-    print('<a class="dropdown-toggle" data-toggle="dropdown" href="#">VPN')
-    print('<span class="caret"></span></a>')
-    print('<ul class="dropdown-menu">')
-
-    for key, vpn in vpns:
-        if vpn['name']:
-            anchor = vpn['name'].lower().replace(' ', '_')
-            print('<li><a href="#{0!s}">{1!s}</a></li>'.format(anchor, vpn['name']))
-    print('</ul></li>')
-
-    if maps:
-        print('<li><a href="#map_canvas">Map View</a></li>')
-
-    print('</ul>')
-
-    if logo:
-        print('<a href="#" class="pull-right"><img alt="logo" ')
-        print('style="max-height:46px; padding-top:3px;" ')
-        print('src="{0!s}"></a>'.format(logo))
-
-    print('</div></div></nav>')
-    print('<div class="container-fluid">')
-
-
-def print_html_footer():
-
-    print('<div class="well well-sm">')
-    print('Page automatically reloads every 5 minutes.')
-    print('Last update: <b>{0!s}</b></div>'.format(
-        datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')))
-    print('</div></body></html>')
-
-
-def init_vars(settings):
-
-    site = 'Example'
-    if 'site' in settings:
-        site = settings['site']
-
-    logo = None
-    if 'logo' in settings:
-        logo = settings['logo']
-
-    maps = False
-    if 'maps' in settings and settings['maps'] == 'True':
-        maps = True
-
-    latitude = -37.8067
-    longitude = 144.9635
-    if 'latitude' in settings:
-        latitude = settings['latitude']
-    if 'longitude' in settings:
-        longitude = settings['longitude']
-
-    return site, logo, maps, latitude, longitude
-
-
-def print_webpage(cfg, monitor):
-
-    site, logo, maps, latitude, longitude = init_vars(cfg.settings)
-    print_html_header(site, logo, list(monitor.vpns.items()), maps)
-    for key, vpn in list(monitor.vpns.items()):
-        if vpn['socket_connected']:
-            print_vpn(vpn)
+        if vpn['state']['success'] == 'SUCCESS':
+            pingable = 'Yes'
         else:
-            print_unavailable_vpn(vpn)
-    if maps:
-        print_maps_html(monitor.vpns, latitude, longitude)
-    print_html_footer()
+            pingable = 'No'
+
+        connection = vpn['state']['connected']
+        nclients = vpn['stats']['nclients']
+        bytesin = vpn['stats']['bytesin']
+        bytesout = vpn['stats']['bytesout']
+        vpn_mode = vpn['state']['mode']
+        vpn_sessions = vpn['sessions']
+        local_ip = vpn['state']['local_ip']
+        remote_ip = vpn['state']['remote_ip']
+        up_since = vpn['state']['up_since']
+
+        anchor = vpn['name'].lower().replace(' ', '_')
+        print('<div class="panel panel-success" id="{0!s}">'.format(anchor))
+        print('<div class="panel-heading"><h3 class="panel-title">{0!s}</h3>'.format(
+            vpn['name']))
+        print('</div><div class="panel-body">')
+        print('<table class="table table-condensed table-responsive">')
+        print('<thead><tr><th>VPN Mode</th><th>Status</th><th>Pingable</th>')
+        print('<th>Clients</th><th>Total Bytes In</th><th>Total Bytes Out</th>')
+        print('<th>Up Since</th><th>Local IP Address</th>')
+        if vpn_mode == 'Client':
+            print('<th>Remote IP Address</th>')
+        print('</tr></thead><tbody>')
+        print('<tr><td>{0!s}</td>'.format(vpn_mode))
+        print('<td>{0!s}</td>'.format(connection))
+        print('<td>{0!s}</td>'.format(pingable))
+        print('<td>{0!s}</td>'.format(nclients))
+        print('<td>{0!s} ({1!s})</td>'.format(bytesin, naturalsize(bytesin, binary=True)))
+        print('<td>{0!s} ({1!s})</td>'.format(bytesout, naturalsize(bytesout, binary=True)))
+        print('<td>{0!s}</td>'.format(up_since.strftime('%d/%m/%Y %H:%M:%S')))
+        print('<td>{0!s}</td>'.format(local_ip))
+        if vpn_mode == 'Client':
+            print('<td>{0!s}</td>'.format(remote_ip))
+        print('</tr></tbody></table>')
+
+        if vpn_mode == 'Client' or nclients > 0:
+            self.print_session_table_headers(vpn_mode)
+            self.print_session_table(vpn_mode, vpn_sessions)
+            self.print_session_table_footer()
+
+        print('<span class="label label-default">{0!s}</span>'.format(vpn['version']))
+        print('</div></div>')
+
+    @staticmethod
+    def print_client_session(session):
+        print('<td>{0!s}</td>'.format(session['tuntap_read']))
+        print('<td>{0!s}</td>'.format(session['tuntap_write']))
+        print('<td>{0!s}</td>'.format(session['tcpudp_read']))
+        print('<td>{0!s}</td>'.format(session['tcpudp_write']))
+        print('<td>{0!s}</td>'.format(session['auth_read']))
+
+    @staticmethod
+    def print_server_session(session):
+
+        total_time = str(datetime.now() - session['connected_since'])[:-7]
+        bytes_recv = session['bytes_recv']
+        bytes_sent = session['bytes_sent']
+        print('<td>{0!s}</td>'.format(session['username']))
+        print('<td>{0!s}</td>'.format(session['local_ip']))
+        print('<td>{0!s}</td>'.format(session['remote_ip']))
+        print('<td>{0!s}</td>'.format(session['port']))
+
+        if 'city' in session and 'country_name' in session:
+            country = session['country_name']
+            city = session['city']
+            if city:
+                full_location = '{0!s}, {1!s}'.format(city, country)
+            else:
+                full_location = country
+            flag = 'flags/{0!s}.png'.format(session['location'].lower())
+            print('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, full_location))
+            print('{0!s}</td>'.format(full_location))
+        else:
+            print('<td>{0!s}</td>'.format(session['location']))
+
+        print('<td>{0!s} ({1!s})</td>'.format(bytes_recv, naturalsize(bytes_recv, binary=True)))
+        print('<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True)))
+        print('<td>{0!s}</td>'.format(
+            session['connected_since'].strftime('%d/%m/%Y %H:%M:%S')))
+        if 'last_seen' in session:
+            print('<td>{0!s}</td>'.format(
+                session['last_seen'].strftime('%d/%m/%Y %H:%M:%S')))
+        else:
+            print('<td>ERROR</td>')
+        print('<td>{0!s}</td>'.format(total_time))
+
+    def print_session_table(self, vpn_mode, sessions):
+        for key, session in list(sessions.items()):
+            print('<tr>')
+            if vpn_mode == 'Client':
+                self.print_client_session(session)
+            elif vpn_mode == 'Server':
+                self.print_server_session(session)
+            print('</tr>')
+
+    @staticmethod
+    def print_maps_header():
+        print('<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css" />')
+        print('<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js"></script>')
+
+    def print_maps_html(self):
+        print('<div class="panel panel-info"><div class="panel-heading">')
+        print('<h3 class="panel-title">Map View</h3></div><div class="panel-body">')
+        print('<div id="map_canvas" style="height:500px"></div>')
+        print('<script type="text/javascript">')
+        print('var map = L.map("map_canvas");')
+        print('var centre = L.latLng({0!s}, {1!s});'.format(self.latitude, self.longitude))
+        print('map.setView(centre, 8);')
+        print('url = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";')
+        print('var layer = new L.TileLayer(url, {});')
+        print('map.addLayer(layer);')
+        print('var bounds = L.latLngBounds(centre);')
+        for vkey, vpn in self.vpns:
+            if 'sessions' in vpn:
+                print('bounds.extend(centre);')
+                for skey, session in list(vpn['sessions'].items()):
+                    if 'longitude' in session and 'latitude' in session:
+                        print('var latlng = new L.latLng({0!s}, {1!s});'.format(
+                            session['latitude'], session['longitude']))
+                        print('bounds.extend(latlng);')
+                        print('var marker = L.marker(latlng).addTo(map);')
+                        print('var popup = L.popup().setLatLng(latlng);')
+                        print('popup.setContent("{0!s} - {1!s}");'.format(
+                            session['username'], session['remote_ip']))
+                        print('marker.bindPopup(popup);')
+        print('map.fitBounds(bounds);')
+        print('</script>')
+        print('</div></div>')
+
+    @staticmethod
+    def print_html_footer():
+        print('<div class="well well-sm">')
+        print('Page automatically reloads every 5 minutes.')
+        print('Last update: <b>{0!s}</b></div>'.format(
+            datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')))
+        print('</div></body></html>')
 
 
 def main():
-
     cfg = config_loader(args.config)
     monitor = openvpn_monitor(cfg.vpns)
-    print_webpage(cfg, monitor)
+    openvpn_html_printer(cfg, monitor)
     if args.debug:
         pretty_vpns = pformat((dict(monitor.vpns)))
         debug("=== begin vpns\n{0!s}\n=== end vpns".format(pretty_vpns))
 
 
 def collect_args():
-
     parser = argparse.ArgumentParser(
         description='Display a html page with openvpn status and connections')
     parser.add_argument('-d', '--debug', action='store_true',
@@ -653,6 +641,5 @@ def collect_args():
 
 
 if __name__ == '__main__':
-
     args = collect_args().parse_args()
     main()
