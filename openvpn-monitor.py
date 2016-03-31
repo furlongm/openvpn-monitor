@@ -165,8 +165,8 @@ class OpenvpnMonitor(object):
             debug("=== begin raw data\n{0!s}\n=== end raw data".format(data))
         return data
 
-    def parse_state(self, data):
-
+    @staticmethod
+    def parse_state(data):
         state = {}
         for line in data.splitlines():
             parts = line.split(',')
@@ -192,22 +192,21 @@ class OpenvpnMonitor(object):
                     state['mode'] = 'Server'
         return state
 
-    def parse_stats(self, data):
-
+    @staticmethod
+    def parse_stats(data):
         stats = {}
         line = re.sub('SUCCESS: ', '', data)
         parts = line.split(',')
-
         if args.debug:
             debug("=== begin split line\n{0!s}\n=== end split line".format(parts))
-
         stats['nclients'] = int(re.sub('nclients=', '', parts[0]))
         stats['bytesin'] = int(re.sub('bytesin=', '', parts[1]))
         stats['bytesout'] = int(re.sub('bytesout=', '', parts[2]).replace('\r\n', ''))
 
         return stats
 
-    def parse_status(self, data):
+    @staticmethod
+    def parse_status(data):
         client_section = False
         routes_section = False
         status_version = 1
@@ -336,7 +335,8 @@ class OpenvpnMonitor(object):
 
         return sessions
 
-    def parse_version(self, data):
+    @staticmethod
+    def parse_version(data):
         for line in data.splitlines():
             if line.startswith('OpenVPN'):
                 return line.replace('OpenVPN Version: ', '')
