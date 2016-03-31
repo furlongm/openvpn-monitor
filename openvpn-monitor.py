@@ -296,7 +296,7 @@ class OpenvpnMonitor(object):
                     session['bytes_sent'] = int(parts[5])
                     session['connected_since'] = get_date(parts[7], uts=True)
                 session['location'] = 'Unknown'
-                if type(remote_ip_address) == IPv6Address and \
+                if isinstance(remote_ip_address, IPv6Address) and \
                         remote_ip_address.ipv4_mapped is not None:
                     session['remote_ip'] = remote_ip_address.ipv4_mapped
                 else:
