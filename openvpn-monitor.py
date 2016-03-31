@@ -52,7 +52,7 @@ def get_date(date_string, uts=False):
         return datetime.fromtimestamp(float(date_string))
 
 
-class config_loader(object):
+class ConfigLoader(object):
 
     def __init__(self, config_file):
 
@@ -103,7 +103,7 @@ class config_loader(object):
             debug("=== begin section\n{0!s}\n=== end section".format(vpn))
 
 
-class openvpn_monitor(object):
+class OpenvpnMonitor(object):
 
     def __init__(self, vpns):
         self.vpns = vpns
@@ -342,7 +342,7 @@ class openvpn_monitor(object):
                 return line.replace('OpenVPN Version: ', '')
 
 
-class openvpn_html_printer(object):
+class OpenvpnHtmlPrinter(object):
 
     def __init__(self, cfg, monitor):
 
@@ -617,9 +617,9 @@ class openvpn_html_printer(object):
 
 
 def main():
-    cfg = config_loader(args.config)
-    monitor = openvpn_monitor(cfg.vpns)
-    openvpn_html_printer(cfg, monitor)
+    cfg = ConfigLoader(args.config)
+    monitor = OpenvpnMonitor(cfg.vpns)
+    OpenvpnHtmlPrinter(cfg, monitor)
     if args.debug:
         pretty_vpns = pformat((dict(monitor.vpns)))
         debug("=== begin vpns\n{0!s}\n=== end vpns".format(pretty_vpns))
