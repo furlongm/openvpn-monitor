@@ -96,8 +96,8 @@ class ConfigLoader(object):
                 vpn[option] = config.get(section, option)
                 if vpn[option] == -1:
                     print(('CONFIG: skipping {0!s}'.format(option)))
-            except:
-                print(('CONFIG: exception on {0!s}'.format(option)))
+            except configparser.Error as e:
+                print(('CONFIG: {0!s} on option {1!s}: '.format(e, option)))
                 vpn[option] = None
         if args.debug:
             debug("=== begin section\n{0!s}\n=== end section".format(vpn))
