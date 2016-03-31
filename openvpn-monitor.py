@@ -78,8 +78,8 @@ class ConfigLoader(object):
                                     'port': '5555', 'order': '1'}
 
     def parse_global_section(self, config):
-        vars = ['site', 'logo', 'latitude', 'longitude', 'maps']
-        for var in vars:
+        global_vars = ['site', 'logo', 'latitude', 'longitude', 'maps']
+        for var in global_vars:
             try:
                 self.settings[var] = config.get('OpenVPN-Monitor', var)
             except configparser.NoOptionError:
