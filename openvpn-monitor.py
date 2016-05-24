@@ -52,6 +52,13 @@ def get_date(date_string, uts=False):
         return datetime.fromtimestamp(float(date_string))
 
 
+def get_str(s):
+    if sys.version_info[0] == 2:
+        return s.decode('utf-8')
+    else:
+        return s
+
+
 class ConfigLoader(object):
 
     def __init__(self, config_file):
@@ -313,7 +320,7 @@ class OpenvpnMonitor(object):
                         gir = None
                     if gir is not None:
                         session['location'] = gir['country_code']
-                        session['city'] = gir['city']
+                        session['city'] = get_str(gir['city'])
                         session['country_name'] = gir['country_name']
                         session['longitude'] = gir['longitude']
                         session['latitude'] = gir['latitude']
