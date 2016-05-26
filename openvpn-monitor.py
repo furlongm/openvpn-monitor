@@ -54,7 +54,7 @@ def get_date(date_string, uts=False):
 
 def get_str(s):
     if sys.version_info[0] == 2 and s is not None:
-        return s.decode('utf-8')
+        return s.decode('ISO-8859-1')
     else:
         return s
 
