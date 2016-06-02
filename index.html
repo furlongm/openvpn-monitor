@@ -1,0 +1,119 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>openvpn-monitor by furlongm</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <meta name="viewport" content="width=device-width">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>openvpn-monitor</h1>
+        <p>openvpn-monitor is a web based OpenVPN monitor, that shows current connection information, such as users, location and data transferred.</p>
+
+        <p class="view"><a href="https://github.com/furlongm/openvpn-monitor">View the Project on GitHub <small>furlongm/openvpn-monitor</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/furlongm/openvpn-monitor/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/furlongm/openvpn-monitor/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/furlongm/openvpn-monitor">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a id="openvpn-monitor" class="anchor" href="#openvpn-monitor" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>OpenVPN-Monitor</h1>
+
+<h2>
+<a id="summary" class="anchor" href="#summary" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Summary</h2>
+
+<p>OpenVPN-Monitor is a simple python program to generate html that displays the status of an OpenVPN server, including all current connections. It uses the OpenVPN management console. It typically runs on the same host as the OpenVPN server, however it does not necessarily need to.</p>
+
+<h2>
+<a id="quick-install-on-debian-8-using-apache" class="anchor" href="#quick-install-on-debian-8-using-apache" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Quick Install on Debian 8 using apache</h2>
+
+<p>These steps have been tested on Debian 8 but should be general enough for Ubuntu, CentOS, etc.</p>
+
+<h1>
+<a id="install-dependencies" class="anchor" href="#install-dependencies" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Install dependencies</h1>
+
+<div class="highlight highlight-source-shell"><pre>apt-get install libapache2-mod-python python-geoip python-ipaddr python-humanize apache2 git
+<span class="pl-c1">cd</span> /var/www/html
+git clone https://github.com/furlongm/openvpn-monitor.git
+a2enmod python cgid</pre></div>
+
+<h1>
+<a id="configure-openvpn" class="anchor" href="#configure-openvpn" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Configure OpenVPN</h1>
+
+<p>Add the following line to your OpenVPN server configuration to run the management console on 127.0.0.1 port 5555:</p>
+
+<pre><code>   management 127.0.0.1 5555
+</code></pre>
+
+<p>Refer to the OpenVPN documentation for further information on how to secure access to the management interface.</p>
+
+<h1>
+<a id="configure-apache" class="anchor" href="#configure-apache" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Configure Apache</h1>
+
+<p>Add the following to /etc/apache2/sites-enabled/000-default.conf</p>
+
+<pre><code>    &lt;Directory "/var/www/html/openvpn-monitor"&gt;
+        Options +ExecCGI
+        AddHandler cgi-script .py
+        DirectoryIndex openvpn-monitor.py
+    &lt;/Directory&gt;
+</code></pre>
+
+<p>and restart apache:</p>
+
+<div class="highlight highlight-source-shell"><pre>/etc/init.d/apache2 restart</pre></div>
+
+<h1>
+<a id="download-the-geolite-city-database" class="anchor" href="#download-the-geolite-city-database" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Download the GeoLite City Database</h1>
+
+<div class="highlight highlight-source-shell"><pre><span class="pl-c1">cd</span> /usr/share/GeoIP/
+wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz
+gunzip GeoLiteCity.dat.gz
+mv GeoLiteCity.dat GeoIPCity.dat</pre></div>
+
+<h1>
+<a id="configure-openvpn-monitor" class="anchor" href="#configure-openvpn-monitor" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Configure OpenVPN-Monitor</h1>
+
+<p>The example configuration file <code>/var/www/html/openvpn.cfg</code> should give some indication of how to set site name, add a logo, etc. You can also set a default location (latitude and longitude) for the embedded maps. If not set, the default location is Melbourne, Australia.</p>
+
+<p>Edit <code>/var/www/html/openvpn.cfg</code> to match your site. You should now be able to navigate to <code>http://myipaddress/openvpn-monitor</code></p>
+
+<h1>
+<a id="debugging" class="anchor" href="#debugging" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Debugging</h1>
+
+<p>OpenVPN-Monitor can be run from the command line in order to test if the html generates correctly:</p>
+
+<div class="highlight highlight-source-shell"><pre><span class="pl-c1">cd</span> /srv/html/www/openvpn-monitor
+python openvpn-monitor.py</pre></div>
+
+<h2>
+<a id="license" class="anchor" href="#license" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>License</h2>
+
+<p>OpenVPN-Monitor is licensed under the GPLv3, a copy of which can be found in the COPYING file.</p>
+
+<h2>
+<a id="acknowledgements" class="anchor" href="#acknowledgements" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Acknowledgements</h2>
+
+<p>Flags are created by Matthias Slovig (<a href="mailto:flags@slovig.de">flags@slovig.de</a>) and are licensed under Creative Commons License Deed Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0). See <a href="http://flags.blogpotato.de/">http://flags.blogpotato.de/</a> for more details.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/furlongm">furlongm</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
