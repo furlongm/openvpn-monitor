@@ -9,12 +9,19 @@ OpenVPN management console. It typically runs on the same host as the OpenVPN
 server, however it does not necessarily need to.
 
 
+## Source
+
+The current source code is available on github:
+
+https://github.com/furlongm/openvpn-monitor
+
+
 ## Quick Install on Debian 8 using apache
 
 These steps have been tested on Debian 8 but should be general enough for
 Ubuntu, CentOS, etc.
 
-# Install dependencies
+### Install dependencies
 
 
 ```shell
@@ -24,7 +31,7 @@ git clone https://github.com/furlongm/openvpn-monitor.git
 a2enmod python cgid
 ```
 
-# Configure OpenVPN
+### Configure OpenVPN
 
 Add the following line to your OpenVPN server configuration to run the
 management console on 127.0.0.1 port 5555:
@@ -37,7 +44,7 @@ management console on 127.0.0.1 port 5555:
 Refer to the OpenVPN documentation for further information on how to secure
 access to the management interface.
 
-# Configure Apache
+### Configure Apache
 
 Add the following to /etc/apache2/sites-enabled/000-default.conf
 
@@ -56,7 +63,7 @@ and restart apache:
 /etc/init.d/apache2 restart
 ```
 
-# Download the GeoLite City Database
+### Download the GeoLite City Database
 
 ```shell
 cd /usr/share/GeoIP/
@@ -65,7 +72,7 @@ gunzip GeoLiteCity.dat.gz
 mv GeoLiteCity.dat GeoIPCity.dat
 ```
 
-# Configure OpenVPN-Monitor
+### Configure OpenVPN-Monitor
 
 The example configuration file `/var/www/html/openvpn.cfg` should give some
 indication of how to set site name, add a logo, etc. You can also set a default
@@ -75,7 +82,7 @@ default location is Melbourne, Australia.
 Edit `/var/www/html/openvpn.cfg` to match your site. You should now be able to
 navigate to `http://myipaddress/openvpn-monitor`
 
-# Debugging
+### Debugging
 
 OpenVPN-Monitor can be run from the command line in order to test if the html
 generates correctly:
