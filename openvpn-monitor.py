@@ -27,6 +27,7 @@ import re
 import argparse
 import GeoIP
 import sys
+from uuid import uuid4
 from datetime import datetime
 from humanize import naturalsize
 from collections import OrderedDict
@@ -283,8 +284,12 @@ class OpenvpnMonitor(object):
                     session['bytes_recv'] = int(parts[2])
                     session['bytes_sent'] = int(parts[3])
                     session['connected_since'] = get_date(parts[4])
-                if status_version == 3:
-                    ident = parts[2]
+                elif status_version == 3:
+                    local_ip = parts[3]
+                    if local_ip:
+                        ident = local_ip
+                    else:
+                        ident = str(uuid4())
                     sessions[ident] = session
                     session['username'] = parts[1]
                     if parts[2].count(':') == 1:
@@ -293,14 +298,14 @@ class OpenvpnMonitor(object):
                         remote_ip = parts[2]
                         port = None
                     remote_ip_address = ip_address(remote_ip)
-                    local_ip = parts[3]
-                    if local_ip == '':
-                        session['local_ip'] = ''
+                    if local_ip:
+                        session['local_ip'] = ip_address(local_ip)
                     else:
-                        session['local_ip'] = ip_address(parts[3])
+                        session['local_ip'] = ''
                     session['bytes_recv'] = int(parts[4])
                     session['bytes_sent'] = int(parts[5])
                     session['connected_since'] = get_date(parts[7], uts=True)
+                    session['last_seen'] = session['connected_since']
                 session['location'] = 'Unknown'
                 if isinstance(remote_ip_address, IPv6Address) and \
                         remote_ip_address.ipv4_mapped is not None:
@@ -329,9 +334,10 @@ class OpenvpnMonitor(object):
                     ident = parts[2]
                     sessions[ident]['local_ip'] = ip_address(parts[0])
                     sessions[ident]['last_seen'] = get_date(parts[3])
-                if status_version == 3:
-                    ident = parts[3]
-                    sessions[ident]['last_seen'] = get_date(parts[5], uts=True)
+                elif status_version == 3:
+                    local_ip = parts[1]
+                    if local_ip in sessions:
+                        sessions[local_ip]['last_seen'] = get_date(parts[5], uts=True)
 
         if args.debug:
             if sessions:
