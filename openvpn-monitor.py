@@ -291,7 +291,10 @@ class OpenvpnMonitor(object):
                     else:
                         ident = str(uuid4())
                     sessions[ident] = session
-                    session['username'] = parts[8]
+                    if parts[8] != 'UNDEF':
+                        session['username'] = parts[8]
+                    else:
+                        session['username'] = parts[0]
                     if parts[2].count(':') == 1:
                         remote_ip, port = parts[2].split(':')
                     else:
