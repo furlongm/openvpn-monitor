@@ -26,7 +26,7 @@ https://github.com/furlongm/openvpn-monitor
 apt-get install python-geoip python-ipaddr python-humanize apache2 git
 ```
 
-### Checkout OpenVPM-Monitor
+### Checkout OpenVPN-Monitor
 
 ```shell
 cd /var/www/html
@@ -48,7 +48,7 @@ access to the management interface.
 
 ### Configure Apache
 
-Choose one of the following two methods serving under Apache:
+Choose one of the following two methods to serve under Apache:
 
 #### Method 1: configure Apache with mod_wsgi
 
