@@ -20,17 +20,17 @@ https://github.com/furlongm/openvpn-monitor
 
 ## Quick Install on Debian 8 using apache
 
-These steps have been tested on Debian 8 but should be general enough for
-Ubuntu, CentOS, etc.
-
 ### Install dependencies
 
+```shell
+apt-get install python-geoip python-ipaddr python-humanize apache2 git
+```
+
+### Checkout OpenVPM-Monitor
 
 ```shell
-apt-get install libapache2-mod-python python-geoip python-ipaddr python-humanize apache2 git
 cd /var/www/html
 git clone https://github.com/furlongm/openvpn-monitor.git
-a2enmod python cgid
 ```
 
 ### Configure OpenVPN
@@ -48,8 +48,37 @@ access to the management interface.
 
 ### Configure Apache
 
+Choose one of the following two methods serving under Apache:
+
+#### Method 1: configure Apache with mod_wsgi
+
+```shell
+apt-get install libapache2-mod-wsgi
+a2enmod wsgi
+```
+
 Add the following to /etc/apache2/sites-enabled/000-default.conf
 
+```
+    WSGIDaemonProcess openvpn_monitor processes=1 threads=1
+    WSGIScriptAlias /openvpn /var/www/html/openvpn-monitor/app.wsgi
+    WSGIProcessGroup openvpn_monitor
+
+    <Directory "/var/www/html/openvpn-monitor">
+        <Files app.wsgi>
+            Require all granted
+        </Files>
+    </Directory>
+```
+
+#### Method 2: configure Apache with mod_python
+
+```shell
+apt-get install libapache2-mod-python
+a2enmod python cgid
+```
+
+Add the following to /etc/apache2/sites-enabled/000-default.conf
 
 ```
     <Directory "/var/www/html/openvpn-monitor">
@@ -59,7 +88,7 @@ Add the following to /etc/apache2/sites-enabled/000-default.conf
     </Directory>
 ```
 
-and restart apache:
+Restart apache:
 
 ```shell
 /etc/init.d/apache2 restart
@@ -90,7 +119,7 @@ OpenVPN-Monitor can be run from the command line in order to test if the html
 generates correctly:
 
 ```shell
-cd /srv/html/www/openvpn-monitor
+cd /var/www/html/openvpn-monitor
 python openvpn-monitor.py
 ```
 

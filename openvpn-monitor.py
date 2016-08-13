@@ -675,13 +675,7 @@ else:
     class args:
         debug = False
         config = './openvpn-monitor.cfg'
+        geoip_data = '/usr/share/GeoIP/GeoIPCity.dat'
+
     wsgi = True
     wsgi_output = ''
-    from bottle import route, response
-
-    @route('/')
-    def slash():
-        global wsgi_output
-        main()
-        response.content_type = 'text/html;'
-        return wsgi_output
