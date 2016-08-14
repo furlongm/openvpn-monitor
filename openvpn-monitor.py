@@ -48,11 +48,11 @@ def output(s):
 
 
 def warning(*objs):
-    output("WARNING: ", *objs, file=sys.stderr)
+    print("WARNING: ", *objs, file=sys.stderr)
 
 
 def debug(*objs):
-    output("DEBUG:\n", *objs, file=sys.stderr)
+    print("DEBUG:\n", *objs, file=sys.stderr)
 
 
 def get_date(date_string, uts=False):
