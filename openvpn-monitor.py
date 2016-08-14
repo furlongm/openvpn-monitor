@@ -573,7 +573,7 @@ class OpenvpnHtmlPrinter(object):
                 full_location = '{0!s}, {1!s}'.format(city, country)
             else:
                 full_location = country
-            flag = 'flags/{0!s}.png'.format(session['location'].lower())
+            flag = '{0!s}flags/{1!s}.png'.format(image_path, session['location'].lower())
             output('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, full_location))
             output('{0!s}</td>'.format(full_location))
         else:
@@ -670,6 +670,7 @@ def collect_args():
 if __name__ == '__main__':
     args = collect_args().parse_args()
     wsgi = False
+    image_path = 'images/'
     main()
 else:
     class args:
@@ -677,5 +678,6 @@ else:
         config = './openvpn-monitor.cfg'
         geoip_data = '/usr/share/GeoIP/GeoIPCity.dat'
 
+    image_path = ''
     wsgi = True
     wsgi_output = ''
