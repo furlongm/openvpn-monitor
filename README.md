@@ -60,20 +60,19 @@ a2enmod wsgi
 Add the following to /etc/apache2/sites-enabled/000-default.conf
 
 ```
-    WSGIScriptAlias /openvpn /var/www/html/openvpn-monitor/wsgi.py
+    WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py
 
     <Directory "/var/www/html/openvpn-monitor">
-        <Files wsgi.py>
+        <Files openvpn-monitor.py>
             Require all granted
         </Files>
     </Directory>
 ```
 
-#### Method 2: configure Apache with mod_python
+#### Method 2: configure Apache with mod_cgi
 
 ```shell
-apt-get install libapache2-mod-python
-a2enmod python cgid
+a2enmod cgi
 ```
 
 Add the following to /etc/apache2/sites-enabled/000-default.conf
