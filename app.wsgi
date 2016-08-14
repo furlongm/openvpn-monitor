@@ -11,6 +11,7 @@ from bottle import route, response, get, static_file
 
 @route('/')
 def root():
+    openvpn_monitor.wsgi_output = ''
     openvpn_monitor.main()
     response.content_type = 'text/html;'
     return openvpn_monitor.wsgi_output
