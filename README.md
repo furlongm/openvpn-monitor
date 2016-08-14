@@ -62,11 +62,6 @@ Add the following to /etc/apache2/sites-enabled/000-default.conf
 ```
     WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py
 
-    <Directory "/var/www/html/openvpn-monitor">
-        <Files openvpn-monitor.py>
-            Require all granted
-        </Files>
-    </Directory>
 ```
 
 #### Method 2: configure Apache with mod_cgi
