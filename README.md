@@ -105,13 +105,14 @@ mv GeoLiteCity.dat GeoIPCity.dat
 
 ### Configure OpenVPN-Monitor
 
-The example configuration file `/var/www/html/openvpn.cfg` should give some
-indication of how to set site name, add a logo, etc. You can also set a default
-location (latitude and longitude) for the embedded maps. If not set, the
-default location is Melbourne, Australia.
+The example configuration file `/var/www/html/openvpn-monitor/openvpn-monitor.cfg`
+should give some indication of how to set site name, add a logo, etc. You can
+also set a default location (latitude and longitude) for the embedded maps.
+If not set, the default location is Melbourne, Australia.
 
-Edit `/var/www/html/openvpn.cfg` to match your site. You should now be able to
-navigate to `http://myipaddress/openvpn-monitor`
+Edit `/var/www/html/openvpn-monitor/openvpn-monitor.cfg` to match your site.
+
+You should now be able to navigate to `http://myipaddress/openvpn-monitor`
 
 ### Debugging
 
