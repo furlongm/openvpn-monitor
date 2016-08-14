@@ -60,12 +60,10 @@ a2enmod wsgi
 Add the following to /etc/apache2/sites-enabled/000-default.conf
 
 ```
-    WSGIDaemonProcess openvpn_monitor processes=1 threads=1
-    WSGIScriptAlias /openvpn /var/www/html/openvpn-monitor/app.wsgi
-    WSGIProcessGroup openvpn_monitor
+    WSGIScriptAlias /openvpn /var/www/html/openvpn-monitor/wsgi.py
 
     <Directory "/var/www/html/openvpn-monitor">
-        <Files app.wsgi>
+        <Files wsgi.py>
             Require all granted
         </Files>
     </Directory>
