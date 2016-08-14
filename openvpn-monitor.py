@@ -27,6 +27,7 @@ import re
 import argparse
 import GeoIP
 import sys
+import os
 from uuid import uuid4
 from datetime import datetime
 from humanize import naturalsize
@@ -673,10 +674,29 @@ if __name__ == '__main__':
     image_path = 'images/'
     main()
 else:
+    from bottle import route, response, get, static_file, default_app
+
     class args:
         debug = False
         config = './openvpn-monitor.cfg'
 
-    image_path = ''
     wsgi = True
     wsgi_output = ''
+    image_path = ''
+
+    os.chdir(os.path.dirname(__file__))
+    sys.path.append(os.path.dirname(__file__))
+
+    application = default_app()
+
+    @route('/')
+    def root():
+        global wsgi_output
+        wsgi_output = ''
+        main()
+        response.content_type = 'text/html;'
+        return wsgi_output
+
+    @get('/<filename:re:.*\.(jpg|png)>')
+    def images(filename):
+        return static_file(filename, root='images')
