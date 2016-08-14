@@ -89,12 +89,15 @@ class ConfigLoader(object):
 
     def load_default_settings(self):
         warning('Using default settings => localhost:5555')
-        self.settings = {'site': 'Default Site'}
-        self.vpns['Default VPN'] = {'name': 'default', 'host': 'localhost',
-                                    'port': '5555', 'order': '1'}
+        self.settings = {'site': 'Default Site',
+                         'geoip_data': '/usr/share/GeoIP/GeoIPCity.dat'}
+        self.vpns['Default VPN'] = {'name': 'default',
+                                    'host': 'localhost',
+                                    'port': '5555',
+                                    'order': '1'}
 
     def parse_global_section(self, config):
-        global_vars = ['site', 'logo', 'latitude', 'longitude', 'maps']
+        global_vars = ['site', 'logo', 'latitude', 'longitude', 'maps', 'geoip_data']
         for var in global_vars:
             try:
                 self.settings[var] = config.get('OpenVPN-Monitor', var)
@@ -121,8 +124,9 @@ class ConfigLoader(object):
 
 class OpenvpnMonitor(object):
 
-    def __init__(self, vpns):
-        self.vpns = vpns
+    def __init__(self, cfg):
+        self.vpns = cfg.vpns
+        self.geoip_data = cfg.settings['geoip_data']
         for key, vpn in list(self.vpns.items()):
             self._socket_connect(vpn)
             if self.s:
@@ -137,7 +141,7 @@ class OpenvpnMonitor(object):
         stats = self.send_command('load-stats\n')
         vpn['stats'] = self.parse_stats(stats)
         status = self.send_command('status 3\n')
-        vpn['sessions'] = self.parse_status(status)
+        vpn['sessions'] = self.parse_status(status, self.geoip_data)
 
     def _socket_send(self, command):
         if sys.version_info[0] == 2:
@@ -222,13 +226,13 @@ class OpenvpnMonitor(object):
         return stats
 
     @staticmethod
-    def parse_status(data):
+    def parse_status(data, geoip_data):
         client_section = False
         routes_section = False
         status_version = 1
         sessions = {}
         client_session = {}
-        gi = GeoIP.open(args.geoip_data, GeoIP.GEOIP_STANDARD)
+        gi = GeoIP.open(geoip_data, GeoIP.GEOIP_STANDARD)
 
         for line in data.splitlines():
 
@@ -644,7 +648,7 @@ class OpenvpnHtmlPrinter(object):
 
 def main():
     cfg = ConfigLoader(args.config)
-    monitor = OpenvpnMonitor(cfg.vpns)
+    monitor = OpenvpnMonitor(cfg)
     OpenvpnHtmlPrinter(cfg, monitor)
     if args.debug:
         pretty_vpns = pformat((dict(monitor.vpns)))
@@ -660,10 +664,6 @@ def collect_args():
     parser.add_argument('-c', '--config', type=str,
                         required=False, default='./openvpn-monitor.cfg',
                         help='Path to config file openvpn.cfg')
-    parser.add_argument('-g', '--geoip-data', type=str,
-                        required=False,
-                        default='/usr/share/GeoIP/GeoIPCity.dat',
-                        help='Path to GeoIPCity.dat')
     return parser
 
 
@@ -676,7 +676,6 @@ else:
     class args:
         debug = False
         config = './openvpn-monitor.cfg'
-        geoip_data = '/usr/share/GeoIP/GeoIPCity.dat'
 
     image_path = ''
     wsgi = True
