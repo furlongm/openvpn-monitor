@@ -76,10 +76,19 @@ class ConfigLoader(object):
         self.settings = {}
         self.vpns = OrderedDict()
         config = configparser.RawConfigParser()
+
         contents = config.read(config_file)
+        if not contents and config_file == './openvpn-monitor.conf':
+            warning('Config file does not exist or is unreadable: {0!s}'.format(config_file))
+            if sys.prefix == '/usr':
+                conf_path = '/etc'
+            else:
+                conf_path = sys.prefix + '/etc'
+            config_file = conf_path + 'openvpn-monitor.conf'
+            contents = config.read(config_file)
 
         if not contents:
-            output('Config file does not exist or is unreadable')
+            warning('Config file does not exist or is unreadable: {0!s}'.format(config_file))
             self.load_default_settings()
 
         for section in config.sections():
@@ -656,20 +665,20 @@ def main():
         debug("=== begin vpns\n{0!s}\n=== end vpns".format(pretty_vpns))
 
 
-def collect_args():
+def get_args():
     parser = argparse.ArgumentParser(
         description='Display a html page with openvpn status and connections')
     parser.add_argument('-d', '--debug', action='store_true',
                         required=False, default=False,
                         help='Run in debug mode')
     parser.add_argument('-c', '--config', type=str,
-                        required=False, default='./openvpn-monitor.cfg',
-                        help='Path to config file openvpn.cfg')
-    return parser
+                        required=False, default='./openvpn-monitor.conf',
+                        help='Path to config file openvpn-monitor.conf')
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
-    args = collect_args().parse_args()
+    args = get_args()
     wsgi = False
     image_path = 'images/'
     main()
@@ -678,7 +687,7 @@ else:
 
     class args:
         debug = False
-        config = './openvpn-monitor.cfg'
+        config = './openvpn-monitor.conf'
 
     wsgi = True
     wsgi_output = ''
