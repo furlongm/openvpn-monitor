@@ -1,0 +1,8 @@
+include README.md
+include openvpn-monitor.py
+include openvpn-monitor.cfg
+include AUTHORS
+include COPYING
+include MANIFEST.in
+include VERSION.txt
+recursive-include images *
