@@ -47,6 +47,10 @@ def output(s):
         wsgi_output += s
 
 
+def info(*objs):
+    print("INFO:", *objs, file=sys.stderr)
+
+
 def warning(*objs):
     print("WARNING:", *objs, file=sys.stderr)
 
@@ -87,7 +91,9 @@ class ConfigLoader(object):
             config_file = conf_path + 'openvpn-monitor.conf'
             contents = config.read(config_file)
 
-        if not contents:
+        if contents:
+            info('Using config file: {0!s}'.format(config_file))
+        else:
             warning('Config file does not exist or is unreadable: {0!s}'.format(config_file))
             self.load_default_settings()
 
@@ -98,7 +104,7 @@ class ConfigLoader(object):
                 self.parse_vpn_section(config, section)
 
     def load_default_settings(self):
-        warning('Using default settings => localhost:5555')
+        info('Using default settings => localhost:5555')
         self.settings = {'site': 'Default Site',
                          'geoip_data': '/usr/share/GeoIP/GeoIPCity.dat'}
         self.vpns['Default VPN'] = {'name': 'default',
