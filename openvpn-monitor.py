@@ -48,7 +48,7 @@ def output(s):
 
 
 def warning(*objs):
-    print("WARNING: ", *objs, file=sys.stderr)
+    print("WARNING:", *objs, file=sys.stderr)
 
 
 def debug(*objs):
