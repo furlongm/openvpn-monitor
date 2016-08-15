@@ -18,7 +18,21 @@ The current source code is available on github:
 https://github.com/furlongm/openvpn-monitor
 
 
-## Quick Install on Debian 8 using apache
+## Quick install with virtualenv/pip/gunicorn
+
+
+```shell
+mkdir /srv/openvpn-monitor
+cd /srv/openvpn-monitor
+virtualenv .
+. bin/activate
+pip install openvpn-monitor gunicorn
+gunicorn openvpn-monitor -b 0.0.0.0:80
+
+```
+
+
+## Install on Debian 8 using apache
 
 ### Install dependencies
 
