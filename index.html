@@ -49,7 +49,18 @@ server, however it does not necessarily need to.</p>
 <p><a href="https://github.com/furlongm/openvpn-monitor">https://github.com/furlongm/openvpn-monitor</a></p>
 
 <h2>
-<a id="quick-install-on-debian-8-using-apache" class="anchor" href="#quick-install-on-debian-8-using-apache" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Quick Install on Debian 8 using apache</h2>
+<a id="quick-install-with-virtualenvpipgunicorn" class="anchor" href="#quick-install-with-virtualenvpipgunicorn" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Quick install with virtualenv/pip/gunicorn</h2>
+
+<div class="highlight highlight-source-shell"><pre>mkdir /srv/openvpn-monitor
+<span class="pl-c1">cd</span> /srv/openvpn-monitor
+virtualenv <span class="pl-c1">.</span>
+<span class="pl-c1">.</span> bin/activate
+pip install openvpn-monitor gunicorn
+gunicorn openvpn-monitor -b 0.0.0.0:80
+</pre></div>
+
+<h2>
+<a id="install-on-debian-8-using-apache" class="anchor" href="#install-on-debian-8-using-apache" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Install on Debian 8 using apache</h2>
 
 <h3>
 <a id="install-dependencies" class="anchor" href="#install-dependencies" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Install dependencies</h3>
@@ -89,11 +100,6 @@ a2enmod wsgi</pre></div>
 
 <pre><code>    WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py
 
-    &lt;Directory "/var/www/html/openvpn-monitor"&gt;
-        &lt;Files openvpn-monitor.py&gt;
-            Require all granted
-        &lt;/Files&gt;
-    &lt;/Directory&gt;
 </code></pre>
 
 <h4>
@@ -125,12 +131,12 @@ mv GeoLiteCity.dat GeoIPCity.dat</pre></div>
 <h3>
 <a id="configure-openvpn-monitor" class="anchor" href="#configure-openvpn-monitor" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Configure OpenVPN-Monitor</h3>
 
-<p>The example configuration file <code>/var/www/html/openvpn-monitor/openvpn-monitor.cfg</code>
+<p>The example configuration file <code>/var/www/html/openvpn-monitor/openvpn-monitor.conf</code>
 should give some indication of how to set site name, add a logo, etc. You can
 also set a default location (latitude and longitude) for the embedded maps.
 If not set, the default location is Melbourne, Australia.</p>
 
-<p>Edit <code>/var/www/html/openvpn-monitor/openvpn-monitor.cfg</code> to match your site.</p>
+<p>Edit <code>/var/www/html/openvpn-monitor/openvpn-monitor.conf</code> to match your site.</p>
 
 <p>You should now be able to navigate to <code>http://myipaddress/openvpn-monitor</code></p>
 
