@@ -5,4 +5,5 @@ include AUTHORS
 include COPYING
 include MANIFEST.in
 include VERSION.txt
+include requirements.txt
 recursive-include images *
