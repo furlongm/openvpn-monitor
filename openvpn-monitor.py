@@ -699,8 +699,14 @@ else:
     wsgi_output = ''
     image_path = ''
 
+    owd = os.getcwd()
     os.chdir(os.path.dirname(__file__))
     sys.path.append(os.path.dirname(__file__))
+    if owd != os.getcwd() and sys.prefix != '/usr':
+        # virtualenv
+        images_dir = owd + '/share/openvpn-monitor/images/'
+    else:
+        images_dir = 'images'
 
     application = default_app()
 
@@ -714,4 +720,4 @@ else:
 
     @get('/<filename:re:.*\.(jpg|png)>')
     def images(filename):
-        return static_file(filename, root='images')
+        return static_file(filename, root=images_dir)
