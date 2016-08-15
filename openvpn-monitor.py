@@ -81,9 +81,9 @@ class ConfigLoader(object):
         if not contents and config_file == './openvpn-monitor.conf':
             warning('Config file does not exist or is unreadable: {0!s}'.format(config_file))
             if sys.prefix == '/usr':
-                conf_path = '/etc'
+                conf_path = '/etc/'
             else:
-                conf_path = sys.prefix + '/etc'
+                conf_path = sys.prefix + '/etc/'
             config_file = conf_path + 'openvpn-monitor.conf'
             contents = config.read(config_file)
 
