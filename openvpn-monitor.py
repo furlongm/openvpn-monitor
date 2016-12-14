@@ -488,7 +488,7 @@ class OpenvpnHtmlPrinter(object):
     def print_session_table_headers(vpn_mode):
 
         server_headers = ['Username / Hostname', 'VPN IP Address',
-                          'Remote IP Address', 'Port', 'Location', 'Bytes In',
+                          'Remote IP Address', 'Location', 'Bytes In',
                           'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
         client_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
                           'TCP-UDP-Write', 'Auth-Read']
@@ -584,7 +584,6 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(session['username']))
         output('<td>{0!s}</td>'.format(session['local_ip']))
         output('<td>{0!s}</td>'.format(session['remote_ip']))
-        output('<td>{0!s}</td>'.format(session['port']))
 
         if 'city' in session and 'country_name' in session:
             country = session['country_name']
