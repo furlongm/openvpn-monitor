@@ -455,7 +455,7 @@ class OpenvpnHtmlPrinter(object):
         if self.maps:
             output('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.2/leaflet.js" integrity="sha256-RS5bDpN9YmmUIdtdu8ESPjNp1Bg/Fqu90PwN3uawdSQ=" crossorigin="anonymous"></script>')
 
-        output('<body>')
+        output('</head><body>')
 
         output('<nav class="navbar navbar-inverse">')
         output('<div class="container-fluid">')
