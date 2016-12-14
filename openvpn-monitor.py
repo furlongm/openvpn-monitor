@@ -437,13 +437,24 @@ class OpenvpnHtmlPrinter(object):
         output('<title>{0!s} OpenVPN Status Monitor</title>'.format(self.site))
         output('<meta http-equiv="refresh" content="300" />')
 
+        # css
+        output('<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous" />')
+        output('<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous" />')
+        output('<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.28.1/css/theme.bootstrap.min.css" integrity="sha256-wRcWKLfgokdRBDrdAtn6uj3yBfHBgkEZIqFXFrxKAFs=" crossorigin="anonymous" />')
         if self.maps:
-            self.print_maps_header()
+            output('<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.2/leaflet.css" integrity="sha256-9mfj77orHLh2GsN7CbMvpjO/Wny/ZZhR7Pu7hy0Yig4=" crossorigin="anonymous" />')
 
-        output('<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>')
-        output('<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">')
-        output('<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">')
+        # js
+        output('<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>')
+        output('<script src="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.28.1/js/jquery.tablesorter.min.js" integrity="sha256-UNRzZUOuTX5SlMJanVulIVc5Cr290jlWRgHwh1y+xtk=" crossorigin="anonymous"></script>')
+        output('<script src="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.28.1/js/jquery.tablesorter.widgets.min.js" integrity="sha256-XHLVNGORaSZRLHTJmkTRsOBm1DvZ7oeTWwvhPvwmkQc=" crossorigin="anonymous"></script>')
         output('<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>')
+        output('<script>$(document).ready(function(){')
+        output('$("#sessions").tablesorter({theme:"bootstrap", headerTemplate:"{content} {icon}", widgets:["uitheme"]});')
+        output('});</script>')
+        if self.maps:
+            output('<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.2/leaflet.js" integrity="sha256-RS5bDpN9YmmUIdtdu8ESPjNp1Bg/Fqu90PwN3uawdSQ=" crossorigin="anonymous"></script>')
+
         output('<body>')
 
         output('<nav class="navbar navbar-inverse">')
@@ -498,8 +509,9 @@ class OpenvpnHtmlPrinter(object):
         elif vpn_mode == 'Server':
             headers = server_headers
 
-        output('<table class="table table-striped table-bordered table-hover ')
-        output('table-condensed table-responsive">')
+        output('<table id="sessions" class="table table-striped table-bordered ')
+        output('table-hover table-condensed table-responsive ')
+        output('tablesorter tablesorter-bootstrap">')
         output('<thead><tr>')
         for header in headers:
             output('<th>{0!s}</th>'.format(header))
@@ -617,11 +629,6 @@ class OpenvpnHtmlPrinter(object):
             elif vpn_mode == 'Server':
                 self.print_server_session(session)
             output('</tr>')
-
-    @staticmethod
-    def print_maps_header():
-        output('<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.css" />')
-        output('<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/leaflet.js"></script>')
 
     def print_maps_html(self):
         output('<div class="panel panel-info"><div class="panel-heading">')
