@@ -37,7 +37,7 @@ gunicorn openvpn-monitor -b 0.0.0.0:80
 ### Install dependencies
 
 ```shell
-apt-get install python-geoip python-ipaddr python-humanize apache2 git
+apt-get install python-geoip python-ipaddr python-humanize python-bottle apache2 git
 ```
 
 ### Checkout OpenVPN-Monitor
