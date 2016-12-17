@@ -106,14 +106,15 @@ class ConfigLoader(object):
     def load_default_settings(self):
         info('Using default settings => localhost:5555')
         self.settings = {'site': 'Default Site',
-                         'geoip_data': '/usr/share/GeoIP/GeoIPCity.dat'}
+                         'geoip_data': '/usr/share/GeoIP/GeoIPCity.dat',
+                         'datetime_format': '%d/%m/%Y %H:%M:%S'}
         self.vpns['Default VPN'] = {'name': 'default',
                                     'host': 'localhost',
                                     'port': '5555',
                                     'order': '1'}
 
     def parse_global_section(self, config):
-        global_vars = ['site', 'logo', 'latitude', 'longitude', 'maps', 'geoip_data']
+        global_vars = ['site', 'logo', 'latitude', 'longitude', 'maps', 'geoip_data', 'datetime_format']
         for var in global_vars:
             try:
                 self.settings[var] = config.get('OpenVPN-Monitor', var)
@@ -424,6 +425,8 @@ class OpenvpnHtmlPrinter(object):
         if 'longitude' in settings:
             self.longitude = settings['longitude']
 
+        self.datetime_format = settings['datetime_format']
+
     def print_html_header(self):
 
         global wsgi
@@ -565,7 +568,7 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(nclients))
         output('<td>{0!s} ({1!s})</td>'.format(bytesin, naturalsize(bytesin, binary=True)))
         output('<td>{0!s} ({1!s})</td>'.format(bytesout, naturalsize(bytesout, binary=True)))
-        output('<td>{0!s}</td>'.format(up_since.strftime('%d/%m/%Y %H:%M:%S')))
+        output('<td>{0!s}</td>'.format(up_since.strftime(self.datetime_format)))
         output('<td>{0!s}</td>'.format(local_ip))
         if vpn_mode == 'Client':
             output('<td>{0!s}</td>'.format(remote_ip))
@@ -587,9 +590,7 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(session['tcpudp_write']))
         output('<td>{0!s}</td>'.format(session['auth_read']))
 
-    @staticmethod
-    def print_server_session(session):
-
+    def print_server_session(self, session):
         total_time = str(datetime.now() - session['connected_since'])[:-7]
         bytes_recv = session['bytes_recv']
         bytes_sent = session['bytes_sent']
@@ -613,10 +614,10 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s} ({1!s})</td>'.format(bytes_recv, naturalsize(bytes_recv, binary=True)))
         output('<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True)))
         output('<td>{0!s}</td>'.format(
-            session['connected_since'].strftime('%d/%m/%Y %H:%M:%S')))
+            session['connected_since'].strftime(self.datetime_format)))
         if 'last_seen' in session:
             output('<td>{0!s}</td>'.format(
-                session['last_seen'].strftime('%d/%m/%Y %H:%M:%S')))
+                session['last_seen'].strftime(self.datetime_format)))
         else:
             output('<td>ERROR</td>')
         output('<td>{0!s}</td>'.format(total_time))
@@ -659,12 +660,11 @@ class OpenvpnHtmlPrinter(object):
         output('</script>')
         output('</div></div>')
 
-    @staticmethod
-    def print_html_footer():
+    def print_html_footer(self):
         output('<div class="well well-sm">')
         output('Page automatically reloads every 5 minutes.')
         output('Last update: <b>{0!s}</b></div>'.format(
-            datetime.now().strftime('%a %d/%m/%Y %H:%M:%S')))
+            datetime.now().strftime(self.datetime_format)))
         output('</div></body></html>')
 
 
