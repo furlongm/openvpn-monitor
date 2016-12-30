@@ -309,7 +309,12 @@ class OpenvpnMonitor(object):
                     ident = parts[1]
                     sessions[ident] = session
                     session['username'] = parts[0]
-                    remote_ip, port = parts[1].split(':')
+                    if parts[1].count(':') == 1:
+                        remote_ip, port = parts[1].split(':')
+                    else:
+                        remote_ip = parts[1]
+                        port = None
+                    remote_ip_address = ip_address(remote_ip)
                     session['bytes_recv'] = int(parts[2])
                     session['bytes_sent'] = int(parts[3])
                     session['connected_since'] = get_date(parts[4])
