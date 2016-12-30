@@ -143,7 +143,9 @@ class OpenvpnMonitor(object):
 
     def __init__(self, cfg):
         self.vpns = cfg.vpns
-        self.geoip_data = cfg.settings['geoip_data']
+        geoip_data = cfg.settings['geoip_data']
+        self.gi = GeoIP.open(geoip_data, GeoIP.GEOIP_STANDARD)
+
         for key, vpn in list(self.vpns.items()):
             self._socket_connect(vpn)
             if self.s:
@@ -158,7 +160,7 @@ class OpenvpnMonitor(object):
         stats = self.send_command('load-stats\n')
         vpn['stats'] = self.parse_stats(stats)
         status = self.send_command('status 3\n')
-        vpn['sessions'] = self.parse_status(status, self.geoip_data)
+        vpn['sessions'] = self.parse_status(status, self.gi, vpn['version'])
 
     def _socket_send(self, command):
         if sys.version_info[0] == 2:
@@ -243,13 +245,12 @@ class OpenvpnMonitor(object):
         return stats
 
     @staticmethod
-    def parse_status(data, geoip_data):
+    def parse_status(data, gi, version):
         client_section = False
         routes_section = False
         status_version = 1
         sessions = {}
         client_session = {}
-        gi = GeoIP.open(geoip_data, GeoIP.GEOIP_STANDARD)
 
         for line in data.splitlines():
 
