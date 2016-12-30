@@ -269,7 +269,6 @@ class OpenvpnMonitor(object):
                 parts[0].startswith('TIME'):
                     continue
             if parts[0] == 'HEADER':
-                status_version = 3
                 if parts[1] == 'CLIENT_LIST':
                     client_section = True
                     routes_section = False
