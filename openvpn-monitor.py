@@ -277,7 +277,6 @@ class OpenvpnMonitor(object):
                     routes_section = True
                 continue
 
-            session = {}
             if parts[0] == 'TUN/TAP read bytes':
                 client_session['tuntap_read'] = int(parts[1])
                 continue
@@ -294,7 +293,9 @@ class OpenvpnMonitor(object):
                 client_session['auth_read'] = int(parts[1])
                 sessions['Client'] = client_session
                 continue
+
             if client_section:
+                session = {}
                 parts.popleft()
                 common_name = parts.popleft()
                 remote_str = parts.popleft()
@@ -348,6 +349,7 @@ class OpenvpnMonitor(object):
                     session['client_id'] = parts.popleft()
                     session['peer_id'] = parts.popleft()
                 sessions[str(session['local_ip'])] = session
+
             if routes_section:
                 local_ip = parts[1]
                 last_seen = parts[5]
