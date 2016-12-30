@@ -31,7 +31,7 @@ import os
 from uuid import uuid4
 from datetime import datetime
 from humanize import naturalsize
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from pprint import pformat
 
 if sys.version_info[0] == 2:
@@ -248,22 +248,26 @@ class OpenvpnMonitor(object):
     def parse_status(data, gi, version):
         client_section = False
         routes_section = False
-        status_version = 1
         sessions = {}
         client_session = {}
 
+        if '2.4.' in version:
+            openvpn_24 = True
+        else:
+            openvpn_24 = False
+
         for line in data.splitlines():
 
-            if ',' in line:
-                parts = line.split(',')
-            else:
-                parts = line.split('\t')
-
+            parts = deque(line.split('\t'))
             if args.debug:
                 debug("=== begin split line\n{0!s}\n=== end split line".format(parts))
 
-            if parts[0].startswith('GLOBAL'):
+            if parts[0].startswith('END'):
                 break
+            if parts[0].startswith('TITLE') or \
+                parts[0].startswith('GLOBAL') or \
+                parts[0].startswith('TIME'):
+                    continue
             if parts[0] == 'HEADER':
                 status_version = 3
                 if parts[1] == 'CLIENT_LIST':
@@ -272,20 +276,6 @@ class OpenvpnMonitor(object):
                 if parts[1] == 'ROUTING_TABLE':
                     client_section = False
                     routes_section = True
-                continue
-            if parts[0] == 'Updated':
-                continue
-            if parts[0] == 'Common Name':
-                status_version = 1
-                client_section = True
-                routes_section = False
-                continue
-            if parts[0] == 'ROUTING TABLE' or parts[0] == 'Virtual Address':
-                status_version = 1
-                client_section = False
-                routes_section = True
-                continue
-            if parts[0].startswith('>CLIENT'):
                 continue
 
             session = {}
@@ -305,51 +295,21 @@ class OpenvpnMonitor(object):
                 client_session['auth_read'] = int(parts[1])
                 sessions['Client'] = client_session
                 continue
-            if client_section and not routes_section:
-                if status_version == 1:
-                    ident = parts[1]
-                    sessions[ident] = session
-                    session['username'] = parts[0]
-                    if parts[1].count(':') == 1:
-                        remote_ip, port = parts[1].split(':')
-                    else:
-                        remote_ip = parts[1]
-                        port = None
-                    remote_ip_address = ip_address(remote_ip)
-                    session['bytes_recv'] = int(parts[2])
-                    session['bytes_sent'] = int(parts[3])
-                    session['connected_since'] = get_date(parts[4])
-                elif status_version == 3:
-                    local_ip = parts[3]
-                    if local_ip:
-                        ident = local_ip
-                    else:
-                        ident = str(uuid4())
-                    sessions[ident] = session
-                    if parts[8] != 'UNDEF':
-                        session['username'] = parts[8]
-                    else:
-                        session['username'] = parts[1]
-                    if parts[2].count(':') == 1:
-                        remote_ip, port = parts[2].split(':')
-                    else:
-                        remote_ip = parts[2]
-                        port = None
-                    remote_ip_address = ip_address(remote_ip)
-                    if local_ip:
-                        session['local_ip'] = ip_address(local_ip)
-                    else:
-                        session['local_ip'] = ''
-                    session['bytes_recv'] = int(parts[4])
-                    session['bytes_sent'] = int(parts[5])
-                    session['connected_since'] = get_date(parts[7], uts=True)
-                    session['last_seen'] = session['connected_since']
-                session['location'] = 'Unknown'
-                if isinstance(remote_ip_address, IPv6Address) and \
-                        remote_ip_address.ipv4_mapped is not None:
-                    session['remote_ip'] = remote_ip_address.ipv4_mapped
+            if client_section:
+                parts.popleft()
+                common_name = parts.popleft()
+                remote_str = parts.popleft()
+                if remote_str.count(':') == 1:
+                    remote, port = remote_str.split(':')
                 else:
-                    session['remote_ip'] = remote_ip_address
+                    remote = remote_str
+                    port = None
+                remote_ip = ip_address(remote)
+                if isinstance(remote_ip, IPv6Address) and \
+                        remote_ip.ipv4_mapped is not None:
+                    session['remote_ip'] = remote_ip.ipv4_mapped
+                else:
+                    session['remote_ip'] = remote_ip
                 if port:
                     session['port'] = int(port)
                 else:
@@ -367,15 +327,33 @@ class OpenvpnMonitor(object):
                         session['country_name'] = gir['country_name']
                         session['longitude'] = gir['longitude']
                         session['latitude'] = gir['latitude']
-            if routes_section and not client_section:
-                if status_version == 1:
-                    ident = parts[2]
-                    sessions[ident]['local_ip'] = ip_address(parts[0])
-                    sessions[ident]['last_seen'] = get_date(parts[3])
-                elif status_version == 3:
-                    local_ip = parts[1]
-                    if local_ip in sessions:
-                        sessions[local_ip]['last_seen'] = get_date(parts[5], uts=True)
+                local_ipv4 = parts.popleft()
+                if local_ipv4:
+                    session['local_ip'] = ip_address(local_ipv4)
+                else:
+                    session['local_ip'] = ''
+                if openvpn_24:
+                    local_ipv6 = parts.popleft()
+                    if local_ipv6:
+                        session['local_ip'] = ip_address(local_ipv6)
+                session['bytes_recv'] = int(parts.popleft())
+                session['bytes_sent'] = int(parts.popleft())
+                parts.popleft()
+                session['connected_since'] = get_date(parts.popleft(), uts=True)
+                username = parts.popleft()
+                if username != 'UNDEF':
+                    session['username'] = username
+                else:
+                    session['username'] = common_name
+                if openvpn_24:
+                    session['client_id'] = parts.popleft()
+                    session['peer_id'] = parts.popleft()
+                sessions[str(session['local_ip'])] = session
+            if routes_section:
+                local_ip = parts[1]
+                last_seen = parts[5]
+                if local_ip in sessions:
+                    sessions[local_ip]['last_seen'] = get_date(last_seen, uts=True)
 
         if args.debug:
             if sessions:
@@ -604,18 +582,19 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(session['local_ip']))
         output('<td>{0!s}</td>'.format(session['remote_ip']))
 
-        if 'city' in session and 'country_name' in session:
-            country = session['country_name']
-            city = session['city']
-            if city:
-                full_location = '{0!s}, {1!s}'.format(city, country)
-            else:
-                full_location = country
+        if 'location' in session:
             flag = '{0!s}flags/{1!s}.png'.format(image_path, session['location'].lower())
+            if 'city' in session and 'country_name' in session:
+                country = session['country_name']
+                city = session['city']
+                if city:
+                    full_location = '{0!s}, {1!s}'.format(city, country)
+                else:
+                    full_location = country
             output('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, full_location))
             output('{0!s}</td>'.format(full_location))
         else:
-            output('<td>{0!s}</td>'.format(session['location']))
+            output('<td>Unknown</td>')
 
         output('<td>{0!s} ({1!s})</td>'.format(bytes_recv, naturalsize(bytes_recv, binary=True)))
         output('<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True)))
