@@ -28,7 +28,6 @@ virtualenv .
 . bin/activate
 pip install openvpn-monitor gunicorn
 gunicorn openvpn-monitor -b 0.0.0.0:80
-
 ```
 
 
@@ -40,7 +39,6 @@ gunicorn openvpn-monitor -b 0.0.0.0:80
 
 ```shell
 apt-get -y install python-geoip python-ipaddr python-humanize python-bottle apache2 libapache2-mod-wsgi git wget
-a2enmod wsgi
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
 systemctl restart apache2
@@ -50,10 +48,9 @@ systemctl restart apache2
 
 ```shell
 yum install -y epel-release
-yum makecache
 yum install -y python-GeoIP python-ipaddr python-humanize python-bottle httpd mod_wsgi git wget
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/httpd/conf.d/openvpn-monitor.conf
-systemctl restart apache2
+systemctl restart httpd
 ```
 
 
