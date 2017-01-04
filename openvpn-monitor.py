@@ -594,11 +594,16 @@ class OpenvpnHtmlPrinter(object):
 
     @staticmethod
     def print_client_session(session):
-        output('<td>{0!s}</td>'.format(session['tuntap_read']))
-        output('<td>{0!s}</td>'.format(session['tuntap_write']))
-        output('<td>{0!s}</td>'.format(session['tcpudp_read']))
-        output('<td>{0!s}</td>'.format(session['tcpudp_write']))
-        output('<td>{0!s}</td>'.format(session['auth_read']))
+        tuntap_r = session['tuntap_read']
+        tuntap_w = session['tuntap_write']
+        tcpudp_r = session['tcpudp_read']
+        tcpudp_w = session['tcpudp_write']
+        auth_r = session['auth_read']
+        output('<td>{0!s} ({1!s})</td>'.format(tuntap_r, naturalsize(tuntap_r, binary=True)))
+        output('<td>{0!s} ({1!s})</td>'.format(tuntap_w, naturalsize(tuntap_w, binary=True)))
+        output('<td>{0!s} ({1!s})</td>'.format(tcpudp_r, naturalsize(tcpudp_w, binary=True)))
+        output('<td>{0!s} ({1!s})</td>'.format(tcpudp_w, naturalsize(tcpudp_w, binary=True)))
+        output('<td>{0!s} ({1!s})</td>'.format(auth_r, naturalsize(auth_r, binary=True)))
 
     def print_server_session(self, vpn_id, session, show_disconnect):
         total_time = str(datetime.now() - session['connected_since'])[:-7]
