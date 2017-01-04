@@ -286,7 +286,7 @@ class OpenvpnMgmtInterface(object):
             if parts[0].startswith('TITLE') or \
                parts[0].startswith('GLOBAL') or \
                parts[0].startswith('TIME'):
-                    continue
+                continue
             if parts[0] == 'HEADER':
                 if parts[1] == 'CLIENT_LIST':
                     client_section = True
