@@ -152,7 +152,7 @@ class OpenvpnMgmtInterface(object):
             if self.s:
                 version = self.send_command('version\n')
                 sem_ver = semver(self.parse_version(version).split(' ')[1])
-                if sem_ver.minor == 4 and not 'port' in kwargs:
+                if sem_ver.minor == 4 and 'port' not in kwargs:
                     command = 'client-kill {0!s}\n'.format(kwargs['client_id'])
                 else:
                     command = 'kill {0!s}:{1!s}\n'.format(kwargs['ip'], kwargs['port'])
