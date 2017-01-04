@@ -296,6 +296,10 @@ class OpenvpnMgmtInterface(object):
                     routes_section = True
                 continue
 
+            if parts[0].startswith('TUN') or \
+               parts[0].startswith('TCP') or \
+               parts[0].startswith('Auth'):
+                parts = parts[0].split(',')
             if parts[0] == 'TUN/TAP read bytes':
                 client_session['tuntap_read'] = int(parts[1])
                 continue
@@ -506,12 +510,11 @@ class OpenvpnHtmlPrinter(object):
         server_headers = ['Username / Hostname', 'VPN IP',
                           'Remote IP', 'Location', 'Bytes In',
                           'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
-        client_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
-                          'TCP-UDP-Write', 'Auth-Read']
-
         if show_disconnect:
             server_headers.append('Action')
-            client_headers.append('Action')
+
+        client_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
+                          'TCP-UDP-Write', 'Auth-Read']
 
         if vpn_mode == 'Client':
             headers = client_headers
@@ -645,7 +648,7 @@ class OpenvpnHtmlPrinter(object):
         for key, session in list(sessions.items()):
             output('<tr>')
             if vpn_mode == 'Client':
-                self.print_client_session(session, show_disconnect)
+                self.print_client_session(session)
             elif vpn_mode == 'Server':
                 self.print_server_session(vpn_id, session, show_disconnect)
             output('</tr>')
