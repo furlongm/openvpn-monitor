@@ -28,11 +28,11 @@ import argparse
 import GeoIP
 import sys
 import os
-from uuid import uuid4
 from datetime import datetime
 from humanize import naturalsize
 from collections import OrderedDict, deque
 from pprint import pformat
+from semantic_version import Version as semver
 
 if sys.version_info[0] == 2:
     reload(sys)
@@ -76,12 +76,11 @@ def get_str(s):
 class ConfigLoader(object):
 
     def __init__(self, config_file):
-
         self.settings = {}
         self.vpns = OrderedDict()
         config = configparser.RawConfigParser()
-
         contents = config.read(config_file)
+
         if not contents and config_file == './openvpn-monitor.conf':
             warning('Config file does not exist or is unreadable: {0!s}'.format(config_file))
             if sys.prefix == '/usr':
@@ -111,7 +110,7 @@ class ConfigLoader(object):
         self.vpns['Default VPN'] = {'name': 'default',
                                     'host': 'localhost',
                                     'port': '5555',
-                                    'order': '1'}
+                                    'show_disconnect': False}
 
     def parse_global_section(self, config):
         global_vars = ['site', 'logo', 'latitude', 'longitude', 'maps', 'geoip_data', 'datetime_format']
@@ -135,14 +134,32 @@ class ConfigLoader(object):
             except configparser.Error as e:
                 warning('CONFIG: {0!s} on option {1!s}: '.format(e, option))
                 vpn[option] = None
+        if 'show_disconnect' in vpn and vpn['show_disconnect'] == 'True':
+            vpn['show_disconnect'] = True
+        else:
+            vpn['show_disconnect'] = False
         if args.debug:
             debug("=== begin section\n{0!s}\n=== end section".format(vpn))
 
 
-class OpenvpnMonitor(object):
+class OpenvpnMgmtInterface(object):
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, **kwargs):
         self.vpns = cfg.vpns
+
+        if 'vpn_id' in kwargs:
+            self._socket_connect(self.vpns[kwargs['vpn_id']])
+            if self.s:
+                version = self.send_command('version\n')
+                sem_ver = semver(self.parse_version(version).split(' ')[1])
+                if sem_ver.minor == 4 and not 'port' in kwargs:
+                    command = 'client-kill {0!s}\n'.format(kwargs['client_id'])
+                else:
+                    command = 'kill {0!s}:{1!s}\n'.format(kwargs['ip'], kwargs['port'])
+                info('Sending command: {0!s}'.format(command))
+                self.send_command(command)
+                self._socket_disconnect
+
         geoip_data = cfg.settings['geoip_data']
         self.gi = GeoIP.open(geoip_data, GeoIP.GEOIP_STANDARD)
 
@@ -155,12 +172,13 @@ class OpenvpnMonitor(object):
     def collect_data(self, vpn):
         version = self.send_command('version\n')
         vpn['version'] = self.parse_version(version)
+        vpn['semver'] = semver(vpn['version'].split(' ')[1])
         state = self.send_command('state\n')
         vpn['state'] = self.parse_state(state)
         stats = self.send_command('load-stats\n')
         vpn['stats'] = self.parse_stats(stats)
         status = self.send_command('status 3\n')
-        vpn['sessions'] = self.parse_status(status, self.gi, vpn['version'])
+        vpn['sessions'] = self.parse_status(status, self.gi, vpn['semver'])
 
     def _socket_send(self, command):
         if sys.version_info[0] == 2:
@@ -192,6 +210,8 @@ class OpenvpnMonitor(object):
     def send_command(self, command):
         self._socket_send(command)
         data = ''
+        if command.startswith('kill') or command.startswith('client-kill'):
+            return
         while 1:
             socket_data = self._socket_recv(1024)
             socket_data = re.sub('>INFO(.)*\r\n', '', socket_data)
@@ -241,7 +261,6 @@ class OpenvpnMonitor(object):
         stats['nclients'] = int(re.sub('nclients=', '', parts[0]))
         stats['bytesin'] = int(re.sub('bytesin=', '', parts[1]))
         stats['bytesout'] = int(re.sub('bytesout=', '', parts[2]).replace('\r\n', ''))
-
         return stats
 
     @staticmethod
@@ -251,13 +270,7 @@ class OpenvpnMonitor(object):
         sessions = {}
         client_session = {}
 
-        if '2.4.' in version:
-            openvpn_24 = True
-        else:
-            openvpn_24 = False
-
         for line in data.splitlines():
-
             parts = deque(line.split('\t'))
             if args.debug:
                 debug("=== begin split line\n{0!s}\n=== end split line".format(parts))
@@ -265,8 +278,8 @@ class OpenvpnMonitor(object):
             if parts[0].startswith('END'):
                 break
             if parts[0].startswith('TITLE') or \
-                parts[0].startswith('GLOBAL') or \
-                parts[0].startswith('TIME'):
+               parts[0].startswith('GLOBAL') or \
+               parts[0].startswith('TIME'):
                     continue
             if parts[0] == 'HEADER':
                 if parts[1] == 'CLIENT_LIST':
@@ -332,7 +345,7 @@ class OpenvpnMonitor(object):
                     session['local_ip'] = ip_address(local_ipv4)
                 else:
                     session['local_ip'] = ''
-                if openvpn_24:
+                if version.minor == 4:
                     local_ipv6 = parts.popleft()
                     if local_ipv6:
                         session['local_ip'] = ip_address(local_ipv6)
@@ -345,7 +358,7 @@ class OpenvpnMonitor(object):
                     session['username'] = username
                 else:
                     session['username'] = common_name
-                if openvpn_24:
+                if version.minor == 4:
                     session['client_id'] = parts.popleft()
                     session['peer_id'] = parts.popleft()
                 sessions[str(session['local_ip'])] = session
@@ -375,12 +388,11 @@ class OpenvpnMonitor(object):
 class OpenvpnHtmlPrinter(object):
 
     def __init__(self, cfg, monitor):
-
         self.init_vars(cfg.settings, monitor)
         self.print_html_header()
         for key, vpn in self.vpns:
             if vpn['socket_connected']:
-                self.print_vpn(vpn)
+                self.print_vpn(key, vpn)
             else:
                 self.print_unavailable_vpn(vpn)
         if self.maps:
@@ -484,13 +496,16 @@ class OpenvpnHtmlPrinter(object):
         output('<div class="container-fluid">')
 
     @staticmethod
-    def print_session_table_headers(vpn_mode):
-
-        server_headers = ['Username / Hostname', 'VPN IP Address',
-                          'Remote IP Address', 'Location', 'Bytes In',
+    def print_session_table_headers(vpn_mode, show_disconnect):
+        server_headers = ['Username / Hostname', 'VPN IP',
+                          'Remote IP', 'Location', 'Bytes In',
                           'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
         client_headers = ['Tun-Tap-Read', 'Tun-Tap-Write', 'TCP-UDP-Read',
                           'TCP-UDP-Write', 'Auth-Read']
+
+        if show_disconnect:
+            server_headers.append('Action')
+            client_headers.append('Action')
 
         if vpn_mode == 'Client':
             headers = client_headers
@@ -518,7 +533,7 @@ class OpenvpnHtmlPrinter(object):
         output('<div class="panel-body">')
         output('Connection refused to {0!s}:{1!s} </div></div>'.format(vpn['host'], vpn['port']))
 
-    def print_vpn(self, vpn):
+    def print_vpn(self, vpn_id, vpn):
 
         if vpn['state']['success'] == 'SUCCESS':
             pingable = 'Yes'
@@ -534,6 +549,7 @@ class OpenvpnHtmlPrinter(object):
         local_ip = vpn['state']['local_ip']
         remote_ip = vpn['state']['remote_ip']
         up_since = vpn['state']['up_since']
+        show_disconnect = vpn['show_disconnect']
 
         anchor = vpn['name'].lower().replace(' ', '_')
         output('<div class="panel panel-success" id="{0!s}">'.format(anchor))
@@ -560,8 +576,8 @@ class OpenvpnHtmlPrinter(object):
         output('</tr></tbody></table>')
 
         if vpn_mode == 'Client' or nclients > 0:
-            self.print_session_table_headers(vpn_mode)
-            self.print_session_table(vpn_mode, vpn_sessions)
+            self.print_session_table_headers(vpn_mode, show_disconnect)
+            self.print_session_table(vpn_id, vpn_mode, vpn_sessions, show_disconnect)
             self.print_session_table_footer()
 
         output('<span class="label label-default">{0!s}</span>'.format(vpn['version']))
@@ -575,7 +591,7 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(session['tcpudp_write']))
         output('<td>{0!s}</td>'.format(session['auth_read']))
 
-    def print_server_session(self, session):
+    def print_server_session(self, vpn_id, session, show_disconnect):
         total_time = str(datetime.now() - session['connected_since'])[:-7]
         bytes_recv = session['bytes_recv']
         bytes_sent = session['bytes_sent']
@@ -607,14 +623,25 @@ class OpenvpnHtmlPrinter(object):
         else:
             output('<td>ERROR</td>')
         output('<td>{0!s}</td>'.format(total_time))
+        if show_disconnect:
+            output('<td><form method="post">')
+            output('<input type="hidden" name="vpn_id" value="{0!s}">'.format(vpn_id))
+            if 'port' in session:
+                output('<input type="hidden" name="ip" value="{0!s}">'.format(session['remote_ip']))
+                output('<input type="hidden" name="port" value="{0!s}">'.format(session['port']))
+            if 'client_id' in session:
+                output('<input type="hidden" name="client_id" value="{0!s}">'.format(session['client_id']))
+            output('<button type="submit" class="btn btn-xs btn-danger">')
+            output('<span class="glyphicon glyphicon-remove"></span> ')
+            output('Disconnect</button></form></td>')
 
-    def print_session_table(self, vpn_mode, sessions):
+    def print_session_table(self, vpn_id, vpn_mode, sessions, show_disconnect):
         for key, session in list(sessions.items()):
             output('<tr>')
             if vpn_mode == 'Client':
-                self.print_client_session(session)
+                self.print_client_session(session, show_disconnect)
             elif vpn_mode == 'Server':
-                self.print_server_session(session)
+                self.print_server_session(vpn_id, session, show_disconnect)
             output('</tr>')
 
     def print_maps_html(self):
@@ -654,9 +681,9 @@ class OpenvpnHtmlPrinter(object):
         output('</div></body></html>')
 
 
-def main():
+def main(**kwargs):
     cfg = ConfigLoader(args.config)
-    monitor = OpenvpnMonitor(cfg)
+    monitor = OpenvpnMgmtInterface(cfg, **kwargs)
     OpenvpnHtmlPrinter(cfg, monitor)
     if args.debug:
         pretty_vpns = pformat((dict(monitor.vpns)))
@@ -681,9 +708,9 @@ if __name__ == '__main__':
     image_path = 'images/'
     main()
 else:
-    from bottle import route, response, get, static_file, default_app
+    from bottle import response, request, get, post, static_file, default_app
 
-    class args:
+    class args(object):
         debug = False
         config = './openvpn-monitor.conf'
 
@@ -702,11 +729,22 @@ else:
 
     application = default_app()
 
-    @route('/')
-    def root():
+    @get('/')
+    def get_slash():
+        return render()
+
+    @post('/')
+    def post_slash():
+        vpn_id = request.forms.get('vpn_id')
+        ip = request.forms.get('ip')
+        port = request.forms.get('port')
+        client_id = request.forms.get('client_id')
+        return render(vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
+
+    def render(**kwargs):
         global wsgi_output
         wsgi_output = ''
-        main()
+        main(**kwargs)
         response.content_type = 'text/html;'
         return wsgi_output
 

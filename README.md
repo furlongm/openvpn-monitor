@@ -38,7 +38,7 @@ gunicorn openvpn-monitor -b 0.0.0.0:80
 #### Debian / Ubuntu
 
 ```shell
-apt-get -y install python-geoip python-ipaddr python-humanize python-bottle apache2 libapache2-mod-wsgi git wget
+apt-get -y install python-geoip python-ipaddr python-humanize python-bottle python-semantic-version apache2 libapache2-mod-wsgi git wget
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
 systemctl restart apache2
@@ -48,7 +48,7 @@ systemctl restart apache2
 
 ```shell
 yum install -y epel-release
-yum install -y python-GeoIP python-ipaddr python-humanize python-bottle httpd mod_wsgi git wget
+yum install -y python-GeoIP python-ipaddr python-humanize python-bottle python-semantic_version httpd mod_wsgi git wget
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/httpd/conf.d/openvpn-monitor.conf
 systemctl restart httpd
 ```
