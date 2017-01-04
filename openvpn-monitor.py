@@ -199,20 +199,15 @@ class OpenvpnMgmtInterface(object):
         try:
             self.s = socket.create_connection((host, port), timeout)
             vpn['socket_connected'] = True
-        except socket.error:
+            data = ''
+            while 1:
+                socket_data = self._socket_recv(1024)
+                data += socket_data
+                if data.endswith('\r\n'):
+                    break
+        except (socket.error, socket.timeout):
             self.s = False
             vpn['socket_connected'] = False
-        data = ''
-        while 1:
-            try:
-                socket_data = self._socket_recv(1024)
-            except socket.timeout:
-                self.s = False
-                vpn['socket_connected'] = False
-                break
-            data += socket_data
-            if data.endswith('more info\r\n'):
-                break
 
     def _socket_disconnect(self):
         self._socket_send('quit\n')
