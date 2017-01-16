@@ -616,6 +616,7 @@ class OpenvpnHtmlPrinter(object):
 
         if 'location' in session:
             flag = '{0!s}flags/{1!s}.png'.format(image_path, session['location'].lower())
+            full_location = ''
             if 'city' in session and 'country_name' in session:
                 country = session['country_name']
                 city = session['city']
