@@ -53,6 +53,13 @@ echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-mon
 systemctl restart httpd
 ```
 
+#### Docker
+
+```shell
+docker run -p 80:80 ruimarinho/openvpn-monitor
+```
+
+Check the full [usage](https://github.com/ruimarinho/docker-openvpn-monitor#usage) information to read how to generate a dynamic configuration using environment variables only.
 
 ### Checkout OpenVPN-Monitor
 
