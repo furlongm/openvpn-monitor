@@ -615,17 +615,19 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(session['remote_ip']))
 
         if 'location' in session:
-            flag = '{0!s}flags/{1!s}.png'.format(image_path, session['location'].lower())
-            full_location = ''
-            if 'city' in session and 'country_name' in session:
-                country = session['country_name']
-                city = session['city']
-                if city:
-                    full_location = '{0!s}, {1!s}'.format(city, country)
-                else:
-                    full_location = country
-            output('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, full_location))
-            output('{0!s}</td>'.format(full_location))
+            if session['location'] == 'RFC1918':
+                output('<td>RFC1918</td>')
+            else:
+                flag = '{0!s}flags/{1!s}.png'.format(image_path, session['location'].lower())
+                if 'city' in session and 'country_name' in session:
+                    country = session['country_name']
+                    city = session['city']
+                    if city:
+                        full_location = '{0!s}, {1!s}'.format(city, country)
+                    else:
+                        full_location = country
+                output('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, full_location))
+                output('{0!s}</td>'.format(full_location))
         else:
             output('<td>Unknown</td>')
 
