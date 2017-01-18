@@ -148,8 +148,9 @@ class OpenvpnMgmtInterface(object):
         self.vpns = cfg.vpns
 
         if 'vpn_id' in kwargs:
-            self._socket_connect(self.vpns[kwargs['vpn_id']])
-            if self.s:
+            vpn = self.vpns[kwargs['vpn_id']]
+            self._socket_connect(vpn)
+            if vpn['socket_connected']:
                 version = self.send_command('version\n')
                 sem_ver = semver(self.parse_version(version).split(' ')[1])
                 if sem_ver.minor == 4 and 'port' not in kwargs:
@@ -165,7 +166,7 @@ class OpenvpnMgmtInterface(object):
 
         for key, vpn in list(self.vpns.items()):
             self._socket_connect(vpn)
-            if self.s:
+            if vpn['socket_connected']:
                 self.collect_data(vpn)
                 self._socket_disconnect()
 
@@ -196,21 +197,36 @@ class OpenvpnMgmtInterface(object):
         host = vpn['host']
         port = int(vpn['port'])
         timeout = 3
+        self.s = False
         try:
             self.s = socket.create_connection((host, port), timeout)
-            vpn['socket_connected'] = True
-            data = ''
-            while 1:
-                socket_data = self._socket_recv(1024)
-                data += socket_data
-                if data.endswith('\r\n'):
-                    break
-        except (socket.error, socket.timeout):
-            self.s = False
+            if self.s:
+                vpn['socket_connected'] = True
+                data = ''
+                while 1:
+                    socket_data = self._socket_recv(1024)
+                    data += socket_data
+                    if data.endswith('\r\n'):
+                        break
+        except socket.timeout as e:
+            vpn['error'] = '{0!s}'.format(e)
+            warning('socket timeout: {0!s}'.format(e))
+            vpn['socket_connected'] = False
+            if self.s:
+                self.s.shutdown(socket.SHUT_RDWR)
+                self.s.close()
+        except socket.error as e:
+            vpn['error'] = '{0!s}'.format(e.strerror)
+            warning('socket error: {0!s}'.format(e))
+            vpn['socket_connected'] = False
+        except Exception as e:
+            vpn['error'] = '{0!s}'.format(e)
+            warning('unexpected error: {0!s}'.format(e))
             vpn['socket_connected'] = False
 
     def _socket_disconnect(self):
         self._socket_send('quit\n')
+        self.s.shutdown(socket.SHUT_RDWR)
         self.s.close()
 
     def send_command(self, command):
@@ -541,7 +557,10 @@ class OpenvpnHtmlPrinter(object):
         output('<div class="panel-heading">')
         output('<h3 class="panel-title">{0!s}</h3></div>'.format(vpn['name']))
         output('<div class="panel-body">')
-        output('Connection refused to {0!s}:{1!s} </div></div>'.format(vpn['host'], vpn['port']))
+        output('Could not connect to ')
+        output('{0!s}:{1!s} ({2!s})</div></div>'.format(vpn['host'],
+                                                        vpn['port'],
+                                                        vpn['error']))
 
     def print_vpn(self, vpn_id, vpn):
 
