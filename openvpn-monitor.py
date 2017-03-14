@@ -340,6 +340,9 @@ class OpenvpnMgmtInterface(object):
                 remote_str = parts.popleft()
                 if remote_str.count(':') == 1:
                     remote, port = remote_str.split(':')
+                elif '(' in remote_str:
+                    remote, port = remote_str.split('(')
+                    port = port[:-1]
                 else:
                     remote = remote_str
                     port = None
