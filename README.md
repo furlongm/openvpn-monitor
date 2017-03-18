@@ -46,6 +46,98 @@ docker run -p 80:80 ruimarinho/openvpn-monitor
 ```
 
 Read the [docker installation instructions](https://github.com/ruimarinho/docker-openvpn-monitor#usage) for details on how to generate a dynamic configuration using only environment variables.
+### Install dependencies and configure Nginx (with uWSGI on Debian / Ubuntu)
+
+#### Install dependencies
+
+```shell
+apt-get install libgeoip-dev nginx uwsgi
+cd /var/www/
+git clone https://github.com/furlongm/openvpn-monitor.git
+cd openvpn-monitor
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+touch touch_to_reload
+```
+
+#### Create uWSGI app config
+
+Example for `/etc/uwsgi/apps-available/openvpn-monitor.ini`
+
+```
+[uwsgi]
+project = openvpn-monitor
+base = /var/www
+
+uid = www-data
+gid = www-data
+
+socket = /tmp/%(project).sock
+pidfile = /tmp/%(project).pid
+
+plugins = python3
+logto = /var/log/uwsgi/app/%(project).log
+chdir = %(base)/%(project)
+virtualenv = %(chdir)/.venv
+module = openvpn-monitor:application
+
+touch-reload = %(chdir)/touch_to_reload
+master = true
+processes = 10
+chmod = 666
+vacuum = true
+```
+
+#### Create Nginx config
+
+Example for `/etc/uwsgi/apps-available/openvpn-monitor.ini`
+
+```
+server {
+    listen 80;
+    root /var/www/openvpn-monitor;
+    access_log /var/log/nginx/openvpn-monitor.access.log;
+    error_log /var/log/nginx/openvpn-monitor.error.log warn;
+    server_name openvpn-monitor.domain.com openvpn-monitor.domain.com;
+    charset utf-8;
+    gzip on;
+    gzip_static on;
+    gzip_proxied any;
+    gzip_types application/json application/x-javascript text/css;
+    gzip_min_length 1024;
+    client_max_body_size 5M;
+
+    location = /robots.txt {
+        return 200 "User-Agent: *\nDisallow: /\n";
+    }
+
+    location / {
+        # restrict by basic auth
+        # auth_basic "Restricted Content";
+        # auth_basic_user_file /var/www/openvpn-monitor/.htpasswd;
+        uwsgi_pass unix:///tmp/openvpn-monitor.sock;
+        include uwsgi_params;
+        # the uwsgi_params file you installed
+    }
+    # SSL config here
+}
+```
+
+#### Configure OpenVPN and OpenVPN-Monitor
+
+See below
+
+#### Enable uWSGI app and Nginx site
+
+```shell
+ln -s /etc/uwsgi/apps-available/openvpn-monitor.ini /etc/uwsgi/apps-enabled/
+service uwsgi restart
+ln -s /etc/nginx/sites-available/openvpn-monitor /etc/nginx/sites-enabled/
+service nginx reload
+```
+
+### Install dependencies and configure apache
 
 
 ### apache
