@@ -11,9 +11,13 @@ with open('VERSION.txt', 'r') as v:
 with open('README.md', 'r') as r:
     long_description = r.read()
 
-for dirpath, dirnames, filenames in os.walk('images/flags'):
-    data_files = [('share/openvpn-monitor/images/flags',
+for dirpath, dirnames, filenames in os.walk('images', topdown=False):
+    data_files = [('share/openvpn-monitor/images',
                   [os.path.join(dirpath, f) for f in filenames])]
+
+for dirpath, dirnames, filenames in os.walk('images/flags'):
+    data_files.append([('share/openvpn-monitor/images/flags',
+                      [os.path.join(dirpath, f) for f in filenames])])
 
 with open('requirements.txt') as rt:
     install_requires = []

@@ -106,14 +106,28 @@ class ConfigLoader(object):
         info('Using default settings => localhost:5555')
         self.settings = {'site': 'Default Site',
                          'geoip_data': '/usr/share/GeoIP/GeoIPCity.dat',
-                         'datetime_format': '%d/%m/%Y %H:%M:%S'}
+                         'datetime_format': '%d/%m/%Y %H:%M:%S',
+                         'marker': False,
+                         'externalip': '0.0.0.0',
+                         'pervpn_control': False,
+                         'itemtype_control': False,
+                         'allowFullscreen': False}
         self.vpns['Default VPN'] = {'name': 'default',
                                     'host': 'localhost',
                                     'port': '5555',
-                                    'show_disconnect': False}
+                                    'show_disconnect': False,
+                                    'externalip': '0.0.0.0',
+                                    'latitude': '-35.308065',
+                                    'longitude': '149.124521',
+                                    'marker': False,
+                                    'connection_lines': False}
+
 
     def parse_global_section(self, config):
-        global_vars = ['site', 'logo', 'latitude', 'longitude', 'maps', 'geoip_data', 'datetime_format']
+        global_vars = ['site', 'logo', 'latitude', 'longitude', 'maps',
+                       'geoip_data', 'datetime_format', 'marker',
+                       'externalip', 'pervpn_control',
+                       'itemtype_control', 'allowFullscreen']
         for var in global_vars:
             try:
                 self.settings[var] = config.get('OpenVPN-Monitor', var)
@@ -134,10 +148,13 @@ class ConfigLoader(object):
             except configparser.Error as e:
                 warning('CONFIG: {0!s} on option {1!s}: '.format(e, option))
                 vpn[option] = None
-        if 'show_disconnect' in vpn and vpn['show_disconnect'] == 'True':
-            vpn['show_disconnect'] = True
-        else:
-            vpn['show_disconnect'] = False
+        vpn['show_disconnect'] = bool('show_disconnect' in vpn and
+                                      vpn['show_disconnect'] == 'True')
+        vpn['marker'] = bool('marker' in vpn and vpn['marker'] == 'True')
+        vpn['connection_lines'] = bool('connection_lines' in vpn and
+                                       vpn['connection_lines'] == 'True')
+        if 'externalip' not in vpn:
+            vpn['externalip'] = '0.0.0.0'
         if args.debug:
             debug("=== begin section\n{0!s}\n=== end section".format(vpn))
 
@@ -159,7 +176,7 @@ class OpenvpnMgmtInterface(object):
                     command = 'kill {0!s}:{1!s}\n'.format(kwargs['ip'], kwargs['port'])
                 info('Sending command: {0!s}'.format(command))
                 self.send_command(command)
-                self._socket_disconnect
+                self._socket_disconnect()
 
         geoip_data = cfg.settings['geoip_data']
         self.gi = GeoIP.open(geoip_data, GeoIP.GEOIP_STANDARD)
@@ -180,6 +197,18 @@ class OpenvpnMgmtInterface(object):
         vpn['stats'] = self.parse_stats(stats)
         status = self.send_command('status 3\n')
         vpn['sessions'] = self.parse_status(status, self.gi, vpn['semver'])
+        if 'latitude' not in vpn or 'longitude' not in vpn:
+            # default Canberra
+            vpn['longitude'] = '149.124521'
+            vpn['latitude'] = '-35.308065'
+            if 'externalip' in vpn:
+                try:
+                    gir = self.gi.record_by_addr(str(vpn['externalip']))
+                except SystemError:
+                    gir = None
+                if gir is not None:
+                    vpn['longitude'] = gir['longitude']
+                    vpn['latitude'] = gir['latitude']
 
     def _socket_send(self, command):
         if sys.version_info[0] == 2:
@@ -431,6 +460,7 @@ class OpenvpnHtmlPrinter(object):
     def init_vars(self, settings, monitor):
 
         self.vpns = list(monitor.vpns.items())
+        self.gi = monitor.gi
 
         self.site = 'Example'
         if 'site' in settings:
@@ -444,12 +474,46 @@ class OpenvpnHtmlPrinter(object):
         if 'maps' in settings and settings['maps'] == 'True':
             self.maps = True
 
+        self.externalip = '0.0.0.0'
+        if 'externalip' in settings:
+            self.externalip = settings['externalip']
+
+        # default melbourne
         self.latitude = -37.8067
         self.longitude = 144.9635
-        if 'latitude' in settings:
+        if 'latitude' in settings and 'longitude' in settings:
             self.latitude = settings['latitude']
-        if 'longitude' in settings:
             self.longitude = settings['longitude']
+        else:
+            try:
+                gir = self.gi.record_by_addr(self.externalip)
+            except SystemError:
+                gir = None
+            if gir is not None:
+                self.location = gir['country_code']
+                self.city = get_str(gir['city'])
+                self.country_name = gir['country_name']
+                self.longitude = gir['longitude']
+                self.latitude = gir['latitude']
+
+        self.marker = False
+        if 'marker' in settings and settings['marker'] == 'True':
+            self.marker = True
+
+        self.pervpn_control = False
+        if ('pervpn_control' in settings and
+                settings['pervpn_control'] == 'True'):
+            self.pervpn_control = True
+
+        self.itemtype_control = False
+        if ('itemtype_control' in settings and
+                settings['itemtype_control'] == 'True'):
+            self.itemtype_control = True
+
+        self.allowFullscreen = False
+        if ('allowFullscreen' in settings and
+                settings['allowFullscreen'] == 'True'):
+            self.allowFullscreen = True
 
         self.datetime_format = settings['datetime_format']
 
@@ -472,6 +536,23 @@ class OpenvpnHtmlPrinter(object):
         output('<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.28.4/css/theme.bootstrap.min.css" integrity="sha256-cerl+DYHeG2ZhV/9iueb8E+s7rubli1gsnKuMbKDvho=" crossorigin="anonymous" />')
         if self.maps:
             output('<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.2/leaflet.css" integrity="sha256-9mfj77orHLh2GsN7CbMvpjO/Wny/ZZhR7Pu7hy0Yig4=" crossorigin="anonymous" />')
+        if self.maps and self.allowFullscreen:
+            # Leaflet.Control.FullScreen css
+            output('<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.4.2/Control.FullScreen.min.css" integrity="sha256-5cUdI/OZOFcVL9i5LiXvBL5UCGT+AFANIphndyL8SBk=" crossorigin="anonymous" />')  # noqa: E501
+        output('<style>')
+        output('.panel-custom {')
+        output('   background-color:#777;')
+        output('   color:#fff;')
+        output('   font-size:75%;')
+        output('   vertical-align:baseline;')
+        output('   padding:.2em .6em .3em;')
+        output('   line-height:1;')
+        output('   font-weight:700;')
+        output('{')
+        output('</style>')
+
+        # favicon
+        output('<link rel="shortcut icon" href="/images/favicon.ico" />')
 
         # js
         output('<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>')
@@ -484,6 +565,11 @@ class OpenvpnHtmlPrinter(object):
         output('});</script>')
         if self.maps:
             output('<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.2/leaflet.js" integrity="sha256-RS5bDpN9YmmUIdtdu8ESPjNp1Bg/Fqu90PwN3uawdSQ=" crossorigin="anonymous"></script>')
+            # spiderfy
+            output('<script src="//cdnjs.cloudflare.com/ajax/libs/OverlappingMarkerSpiderfier-Leaflet/0.2.6/oms.min.js" integrity="sha256-t+V41b9l6j8GMYAbpcnZbib1XiYwCAsDibD8sI1D7+Y=" crossorigin="anonymous"></script>')  # noqa: E501
+        if self.maps and self.allowFullscreen:
+            # Leaflet.Control.FullScreen js
+            output('<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.4.2/Control.FullScreen.min.js" integrity="sha256-1k7z6MchW2n/LeqU0PNtvEgBYSPvtt+eDrUKaR/rksI=" crossorigin="anonymous"></script>')  # noqa: E501
 
         output('</head><body>')
 
@@ -541,6 +627,7 @@ class OpenvpnHtmlPrinter(object):
         elif vpn_mode == 'Server':
             headers = server_headers
 
+        output('<div class="table-responsive">')
         output('<table id="sessions" class="table table-striped table-bordered ')
         output('table-hover table-condensed table-responsive ')
         output('tablesorter tablesorter-bootstrap">')
@@ -551,7 +638,7 @@ class OpenvpnHtmlPrinter(object):
 
     @staticmethod
     def print_session_table_footer():
-        output('</tbody></table>')
+        output('</tbody></table></div>')
 
     @staticmethod
     def print_unavailable_vpn(vpn):
@@ -588,6 +675,7 @@ class OpenvpnHtmlPrinter(object):
         output('<div class="panel-heading"><h3 class="panel-title">{0!s}</h3>'.format(
             vpn['name']))
         output('</div><div class="panel-body">')
+        output('<div class="table-responsive">')
         output('<table class="table table-condensed table-responsive">')
         output('<thead><tr><th>VPN Mode</th><th>Status</th><th>Pingable</th>')
         output('<th>Clients</th><th>Total Bytes In</th><th>Total Bytes Out</th>')
@@ -605,15 +693,18 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(local_ip))
         if vpn_mode == 'Client':
             output('<td>{0!s}</td>'.format(remote_ip))
-        output('</tr></tbody></table>')
+        output('</tr></tbody></table></div>')
 
         if vpn_mode == 'Client' or nclients > 0:
             self.print_session_table_headers(vpn_mode, show_disconnect)
             self.print_session_table(vpn_id, vpn_mode, vpn_sessions, show_disconnect)
             self.print_session_table_footer()
 
-        output('<span class="label label-default">{0!s}</span>'.format(vpn['version']))
-        output('</div></div>')
+        output('</div>')
+        output('<div class="panel-footer panel-custom">')
+        output('{0!s}'.format(vpn['version']))
+        output('</div>')
+        output('</div>')
 
     @staticmethod
     def print_client_session(session):
@@ -640,7 +731,8 @@ class OpenvpnHtmlPrinter(object):
             if session['location'] == 'RFC1918':
                 output('<td>RFC1918</td>')
             else:
-                flag = '{0!s}flags/{1!s}.png'.format(image_path, session['location'].lower())
+                loc = session['location'].lower()
+                flag = '{0!s}images/flags/{1!s}.png'.format(image_path, loc)
                 if 'city' in session and 'country_name' in session:
                     country = session['country_name']
                     city = session['city']
@@ -689,28 +781,181 @@ class OpenvpnHtmlPrinter(object):
         output('<h3 class="panel-title">Map View</h3></div><div class="panel-body">')
         output('<div id="map_canvas" style="height:500px"></div>')
         output('<script type="text/javascript">')
-        output('var map = L.map("map_canvas");')
+        if self.allowFullscreen:
+            output('var map = L.map("map_canvas", { fullscreenControl: true, '
+                   'fullscreenControlOptions: { position: "topleft" }  });')
+        else:
+            output('var map = L.map("map_canvas");')
         output('var centre = L.latLng({0!s}, {1!s});'.format(self.latitude, self.longitude))
         output('map.setView(centre, 8);')
         output('url = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";')
         output('var layer = new L.TileLayer(url, {});')
         output('map.addLayer(layer);')
         output('var bounds = L.latLngBounds(centre);')
+
+        # spiderfy closeby clients
+        output('var oms = new OverlappingMarkerSpiderfier '
+               '(map,{keepSpiderfied:true});')
+
+        # Extend the Default marker class
+        output('var LeafIcon = L.Icon.extend('
+               '{options: {iconAnchor: [12, 41]}});')
+        output('var redIcon = new LeafIcon('
+               '{iconUrl: "images/marker-icon-red.png"});')
+        output('var orangeIcon = new LeafIcon('
+               '{iconUrl: "images/marker-icon-orange.png"});')
+        output('var greenIcon = new LeafIcon('
+               '{iconUrl: "images/marker-icon-green.png"});')
+        output('var blueIcon = new LeafIcon('
+               '{iconUrl: "images/marker-icon-blue.png"});')
+
+        # used later to add per vpn layers
+        output('var overlayMaps = {};')
+        output('var overlayPerVPN = {};')
+
+        output('var monitorLayer = L.layerGroup();')
+        # add marker for monitor box
+        if self.marker:
+            output('var monitor = L.marker(centre, {icon: greenIcon});')
+            output('monitor.alt = "Type: Monitor<br/>'
+                   'Name: {0!s}<br/>IP:{1!s}";'.format(
+                    self.site, self.externalip))
+            output('monitorLayer.addLayer(monitor);')
+            output('oms.addMarker(monitor);')
+        output('monitorLayer.addTo(map);')
+
+        output('var vpnclientLayer = L.layerGroup();')
+        output('var vpnserverLayer = L.layerGroup();')
+        output('var vpnconnectionsLayer = L.layerGroup();')
+
+        display_connection_legend = False
+        display_server_legend = False
         for vkey, vpn in self.vpns:
             if 'sessions' in vpn:
                 output('bounds.extend(centre);')
+                # create per vpn layer
+                output('var pervpnLayer = L.layerGroup();')
+                # add self marker per vpn
+                if ('longitude' in vpn and
+                        'latitude' in vpn and
+                        vpn['marker'] is True):
+                    display_server_legend = True
+                    output('var latlng = new L.latLng({0!s}, {1!s});'.format(
+                        vpn['latitude'], vpn['longitude']))
+                    output('bounds.extend(latlng);')
+                    output('var server_marker = L.marker(latlng, '
+                           '{icon: orangeIcon}).addTo(vpnserverLayer)'
+                           '.addTo(pervpnLayer);')
+                    output('oms.addMarker(server_marker);')
+                    output('server_marker.alt = "Type: Server<br/>'
+                           'Name: {0!s}<br/>IP: {1!s}";'.format(
+                            vpn['name'], vpn['externalip']))
+
                 for skey, session in list(vpn['sessions'].items()):
                     if 'longitude' in session and 'latitude' in session:
                         output('var latlng = new L.latLng({0!s}, {1!s});'.format(
                             session['latitude'], session['longitude']))
                         output('bounds.extend(latlng);')
-                        output('var marker = L.marker(latlng).addTo(map);')
-                        output('var popup = L.popup().setLatLng(latlng);')
-                        output('popup.setContent("{0!s} - {1!s}");'.format(
-                            session['username'], session['remote_ip']))
-                        output('marker.bindPopup(popup);')
+                        output('var client_marker = L.marker(latlng)'
+                               '.addTo(vpnclientLayer).addTo(pervpnLayer);')
+                        output('oms.addMarker(client_marker);')
+                        output('client_marker.alt = "Type: Client<br/>'
+                               'Name: {0!s}<br/>IP: {1!s}";'.format(
+                                   session['username'], session['remote_ip']))
+                        # adding routing lines (they rely on server info)
+                        if (vpn['connection_lines'] is True and
+                                vpn['marker'] is True and
+                                'longitude' in vpn and
+                                'latitude' in vpn):
+                            display_connection_legend = True
+                            output('var latlngs = Array();')
+                            output('latlngs.push(client_marker.getLatLng());')
+                            output('latlngs.push(server_marker.getLatLng());')
+                            output('var polyline = L.polyline(latlngs,'
+                                   '{color:"blue",weight:2,opacity:0.5})'
+                                   '.addTo(vpnconnectionsLayer)'
+                                   '.addTo(pervpnLayer).addTo(map);')
+
+                # add to map
+                output('pervpnLayer.addTo(map);')
+                # add per vpn layers
+                output('if(!$.isEmptyObject(pervpnLayer.getLayers())){')
+                output('overlayPerVPN["{0!s}"] = '
+                       'pervpnLayer;'.format(vpn['name']))
+                output('}')
+
+        output('vpnclientLayer.addTo(map);')
+        output('vpnserverLayer.addTo(map);')
+        output('vpnconnectionsLayer.addTo(map);')
         output('map.fitBounds(bounds);')
+
+        # add Layer objects for non empty items
+        output('if(!$.isEmptyObject(monitorLayer.getLayers()))')
+        output('{overlayMaps["VPN Monitor"] = monitorLayer;}')
+        output('if(!$.isEmptyObject(vpnclientLayer.getLayers()))')
+        output('{overlayMaps["VPN Clients"] = vpnclientLayer;}')
+        output('if(!$.isEmptyObject(vpnserverLayer.getLayers()))')
+        output('{overlayMaps["VPN Servers"] = vpnserverLayer;}')
+        output('if(!$.isEmptyObject(vpnconnectionsLayer.getLayers()))')
+        output('{overlayMaps["VPN Routes"] = vpnconnectionsLayer;}')
+        if self.itemtype_control:
+            output('if(!$.isEmptyObject(overlayMaps))')
+            output('{L.control.layers(null,overlayMaps,'
+                   '{position:"topright"}).addTo(map);}')
+        if self.pervpn_control:
+            output('if(!$.isEmptyObject(overlayPerVPN))')
+            output('{L.control.layers(null,overlayPerVPN,'
+                   '{position:"bottomleft"}).addTo(map);}')
+
+        # spiderfy - add pop ups for close by icons
+        output('var popup = new L.Popup({closeButton:false,'
+               'offset:new L.Point(0.5,-24)});')
+        output('oms.addListener("click", function(marker) {')
+        output('   popup.setContent(marker.alt);')
+        output('   popup.setLatLng(marker.getLatLng());')
+        output('   map.openPopup(popup);')
+        output('});')
+        # spiderfy - close pop-ups when clicking elsewhere
+        output('oms.addListener("spiderfy", function(markers) {')
+        output('   map.closePopup();')
+        output('});')
+
         output('</script>')
+
+        output('<ul style="list-style:none;padding-top:5px;'
+               'padding-left:0px;">')
+        if self.marker:
+            output('<li style="float:left;margin-right:10px;">')
+            output('<span>')
+            output('<img src="images/marker-icon-green.png" '
+                   'style="width:20px;"/>')
+            output('</span>')
+            output('<span>Monitor</span>')
+            output('</li>')
+        if display_server_legend:
+            output('<li style="float:left;margin-right:10px;">')
+            output('<span>')
+            output('<img src="images/marker-icon-orange.png" '
+                   'style="width:20px;"/>')
+            output('</span>')
+            output('<span>Server</span>')
+            output('</li>')
+        output('<li style="float:left;margin-right:10px;">')
+        output('<span>')
+        output('<img src="images/marker-icon-blue.png" '
+               'style="width:20px;"/>')
+        output('</span>')
+        output('<span>Client</span>')
+        output('</li>')
+        if display_connection_legend:
+            output('<li style="float:left;margin-right:10px;">')
+            output('<span>')
+            output('<img src="images/route-icon.png" style="width:20px;"/>')
+            output('</span>')
+            output('<span>Route</span>')
+            output('</li>')
+        output('</ul>')
+
         output('</div></div>')
 
     def print_html_footer(self):

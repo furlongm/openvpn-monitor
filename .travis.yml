@@ -2,11 +2,19 @@ language: python
 python:
   - "2.7"
   - "3.4"
-  - "3.5"
 addons:
  apt:
    packages:
    - gcc
    - libgeoip-dev
-install: "pip install -r requirements.txt"
-script: nosetests
+   - libcrack2-dev
+install:
+  - "pip install tox"
+  - "pip install -r requirements.txt"
+script:
+  - nosetests
+  - tox
+env:
+  - TOXENV=py27-flake8
+  - TOXENV=py27
+  - TOXENV=py34

@@ -51,8 +51,6 @@ The below will install and configure the web application, applying relative Alia
 ```shell
 apt-get -y install python-geoip python-ipaddr python-humanize python-bottle python-semantic-version apache2 libapache2-mod-wsgi git wget
 echo "Alias /images/ /var/www/html/openvpn-monitor/images/" > /etc/apache2/conf-available/openvpn-monitor.conf
-echo "Alias /images/ /var/www/html/openvpn-monitor/js/" >> /etc/apache2/conf-available/openvpn-monitor.conf
-echo "Alias /images/ /var/www/html/openvpn-monitor/css/" >> /etc/apache2/conf-available/openvpn-monitor.conf
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" >> /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
 systemctl restart apache2
@@ -100,7 +98,7 @@ mv GeoLiteCity.dat GeoIPCity.dat
 
 ### Configure OpenVPN-Monitor
 
-The example configuration file `/var/www/html/openvpn-monitor/openvpn-monitor.conf.example`
+The provided configuration file `/var/www/html/openvpn-monitor/openvpn-monitor.conf`
 should give some indication of how to set site name, add a logo, etc. You can
 also set a default location (latitude and longitude) for the embedded maps.
 If not set, the default location is Melbourne, Australia.
