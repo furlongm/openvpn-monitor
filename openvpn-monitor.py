@@ -159,7 +159,7 @@ class OpenvpnMgmtInterface(object):
                     command = 'kill {0!s}:{1!s}\n'.format(kwargs['ip'], kwargs['port'])
                 info('Sending command: {0!s}'.format(command))
                 self.send_command(command)
-                self._socket_disconnect
+                self._socket_disconnect()
 
         geoip_data = cfg.settings['geoip_data']
         self.gi = GeoIP.open(geoip_data, GeoIP.GEOIP_STANDARD)
