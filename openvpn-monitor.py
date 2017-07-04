@@ -591,7 +591,8 @@ class OpenvpnHtmlPrinter(object):
         output('<table class="table table-condensed table-responsive">')
         output('<thead><tr>')
         vpn_headers = ['VPN Mode', 'Status', 'Pingable', 'Clients',
-                       'Total Bytes In', 'Total Bytes Out', 'Up Since', 'Local IP Address']
+                       'Total Bytes In', 'Total Bytes Out', 'Up Since', 
+                       'Local IP Address']
         if vpn_mode == 'Client':
             vpn_headers.append('Remote IP Address')
         for header in vpn_headers:
