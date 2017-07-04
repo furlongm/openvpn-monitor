@@ -480,7 +480,7 @@ class OpenvpnHtmlPrinter(object):
         output('<script src="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.28.4/js/parsers/parser-network.min.js" integrity="sha256-E0X65/rdWP806UYOzvOzTshT6a3R74j/9UOqcB9+6lc=" crossorigin="anonymous"></script>')
         output('<script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>')
         output('<script>$(document).ready(function(){')
-        output('$("#sessions").tablesorter({theme:"bootstrap", headerTemplate:"{content} {icon}", widgets:["uitheme"]});')
+        output('$("table").tablesorter({theme:"bootstrap", headerTemplate:"{content} {icon}", widgets:["uitheme"]});')
         output('});</script>')
         if self.maps:
             output('<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.2/leaflet.js" integrity="sha256-RS5bDpN9YmmUIdtdu8ESPjNp1Bg/Fqu90PwN3uawdSQ=" crossorigin="anonymous"></script>')
@@ -589,11 +589,12 @@ class OpenvpnHtmlPrinter(object):
             vpn['name']))
         output('</div><div class="panel-body">')
         output('<table class="table table-condensed table-responsive">')
-        output('<thead><tr><th>VPN Mode</th><th>Status</th><th>Pingable</th>')
-        output('<th>Clients</th><th>Total Bytes In</th><th>Total Bytes Out</th>')
-        output('<th>Up Since</th><th>Local IP Address</th>')
+        output('<thead><tr>')
+        vpn_headers = ['VPN Mode','Status','Pingable','Clients','Total Bytes In','Total Bytes Out','Up Since','Local IP Address']
         if vpn_mode == 'Client':
-            output('<th>Remote IP Address</th>')
+            vpn_headers.append('Remote IP Address')
+        for header in vpn_headers:
+            output('<th data-sorter="false">{0!s}</th>'.format(header))
         output('</tr></thead><tbody>')
         output('<tr><td>{0!s}</td>'.format(vpn_mode))
         output('<td>{0!s}</td>'.format(connection))
