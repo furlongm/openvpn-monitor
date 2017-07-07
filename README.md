@@ -18,8 +18,9 @@ The current source code is available on github:
 https://github.com/furlongm/openvpn-monitor
 
 
-## Quick install with virtualenv/pip/gunicorn
+## Installation with virtualenv + pip + gunicorn
 
+N.B libgeoip-dev should also be installed using yum/apt-get
 
 ```shell
 mkdir /srv/openvpn-monitor
@@ -30,8 +31,16 @@ pip install openvpn-monitor gunicorn
 gunicorn openvpn-monitor -b 0.0.0.0:80
 ```
 
+## Installation with Docker
 
-## Installation
+```shell
+docker run -p 80:80 ruimarinho/openvpn-monitor
+```
+
+Read the [docker installation instructions](https://github.com/ruimarinho/docker-openvpn-monitor#usage) for details on how to generate a dynamic configuration using only environment variables.
+
+
+## Standard Installation
 
 ### Install dependencies and configure apache
 
@@ -52,14 +61,6 @@ yum install -y python-GeoIP python-ipaddr python-humanize python-bottle python-s
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/httpd/conf.d/openvpn-monitor.conf
 systemctl restart httpd
 ```
-
-#### Docker
-
-```shell
-docker run -p 80:80 ruimarinho/openvpn-monitor
-```
-
-Check the full [usage](https://github.com/ruimarinho/docker-openvpn-monitor#usage) information to read how to generate a dynamic configuration using environment variables only.
 
 ### Checkout OpenVPN-Monitor
 
