@@ -115,6 +115,13 @@ cd /var/www/html/openvpn-monitor
 python openvpn-monitor.py
 ```
 
+Further debugging can be enabled by specifying the `--debug` flag:
+
+```shell
+cd /var/www/html/openvpn-monitor
+python openvpn-monitor.py -d
+```
+
 
 ## License
 
