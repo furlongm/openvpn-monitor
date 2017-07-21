@@ -640,7 +640,7 @@ class OpenvpnHtmlPrinter(object):
             if session['location'] == 'RFC1918':
                 output('<td>RFC1918</td>')
             else:
-                flag = '{0!s}flags/{1!s}.png'.format(image_path, session['location'].lower())
+                flag = '{0!s}images/flags/{1!s}.png'.format(image_path, session['location'].lower())
                 if 'city' in session and 'country_name' in session:
                     country = session['country_name']
                     city = session['city']
