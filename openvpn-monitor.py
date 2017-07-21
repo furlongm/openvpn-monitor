@@ -518,7 +518,7 @@ class OpenvpnHtmlPrinter(object):
         output('</ul>')
 
         if self.logo:
-            output('<a href="#" class="pull-right"><img alt="self.logo" ')
+            output('<a href="#" class="pull-right"><img alt="Logo" ')
             output('style="max-height:46px; padding-top:3px;" ')
             output('src="{0!s}"></a>'.format(self.logo))
 
