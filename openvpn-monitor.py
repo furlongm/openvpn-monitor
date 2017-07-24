@@ -110,6 +110,7 @@ class ConfigLoader(object):
         self.vpns['Default VPN'] = {'name': 'default',
                                     'host': 'localhost',
                                     'port': '5555',
+                                    'password': 'changeme',
                                     'show_disconnect': False}
 
     def parse_global_section(self, config):
@@ -196,6 +197,7 @@ class OpenvpnMgmtInterface(object):
     def _socket_connect(self, vpn):
         host = vpn['host']
         port = int(vpn['port'])
+        password = vpn['password']
         timeout = 3
         self.s = False
         try:
@@ -206,6 +208,8 @@ class OpenvpnMgmtInterface(object):
                 while 1:
                     socket_data = self._socket_recv(1024)
                     data += socket_data
+                    if data.endswith('PASSWORD:'):
+                        self._socket_send('{0!s}\n'.format(password))
                     if data.endswith('\r\n'):
                         break
         except socket.timeout as e:
