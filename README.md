@@ -20,9 +20,8 @@ https://github.com/furlongm/openvpn-monitor
 
 ## Installation with virtualenv + pip + gunicorn
 
-
 ```shell
-# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra (debian/ubuntu)
+# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra geoip-database-contrib (debian/ubuntu)
 # yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update (centos)
 mkdir /srv/openvpn-monitor
 cd /srv/openvpn-monitor
@@ -49,7 +48,7 @@ Read the [docker installation instructions](https://github.com/ruimarinho/docker
 #### Debian / Ubuntu
 
 ```shell
-apt-get -y install python-geoip python-ipaddr python-humanize python-bottle python-semantic-version apache2 libapache2-mod-wsgi git wget
+apt-get -y install python-geoip python-ipaddr python-humanize python-bottle python-semantic-version apache2 libapache2-mod-wsgi git wget geoip-database-extra geoip-database-contrib
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
 systemctl restart apache2
@@ -59,10 +58,11 @@ systemctl restart apache2
 
 ```shell
 yum install -y epel-release
-yum install -y python-GeoIP python-ipaddr python-humanize python-bottle python-semantic_version httpd mod_wsgi git wget
+yum install -y python-GeoIP python-ipaddr python-humanize python-bottle python-semantic_version httpd mod_wsgi git wget GeoIP-data GeoIP-update
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/httpd/conf.d/openvpn-monitor.conf
 systemctl restart httpd
 ```
+
 
 ### Checkout OpenVPN-Monitor
 
@@ -85,16 +85,6 @@ Refer to the OpenVPN documentation for further information on how to secure
 access to the management interface.
 
 
-### Download the GeoLite City database
-
-```shell
-cd /usr/share/GeoIP/
-wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz
-gunzip GeoLiteCity.dat.gz
-mv GeoLiteCity.dat GeoIPCity.dat
-```
-
-
 ### Configure OpenVPN-Monitor
 
 The example configuration file `/var/www/html/openvpn-monitor/openvpn-monitor.conf`
@@ -104,8 +94,9 @@ If not set, the default location is Melbourne, Australia.
 
 Edit `/var/www/html/openvpn-monitor/openvpn-monitor.conf` to match your site.
 
-You should now be able to navigate to `http://myipaddress/openvpn-monitor`
+You should now be able to navigate to `http://myipaddress/openvpn-monitor/`
 
+Note the trailing slash, the images may not appear without it.
 
 ### Debugging
 
