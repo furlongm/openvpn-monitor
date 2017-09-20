@@ -22,12 +22,13 @@ https://github.com/furlongm/openvpn-monitor
 
 
 ```shell
-# apt-get install gcc libgeoip-dev python-virtualenv python-dev (debian/ubuntu)
-# yum install gcc libgeoip-devel virtualenv python-devel (centos)
+# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra (debian/ubuntu)
+# yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update (centos)
 mkdir /srv/openvpn-monitor
 cd /srv/openvpn-monitor
 virtualenv .
 . bin/activate
+pip install --upgrade pip
 pip install openvpn-monitor gunicorn
 gunicorn openvpn-monitor -b 0.0.0.0:80
 ```
