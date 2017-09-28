@@ -48,7 +48,7 @@ Read the [docker installation instructions](https://github.com/ruimarinho/docker
 #### Debian / Ubuntu
 
 ```shell
-apt-get -y install python-geoip python-ipaddr python-humanize python-bottle python-semantic-version apache2 libapache2-mod-wsgi git wget geoip-database-extra geoip-database-contrib
+apt-get -y install python-geoip python-ipaddr python-humanize python-bottle python-semantic-version apache2 libapache2-mod-wsgi git wget geoip-database-extra
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
 systemctl restart apache2
