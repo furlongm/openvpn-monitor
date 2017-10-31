@@ -18,26 +18,36 @@ The current source code is available on github:
 https://github.com/furlongm/openvpn-monitor
 
 
-## Quick install with virtualenv/pip/gunicorn
-
+## Installation with virtualenv + pip + gunicorn
 
 ```shell
+# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra   # (debian/ubuntu)
+# yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update   # (centos)
 mkdir /srv/openvpn-monitor
 cd /srv/openvpn-monitor
 virtualenv .
 . bin/activate
+pip install --upgrade pip
 pip install openvpn-monitor gunicorn
 gunicorn openvpn-monitor -b 0.0.0.0:80
 ```
 
+## Installation with Docker
 
-## Installation
+```shell
+docker run -p 80:80 ruimarinho/openvpn-monitor
+```
+
+Read the [docker installation instructions](https://github.com/ruimarinho/docker-openvpn-monitor#usage) for details on how to generate a dynamic configuration using only environment variables.
+
+
+## Standard Installation
 
 ### Install dependencies and configure apache
 
 
 ##### raspberryPi
-raspberryPi follows instructions set out in Debian / Ubuntu below, with the exception of the python-semantic-version. With one exception.
+raspberryPi follows instructions set out in Debian / Ubuntu below, with the exception of the python-semantic-version.
 You will need to install this manually from PIP using the below command. 
 When following the Debian / Ubuntu instructions remember to remove the python-semantic-version item from the apt-get command
 
@@ -49,9 +59,9 @@ pip install semantic_version
 The below will install and configure the web application, applying relative Alias commands to access local resources
 
 ```shell
-apt-get -y install python-geoip python-ipaddr python-humanize python-bottle python-semantic-version apache2 libapache2-mod-wsgi git wget
+apt-get -y install python-geoip python-ipaddr python-humanize python-bottle python-semantic-version apache2 libapache2-mod-wsgi git wget geoip-database-extra
 echo "Alias /images/ /var/www/html/openvpn-monitor/images/" > /etc/apache2/conf-available/openvpn-monitor.conf
-echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" >> /etc/apache2/conf-available/openvpn-monitor.conf
+echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
 systemctl restart apache2
 ```
@@ -60,7 +70,7 @@ systemctl restart apache2
 
 ```shell
 yum install -y epel-release
-yum install -y python-GeoIP python-ipaddr python-humanize python-bottle python-semantic_version httpd mod_wsgi git wget
+yum install -y python-GeoIP python-ipaddr python-humanize python-bottle python-semantic_version httpd mod_wsgi git wget GeoIP-data GeoIP-update
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/httpd/conf.d/openvpn-monitor.conf
 systemctl restart httpd
 ```
@@ -86,16 +96,6 @@ Refer to the OpenVPN documentation for further information on how to secure
 access to the management interface.
 
 
-### Download the GeoLite City database
-
-```shell
-cd /usr/share/GeoIP/
-wget http://geolite.maxmind.com/download/geoip/database/GeoLiteCity.dat.gz
-gunzip GeoLiteCity.dat.gz
-mv GeoLiteCity.dat GeoIPCity.dat
-```
-
-
 ### Configure OpenVPN-Monitor
 
 The provided configuration file `/var/www/html/openvpn-monitor/openvpn-monitor.conf`
@@ -103,7 +103,8 @@ should give some indication of how to set site name, add a logo, etc. You can
 also set a default location (latitude and longitude) for the embedded maps.
 If not set, the default location is Melbourne, Australia.
 
-Complete the following by editting `/var/www/html/openvpn-monitor/openvpn-monitor.conf` to match your site.
+
+Complete the following by editing `/var/www/html/openvpn-monitor/openvpn-monitor.conf` to match your site.
 
 #### OpenVPN-Monitor
 The below should help you quickly configure your vpn monitor with relevant settings
@@ -143,8 +144,9 @@ The below should help you quickly configure connections to vpns
 Note: If latitude, longitude and externalip all cannot be validated then Canberra, Australia becomes the default marker location.
 
 ### Your Done
-You should now be able to navigate to `http://myipaddress/openvpn-monitor`
+You should now be able to navigate to `http://myipaddress/openvpn-monitor/`
 
+Note the trailing slash, the images may not appear without it.
 
 ### Debugging
 
@@ -154,6 +156,13 @@ generates correctly:
 ```shell
 cd /var/www/html/openvpn-monitor
 python openvpn-monitor.py
+```
+
+Further debugging can be enabled by specifying the `--debug` flag:
+
+```shell
+cd /var/www/html/openvpn-monitor
+python openvpn-monitor.py -d
 ```
 
 
