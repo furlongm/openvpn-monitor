@@ -444,8 +444,8 @@ class OpenvpnHtmlPrinter(object):
         if 'maps' in settings and settings['maps'] == 'True':
             self.maps = True
 
-        self.latitude = -37.8067
-        self.longitude = 144.9635
+        self.latitude = 40.72
+        self.longitude = -74
         if 'latitude' in settings:
             self.latitude = settings['latitude']
         if 'longitude' in settings:
