@@ -101,7 +101,7 @@ access to the management interface.
 The provided configuration file `/var/www/html/openvpn-monitor/openvpn-monitor.conf`
 should give some indication of how to set site name, add a logo, etc. You can
 also set a default location (latitude and longitude) for the embedded maps.
-If not set, the default location is Melbourne, Australia.
+If not set, the default location is New York, USA.
 
 
 Complete the following by editing `/var/www/html/openvpn-monitor/openvpn-monitor.conf` to match your site.
