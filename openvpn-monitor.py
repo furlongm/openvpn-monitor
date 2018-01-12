@@ -397,6 +397,22 @@ class OpenvpnMgmtInterface(object):
                 last_seen = parts[5]
                 if local_ip in sessions:
                     sessions[local_ip]['last_seen'] = get_date(last_seen, uts=True)
+                #Obtain IPv6 address data from routing tables
+                remote_str_route = parts[3]
+                if remote_str_route.count(':') == 1:
+                    remote_route, port_route = remote_str_route.split(':')
+                elif '(' in remote_str_route:
+                    remote_route, port_route = remote_str_route.split('(')
+                    port_route = port_route[:-1]
+                else:
+                    remote_route = remote_str_route
+                    port_route = None
+                for key, session in list(sessions.items()):
+                    if isinstance(ip_address(local_ip), IPv6Address) \
+                            and session['remote_ip'] == ip_address(remote_route) \
+                            and session['port'] == int(port_route):
+                        sessions[key]['local_ipv6_new'] = ip_address(local_ip)
+                        break
 
         if args.debug:
             if sessions:
@@ -527,9 +543,16 @@ class OpenvpnHtmlPrinter(object):
 
     @staticmethod
     def print_session_table_headers(vpn_mode, show_disconnect):
+        '''comment the old headers
         server_headers = ['Username / Hostname', 'VPN IP',
                           'Remote IP', 'Location', 'Bytes In',
                           'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
+        '''
+        #add new header
+        server_headers = ['Username / Hostname', 'VPN IP', 'VPN IPv6',
+                          'Remote IP', 'Location', 'Bytes In',
+                          'Bytes Out', 'Connected Since', 'Last Ping', 'Time Online']
+        
         if show_disconnect:
             server_headers.append('Action')
 
@@ -634,6 +657,10 @@ class OpenvpnHtmlPrinter(object):
         bytes_sent = session['bytes_sent']
         output('<td>{0!s}</td>'.format(session['username']))
         output('<td>{0!s}</td>'.format(session['local_ip']))
+        if session['local_ipv6_new']:
+            output('<td>{0!s}</td>'.format(session['local_ipv6_new']))
+        else:
+            output('<td>{0!s}</td>'.format('N/A'))
         output('<td>{0!s}</td>'.format(session['remote_ip']))
 
         if 'location' in session:
