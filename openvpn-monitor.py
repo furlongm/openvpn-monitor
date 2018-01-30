@@ -194,12 +194,16 @@ class OpenvpnMgmtInterface(object):
             return self.s.recv(length).decode('utf-8')
 
     def _socket_connect(self, vpn):
-        host = vpn['host']
-        port = int(vpn['port'])
         timeout = 3
         self.s = False
         try:
-            self.s = socket.create_connection((host, port), timeout)
+            if 'socket' in vpn:
+                self.s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                self.s.connect(vpn['socket'])
+            else:
+                host = vpn['host']
+                port = int(vpn['port'])
+                self.s = socket.create_connection((host, port), timeout)
             if self.s:
                 vpn['socket_connected'] = True
                 data = ''
