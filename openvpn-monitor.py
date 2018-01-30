@@ -25,6 +25,7 @@ except ImportError:
 import socket
 import re
 import argparse
+import geoip2.database
 import GeoIP
 import sys
 import os
@@ -162,7 +163,11 @@ class OpenvpnMgmtInterface(object):
                 self._socket_disconnect()
 
         geoip_data = cfg.settings['geoip_data']
-        self.gi = GeoIP.open(geoip_data, GeoIP.GEOIP_STANDARD)
+        self.use_geoip2 = geoip_data.endswith('.mmdb')
+        if self.use_geoip2:
+            self.gi = geoip2.database.Reader(geoip_data)
+        else:
+            self.gi = GeoIP.open(geoip_data, GeoIP.GEOIP_STANDARD)
 
         for key, vpn in list(self.vpns.items()):
             self._socket_connect(vpn)
@@ -179,7 +184,8 @@ class OpenvpnMgmtInterface(object):
         stats = self.send_command('load-stats\n')
         vpn['stats'] = self.parse_stats(stats)
         status = self.send_command('status 3\n')
-        vpn['sessions'] = self.parse_status(status, self.gi, vpn['semver'])
+        vpn['sessions'] = self.parse_status(
+            status, self.gi, self.use_geoip2, vpn['semver'])
 
     def _socket_send(self, command):
         if sys.version_info[0] == 2:
@@ -290,7 +296,7 @@ class OpenvpnMgmtInterface(object):
         return stats
 
     @staticmethod
-    def parse_status(data, gi, version):
+    def parse_status(data, gi, use_geoip2, version):
         client_section = False
         routes_section = False
         sessions = {}
@@ -362,6 +368,17 @@ class OpenvpnMgmtInterface(object):
                     session['port'] = ''
                 if session['remote_ip'].is_private:
                     session['location'] = 'RFC1918'
+                elif use_geoip2:
+                    try:
+                        gir = gi.city(str(session['remote_ip']))
+                    except SystemError:
+                        gir = None
+                    if gir is not None:
+                        session['location'] = gir.country.iso_code
+                        session['city'] = gir.city.name
+                        session['country_name'] = gir.country.name
+                        session['longitude'] = gir.location.longitude
+                        session['latitude'] = gir.location.latitude
                 else:
                     try:
                         gir = gi.record_by_addr(str(session['remote_ip']))
