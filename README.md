@@ -18,7 +18,15 @@ The current source code is available on github:
 https://github.com/furlongm/openvpn-monitor
 
 
-## Installation with virtualenv + pip + gunicorn
+## Install Options
+  - [virtualenv + pip + gunicorn](#installation-with-virtualenv-+-pip-+-gunicorn)
+  - [docker](#installation-with-docker)
+  - [apache](#apache)
+  - [pip](#pip)
+  - [deb/rpm](#tbd)
+
+
+### virtualenv + pip + gunicorn
 
 ```shell
 # apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra   # (debian/ubuntu)
@@ -32,7 +40,7 @@ pip install openvpn-monitor gunicorn
 gunicorn openvpn-monitor -b 0.0.0.0:80
 ```
 
-## Installation with Docker
+### docker
 
 ```shell
 docker run -p 80:80 ruimarinho/openvpn-monitor
@@ -41,11 +49,11 @@ docker run -p 80:80 ruimarinho/openvpn-monitor
 Read the [docker installation instructions](https://github.com/ruimarinho/docker-openvpn-monitor#usage) for details on how to generate a dynamic configuration using only environment variables.
 
 
-## Standard Installation
+### apache
 
-### Install dependencies and configure apache
+#### Install dependencies and configure apache
 
-#### Debian / Ubuntu
+##### Debian / Ubuntu
 
 ```shell
 apt-get -y install python-geoip python-ipaddr python-humanize python-bottle python-semantic-version apache2 libapache2-mod-wsgi git wget geoip-database-extra
@@ -54,7 +62,7 @@ a2enconf openvpn-monitor
 systemctl restart apache2
 ```
 
-#### CentOS
+##### CentOS
 
 ```shell
 yum install -y epel-release
@@ -64,7 +72,7 @@ systemctl restart httpd
 ```
 
 
-### Checkout OpenVPN-Monitor
+#### Checkout OpenVPN-Monitor
 
 ```shell
 cd /var/www/html
@@ -72,7 +80,7 @@ git clone https://github.com/furlongm/openvpn-monitor.git
 ```
 
 
-### Configure OpenVPN
+#### Configure OpenVPN
 
 Add the following line to your OpenVPN server configuration to run the
 management console on 127.0.0.1 port 5555:
@@ -85,7 +93,7 @@ Refer to the OpenVPN documentation for further information on how to secure
 access to the management interface.
 
 
-### Configure OpenVPN-Monitor
+#### Configure OpenVPN-Monitor
 
 The example configuration file `/var/www/html/openvpn-monitor/openvpn-monitor.conf`
 should give some indication of how to set site name, add a logo, etc. You can
@@ -97,6 +105,20 @@ Edit `/var/www/html/openvpn-monitor/openvpn-monitor.conf` to match your site.
 You should now be able to navigate to `http://myipaddress/openvpn-monitor/`
 
 Note the trailing slash, the images may not appear without it.
+
+### pip
+
+```shell
+pip install openvpn-monitor
+```
+
+### deb / rpm
+
+
+```shell
+TBD
+```
+
 
 ### Debugging
 
