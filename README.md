@@ -1,9 +1,9 @@
-# OpenVPN-Monitor
+# openvpn-monitor
 
 
 ## Summary
 
-OpenVPN-Monitor is a simple python program to generate html that displays the
+openvpn-monitor is a simple python program to generate html that displays the
 status of an OpenVPN server, including all current connections. It uses the
 OpenVPN management console. It typically runs on the same host as the OpenVPN
 server, however it does not necessarily need to.
@@ -71,7 +71,7 @@ systemctl restart httpd
 ```
 
 
-#### Checkout OpenVPN-Monitor
+#### Checkout openvpn-monitor
 
 ```shell
 cd /var/www/html
@@ -92,7 +92,7 @@ Refer to the OpenVPN documentation for further information on how to secure
 access to the management interface.
 
 
-#### Configure OpenVPN-Monitor
+#### Configure openvpn-monitor
 
 The example configuration file `/var/www/html/openvpn-monitor/openvpn-monitor.conf`
 should give some indication of how to set site name, add a logo, etc. You can
@@ -115,7 +115,7 @@ TBD
 
 ### Debugging
 
-OpenVPN-Monitor can be run from the command line in order to test if the html
+openvpn-monitor can be run from the command line in order to test if the html
 generates correctly:
 
 ```shell
@@ -133,7 +133,7 @@ python openvpn-monitor.py -d
 
 ## License
 
-OpenVPN-Monitor is licensed under the GPLv3, a copy of which can be found in
+openvpn-monitor is licensed under the GPLv3, a copy of which can be found in
 the COPYING file.
 
 
