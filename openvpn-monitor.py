@@ -476,6 +476,18 @@ class OpenvpnHtmlPrinter(object):
         output('<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.28.4/css/theme.bootstrap.min.css" integrity="sha256-cerl+DYHeG2ZhV/9iueb8E+s7rubli1gsnKuMbKDvho=" crossorigin="anonymous" />')
         if self.maps:
             output('<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.2/leaflet.css" integrity="sha256-9mfj77orHLh2GsN7CbMvpjO/Wny/ZZhR7Pu7hy0Yig4=" crossorigin="anonymous" />')
+            output('<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.4.2/Control.FullScreen.min.css" integrity="sha256-5cUdI/OZOFcVL9i5LiXvBL5UCGT+AFANIphndyL8SBk=" crossorigin="anonymous" />')  # noqa: E501
+        output('<style>')
+        output('.panel-custom {')
+        output('   background-color:#777;')
+        output('   color:#fff;')
+        output('   font-size:75%;')
+        output('   vertical-align:baseline;')
+        output('   padding:.2em .6em .3em;')
+        output('   line-height:1;')
+        output('   font-weight:700;')
+        output('{')
+        output('</style>')
 
         # js
         output('<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js" integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8=" crossorigin="anonymous"></script>')
@@ -488,6 +500,8 @@ class OpenvpnHtmlPrinter(object):
         output('});</script>')
         if self.maps:
             output('<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.2/leaflet.js" integrity="sha256-RS5bDpN9YmmUIdtdu8ESPjNp1Bg/Fqu90PwN3uawdSQ=" crossorigin="anonymous"></script>')
+            output('<script src="//cdnjs.cloudflare.com/ajax/libs/OverlappingMarkerSpiderfier-Leaflet/0.2.6/oms.min.js" integrity="sha256-t+V41b9l6j8GMYAbpcnZbib1XiYwCAsDibD8sI1D7+Y=" crossorigin="anonymous"></script>')  # noqa: E501
+            output('<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet.fullscreen/1.4.2/Control.FullScreen.min.js" integrity="sha256-1k7z6MchW2n/LeqU0PNtvEgBYSPvtt+eDrUKaR/rksI=" crossorigin="anonymous"></script>')  # noqa: E501
 
         output('</head><body>')
 
@@ -698,6 +712,8 @@ class OpenvpnHtmlPrinter(object):
         output('<h3 class="panel-title">Map View</h3></div><div class="panel-body">')
         output('<div id="map_canvas" style="height:500px"></div>')
         output('<script type="text/javascript">')
+        output('var map = L.map("map_canvas", { fullscreenControl: true, '
+               'fullscreenControlOptions: { position: "topleft" }  });')
         output('var map = L.map("map_canvas");')
         output('var centre = L.latLng({0!s}, {1!s});'.format(self.latitude, self.longitude))
         output('map.setView(centre, 8);')
