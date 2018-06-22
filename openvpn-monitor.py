@@ -25,7 +25,11 @@ except ImportError:
 import socket
 import re
 import argparse
-import geoip2.database
+try:
+  import geoip2.database
+except ImportError:
+  # No geoip2 support
+  pass
 import GeoIP
 import sys
 import os
