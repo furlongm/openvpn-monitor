@@ -545,6 +545,7 @@ class OpenvpnHtmlPrinter(object):
         elif vpn_mode == 'Server':
             headers = server_headers
 
+        output('<div class="table-responsive">')
         output('<table id="sessions" class="table table-striped table-bordered ')
         output('table-hover table-condensed table-responsive ')
         output('tablesorter tablesorter-bootstrap">')
@@ -555,7 +556,7 @@ class OpenvpnHtmlPrinter(object):
 
     @staticmethod
     def print_session_table_footer():
-        output('</tbody></table>')
+        output('</tbody></table></div>')
 
     @staticmethod
     def print_unavailable_vpn(vpn):
@@ -592,6 +593,7 @@ class OpenvpnHtmlPrinter(object):
         output('<div class="panel-heading"><h3 class="panel-title">{0!s}</h3>'.format(
             vpn['name']))
         output('</div><div class="panel-body">')
+        output('<div class="table-responsive">')
         output('<table class="table table-condensed table-responsive">')
         output('<thead><tr><th>VPN Mode</th><th>Status</th><th>Pingable</th>')
         output('<th>Clients</th><th>Total Bytes In</th><th>Total Bytes Out</th>')
@@ -609,15 +611,18 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(local_ip))
         if vpn_mode == 'Client':
             output('<td>{0!s}</td>'.format(remote_ip))
-        output('</tr></tbody></table>')
+        output('</tr></tbody></table></div>')
 
         if vpn_mode == 'Client' or nclients > 0:
             self.print_session_table_headers(vpn_mode, show_disconnect)
             self.print_session_table(vpn_id, vpn_mode, vpn_sessions, show_disconnect)
             self.print_session_table_footer()
 
-        output('<span class="label label-default">{0!s}</span>'.format(vpn['version']))
-        output('</div></div>')
+        output('</div>')
+        output('<div class="panel-footer panel-custom">')
+        output('{0!s}'.format(vpn['version']))
+        output('</div>')
+        output('</div>')
 
     @staticmethod
     def print_client_session(session):
