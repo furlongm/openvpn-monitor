@@ -26,10 +26,10 @@ import socket
 import re
 import argparse
 try:
-  import geoip2.database
+    import geoip2.database
 except ImportError:
-  # No geoip2 support
-  pass
+    # No geoip2 support
+    pass
 import GeoIP
 import sys
 import os
