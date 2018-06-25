@@ -46,12 +46,21 @@ docker run -p 80:80 ruimarinho/openvpn-monitor
 ```
 
 Read the [docker installation instructions](https://github.com/ruimarinho/docker-openvpn-monitor#usage) for details on how to generate a dynamic configuration using only environment variables.
-### Install dependencies and configure Nginx (with uWSGI on Debian / Ubuntu)
 
-#### Install dependencies
+
+### nginx + uwsgi
+
+#### Install dependencies and configure nginx + uwsgi
+
+##### Debian / Ubuntu
 
 ```shell
-apt-get install libgeoip-dev nginx uwsgi
+apt-get install libgeoip-dev nginx uwsgi uwsgi-plugin-python
+```
+
+#### Checkout openvpn-monitor
+
+```shell
 cd /var/www/
 git clone https://github.com/furlongm/openvpn-monitor.git
 cd openvpn-monitor
@@ -126,7 +135,7 @@ server {
 
 #### Configure OpenVPN and OpenVPN-Monitor
 
-See below
+See in apache section
 
 #### Enable uWSGI app and Nginx site
 
@@ -136,9 +145,6 @@ service uwsgi restart
 ln -s /etc/nginx/sites-available/openvpn-monitor /etc/nginx/sites-enabled/
 service nginx reload
 ```
-
-### Install dependencies and configure apache
-
 
 ### apache
 
