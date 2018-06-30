@@ -755,9 +755,9 @@ if __name__ == '__main__':
 def monitor_wsgi():
 
     owd = os.getcwd()
-    if owd != os.getcwd() and sys.prefix != '/usr':
+    if owd.endswith('site-packages') and sys.prefix != '/usr':
         # virtualenv
-        image_dir = owd + '/share/openvpn-monitor/images/'
+        image_dir = owd + '/../../../share/openvpn-monitor/'
     else:
         image_dir = ''
 
@@ -795,7 +795,7 @@ def monitor_wsgi():
     return app
 
 
-if __name__.startswith('_mod_wsgi_'):
+if __name__.startswith('_mod_wsgi_') or __name__ == 'openvpn-monitor':
     os.chdir(os.path.dirname(__file__))
     sys.path.append(os.path.dirname(__file__))
     from bottle import Bottle, response, request, static_file
