@@ -524,7 +524,7 @@ class OpenvpnHtmlPrinter(object):
         if self.logo:
             output('<a href="#" class="pull-right"><img alt="Logo" ')
             output('style="max-height:46px; padding-top:3px;" ')
-            output('src="{0!s}"></a>'.format(self.logo))
+            output('src="images/{0!s}"></a>'.format(self.logo))
 
         output('</div></div></nav>')
         output('<div class="container-fluid">')
@@ -644,7 +644,7 @@ class OpenvpnHtmlPrinter(object):
             if session['location'] == 'RFC1918':
                 output('<td>RFC1918</td>')
             else:
-                flag = '{0!s}flags/{1!s}.png'.format(image_path, session['location'].lower())
+                flag = 'images/flags/{0!s}.png'.format(session['location'].lower())
                 if 'city' in session and 'country_name' in session:
                     country = session['country_name']
                     city = session['city']
@@ -749,41 +749,19 @@ def get_args():
 if __name__ == '__main__':
     args = get_args()
     wsgi = False
-    image_path = 'images/'
     main()
-else:
-    from bottle import response, request, get, post, static_file, default_app
 
-    class args(object):
-        debug = False
-        config = './openvpn-monitor.conf'
 
-    wsgi = True
-    wsgi_output = ''
-    image_path = ''
+def monitor_wsgi():
 
     owd = os.getcwd()
-    os.chdir(os.path.dirname(__file__))
-    sys.path.append(os.path.dirname(__file__))
     if owd != os.getcwd() and sys.prefix != '/usr':
         # virtualenv
-        images_dir = owd + '/share/openvpn-monitor/images/'
+        image_dir = owd + '/share/openvpn-monitor/images/'
     else:
-        images_dir = 'images'
+        image_dir = ''
 
-    application = default_app()
-
-    @get('/')
-    def get_slash():
-        return render()
-
-    @post('/')
-    def post_slash():
-        vpn_id = request.forms.get('vpn_id')
-        ip = request.forms.get('ip')
-        port = request.forms.get('port')
-        client_id = request.forms.get('client_id')
-        return render(vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
+    app = Bottle()
 
     def render(**kwargs):
         global wsgi_output
@@ -792,6 +770,39 @@ else:
         response.content_type = 'text/html;'
         return wsgi_output
 
-    @get('/<filename:re:.*\.(jpg|png)>')
-    def images(filename):
-        return static_file(filename, root=images_dir)
+    @app.hook('before_request')
+    def strip_slash():
+        request.environ['PATH_INFO'] = request.environ.get('PATH_INFO', '/').rstrip('/')
+        if args.debug:
+            debug(pformat(request.environ))
+
+    @app.route('/', method='GET')
+    def get_slash():
+        return render()
+
+    @app.route('/', method='POST')
+    def post_slash():
+        vpn_id = request.forms.get('vpn_id')
+        ip = request.forms.get('ip')
+        port = request.forms.get('port')
+        client_id = request.forms.get('client_id')
+        return render(vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
+
+    @app.route('/<filename:re:.*\.(jpg|png)>', method='GET')
+    def get_images(filename):
+        return static_file(filename, image_dir)
+
+    return app
+
+if __name__.startswith('_mod_wsgi_'):
+    os.chdir(os.path.dirname(__file__))
+    sys.path.append(os.path.dirname(__file__))
+    from bottle import Bottle, response, request, static_file
+
+    class args(object):
+        debug = False
+        config = './openvpn-monitor.conf'
+
+    wsgi = True
+    wsgi_output = ''
+    application = monitor_wsgi()
