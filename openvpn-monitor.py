@@ -35,7 +35,7 @@ from pprint import pformat
 from semantic_version import Version as semver
 
 if sys.version_info[0] == 2:
-    reload(sys)
+    reload(sys) # noqa
     sys.setdefaultencoding('utf-8')
 
 
@@ -793,6 +793,7 @@ def monitor_wsgi():
         return static_file(filename, image_dir)
 
     return app
+
 
 if __name__.startswith('_mod_wsgi_'):
     os.chdir(os.path.dirname(__file__))
