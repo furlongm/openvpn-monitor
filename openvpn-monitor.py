@@ -720,6 +720,20 @@ class OpenvpnHtmlPrinter(object):
         output('var layer = new L.TileLayer(url, {});')
         output('map.addLayer(layer);')
         output('var bounds = L.latLngBounds(centre);')
+        output('var oms = new OverlappingMarkerSpiderfier '
+               '(map,{keepSpiderfied:true});')
+        # spiderfy - add popups for closeby icons
+        output('var popup = new L.Popup({closeButton:false,'
+               'offset:new L.Point(0.5,-24)});')
+        output('oms.addListener("click", function(marker) {')
+        output('   popup.setContent(marker.alt);')
+        output('   popup.setLatLng(marker.getLatLng());')
+        output('   map.openPopup(popup);')
+        output('});')
+        # spiderfy - close popups when clicking elsewhere
+        output('oms.addListener("spiderfy", function(markers) {')
+        output('   map.closePopup();')
+        output('});')
         for vkey, vpn in self.vpns:
             if 'sessions' in vpn:
                 output('bounds.extend(centre);')
@@ -729,6 +743,7 @@ class OpenvpnHtmlPrinter(object):
                             session['latitude'], session['longitude']))
                         output('bounds.extend(latlng);')
                         output('var marker = L.marker(latlng).addTo(map);')
+                        output('oms.addMarker(marker);')
                         output('var popup = L.popup().setLatLng(latlng);')
                         output('popup.setContent("{0!s} - {1!s}");'.format(
                             session['username'], session['remote_ip']))
