@@ -714,7 +714,6 @@ class OpenvpnHtmlPrinter(object):
         output('<script type="text/javascript">')
         output('var map = L.map("map_canvas", { fullscreenControl: true, '
                'fullscreenControlOptions: { position: "topleft" }  });')
-        output('var map = L.map("map_canvas");')
         output('var centre = L.latLng({0!s}, {1!s});'.format(self.latitude, self.longitude))
         output('map.setView(centre, 8);')
         output('url = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";')
