@@ -463,7 +463,7 @@ class OpenvpnHtmlPrinter(object):
         if not wsgi:
             output("Content-Type: text/html\n")
         output('<!doctype html>')
-        output('<html><head>')
+        output('<html lang="en"><head>')
         output('<meta charset="utf-8">')
         output('<meta http-equiv="X-UA-Compatible" content="IE=edge">')
         output('<meta name="viewport" content="width=device-width, initial-scale=1">')
