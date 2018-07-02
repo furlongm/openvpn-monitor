@@ -97,7 +97,7 @@ class ConfigLoader(object):
             self.load_default_settings()
 
         for section in config.sections():
-            if section == 'OpenVPN-Monitor':
+            if section.lower() == 'openvpn-monitor':
                 self.parse_global_section(config)
             else:
                 self.parse_vpn_section(config, section)
@@ -117,7 +117,13 @@ class ConfigLoader(object):
         global_vars = ['site', 'logo', 'latitude', 'longitude', 'maps', 'geoip_data', 'datetime_format']
         for var in global_vars:
             try:
-                self.settings[var] = config.get('OpenVPN-Monitor', var)
+                self.settings[var] = config.get('openvpn-monitor', var)
+            except configparser.NoSectionError:
+                # remove before 1.0.0 release
+                try:
+                    self.settings[var] = config.get('OpenVPN-Monitor', var)
+                except configparser.NoOptionError:
+                    pass
             except configparser.NoOptionError:
                 pass
         if args.debug:
