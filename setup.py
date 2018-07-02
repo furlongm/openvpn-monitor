@@ -27,7 +27,7 @@ with open('requirements.txt') as rt:
 if sys.prefix == '/usr':
     conf_path = '/etc'
 else:
-    conf_path = sys.prefix + '/etc'
+    conf_path = sys.prefix
 data_files.append((conf_path, ['openvpn-monitor.conf']))
 
 setup(
