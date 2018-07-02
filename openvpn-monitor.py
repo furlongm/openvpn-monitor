@@ -105,7 +105,7 @@ class ConfigLoader(object):
     def load_default_settings(self):
         info('Using default settings => localhost:5555')
         self.settings = {'site': 'Default Site',
-                         'maps': True,
+                         'maps': 'True',
                          'geoip_data': '/usr/share/GeoIP/GeoIPCity.dat',
                          'datetime_format': '%d/%m/%Y %H:%M:%S'}
         self.vpns['Default VPN'] = {'name': 'default',
