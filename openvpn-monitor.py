@@ -830,9 +830,12 @@ def monitor_wsgi():
     return app
 
 
-if __name__.startswith('_mod_wsgi_') or __name__ == 'openvpn-monitor':
-    os.chdir(os.path.dirname(__file__))
-    sys.path.append(os.path.dirname(__file__))
+if __name__.startswith('_mod_wsgi_') or \
+        __name__ == 'openvpn-monitor' or \
+        __name__ == 'uwsgi_file_openvpn-monitor':
+    if __file__ != 'openvpn-monitor.py':
+        os.chdir(os.path.dirname(__file__))
+        sys.path.append(os.path.dirname(__file__))
     from bottle import Bottle, response, request, static_file
 
     class args(object):
