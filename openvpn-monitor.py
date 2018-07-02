@@ -749,12 +749,12 @@ class OpenvpnHtmlPrinter(object):
                         output('var latlng = new L.latLng({0!s}, {1!s});'.format(
                             session['latitude'], session['longitude']))
                         output('bounds.extend(latlng);')
-                        output('var marker = L.marker(latlng).addTo(map);')
-                        output('oms.addMarker(marker);')
-                        output('var popup = L.popup().setLatLng(latlng);')
-                        output('popup.setContent("{0!s} - {1!s}");'.format(
+                        output('var client_marker = L.marker(latlng).addTo(map);')
+                        output('oms.addMarker(client_marker);')
+                        output('var client_popup = L.popup().setLatLng(latlng);')
+                        output('client_popup.setContent("{0!s} - {1!s}");'.format(
                             session['username'], session['remote_ip']))
-                        output('marker.bindPopup(popup);')
+                        output('client_marker.bindPopup(client_popup);')
         output('map.fitBounds(bounds);')
         output('</script>')
         output('</div></div>')
