@@ -25,12 +25,18 @@ https://github.com/furlongm/openvpn-monitor
   - [nginx + uwsgi](#nginx--uwsgi)
   - [deb/rpm](#deb--rpm)
 
+N.B. all CentOS/RHEL instruction assum the EPEL repository has been installed:
+
+```shell
+yum install -y epel-release
+
+```
 
 ### virtualenv + pip + gunicorn
 
 ```shell
-# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra geoipupdate # (debian/ubuntu)
-# yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update             # (centos/rhel)
+# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra geoipupdate                  # (debian/ubuntu)
+# yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update geolite2-city python2-geoip2 # (centos/rhel)
 mkdir /srv/openvpn-monitor
 cd /srv/openvpn-monitor
 virtualenv .
@@ -59,8 +65,7 @@ systemctl restart apache2
 ##### CentOS / RHEL
 
 ```shell
-yum install -y epel-release
-yum install -y python-GeoIP python-ipaddr python-humanize python-bottle python-semantic_version httpd mod_wsgi git wget GeoIP-data GeoIP-update
+yum install -y python-GeoIP python-ipaddr python-humanize python-bottle python-semantic_version httpd mod_wsgi git wget GeoIP-data GeoIP-update geolite2-city python2-geoip2
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/httpd/conf.d/openvpn-monitor.conf
 systemctl restart httpd
 ```
@@ -91,8 +96,8 @@ variables.
 #### Install dependencies
 
 ```shell
-# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra nginx uwsgi uwsgi-plugin-python geoipupdate # (debian/ubuntu)
-# yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update nginx uwsgi uwsgi-plugin-python             # (centos/rhel)
+# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra nginx uwsgi uwsgi-plugin-python geoipupdate                  # (debian/ubuntu)
+# yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update nginx uwsgi uwsgi-plugin-python geolite2-city python2-geoip2 # (centos/rhel)
 ```
 
 #### Checkout openvpn-monitor
