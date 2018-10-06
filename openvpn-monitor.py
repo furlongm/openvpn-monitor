@@ -21,11 +21,21 @@ try:
 except ImportError:
     from ipaddress import ip_address, IPv6Address
 
+try:
+    import GeoIP as geoip1
+    geoip1_available = True
+except ImportError:
+    geoip1_available = False
+
+try:
+    from geoip2 import database
+    geoip2_available = True
+except ImportError:
+    geoip2_available = False
 
 import socket
 import re
 import argparse
-import GeoIP
 import sys
 import os
 from datetime import datetime
@@ -169,7 +179,16 @@ class OpenvpnMgmtInterface(object):
                 self._socket_disconnect()
 
         geoip_data = cfg.settings['geoip_data']
-        self.gi = GeoIP.open(geoip_data, GeoIP.GEOIP_STANDARD)
+        if geoip_data.endswith('.mmdb') and geoip2_available:
+            self.gi = database.Reader(geoip_data)
+            self.geoip_version = 2
+        elif geoip_data.endswith('.dat') and geoip1_available:
+            self.gi = geoip1.open(geoip_data, geoip1.GEOIP_STANDARD)
+            self.geoip_version = 1
+        else:
+            warning('No compatible geoip1 or geoip2 data/libraries found.')
+            self.geoip_version = None
+            self.gi = None
 
         for key, vpn in list(self.vpns.items()):
             self._socket_connect(vpn)
@@ -186,7 +205,8 @@ class OpenvpnMgmtInterface(object):
         stats = self.send_command('load-stats\n')
         vpn['stats'] = self.parse_stats(stats)
         status = self.send_command('status 3\n')
-        vpn['sessions'] = self.parse_status(status, self.gi, vpn['semver'])
+        vpn['sessions'] = self.parse_status(status, vpn['semver'], self.gi,
+                                            self.geoip_version)
 
     def _socket_send(self, command):
         if sys.version_info[0] == 2:
@@ -297,7 +317,7 @@ class OpenvpnMgmtInterface(object):
         return stats
 
     @staticmethod
-    def parse_status(data, gi, version):
+    def parse_status(data, version, gi, geoip_version):
         client_section = False
         routes_section = False
         sessions = {}
@@ -371,15 +391,24 @@ class OpenvpnMgmtInterface(object):
                     session['location'] = 'RFC1918'
                 else:
                     try:
-                        gir = gi.record_by_addr(str(session['remote_ip']))
+                        if geoip_version == 1:
+                            gir = gi.record_by_addr(str(session['remote_ip']))
+                            session['location'] = gir['country_code']
+                            session['region'] = get_str(gir['region'])
+                            session['city'] = get_str(gir['city'])
+                            session['country'] = gir['country_name']
+                            session['longitude'] = gir['longitude']
+                            session['latitude'] = gir['latitude']
+                        elif geoip_version == 2:
+                            gir = gi.city(str(session['remote_ip']))
+                            session['location'] = gir.country.iso_code
+                            session['region'] = gir.subdivisions.most_specific.iso_code
+                            session['city'] = gir.city.name
+                            session['country'] = gir.country.name
+                            session['longitude'] = gir.location.longitude
+                            session['latitude'] = gir.location.latitude
                     except SystemError:
-                        gir = None
-                    if gir is not None:
-                        session['location'] = gir['country_code']
-                        session['city'] = get_str(gir['city'])
-                        session['country_name'] = gir['country_name']
-                        session['longitude'] = gir['longitude']
-                        session['latitude'] = gir['latitude']
+                        pass
                 local_ipv4 = parts.popleft()
                 if local_ipv4:
                     session['local_ip'] = ip_address(local_ipv4)
@@ -671,13 +700,15 @@ class OpenvpnHtmlPrinter(object):
                 output('<td>RFC1918</td>')
             else:
                 flag = 'images/flags/{0!s}.png'.format(session['location'].lower())
-                if 'city' in session and 'country_name' in session:
-                    country = session['country_name']
+                if 'country' in session and session['country'] is not None:
+                    country = session['country']
+                    full_location = country
+                if 'region' in session and session['region'] is not None:
+                    region = session['region']
+                    full_location = '{0!s}, {1!s}'.format(region, full_location)
+                if 'city' in session and session['city'] is not None:
                     city = session['city']
-                    if city:
-                        full_location = '{0!s}, {1!s}'.format(city, country)
-                    else:
-                        full_location = country
+                    full_location = '{0!s}, {1!s}'.format(city, full_location)
                 output('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, full_location))
                 output('{0!s}</td>'.format(full_location))
         else:

@@ -29,8 +29,8 @@ https://github.com/furlongm/openvpn-monitor
 ### virtualenv + pip + gunicorn
 
 ```shell
-# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra   # (debian/ubuntu)
-# yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update   # (centos/rhel)
+# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra geoipupdate # (debian/ubuntu)
+# yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update             # (centos/rhel)
 mkdir /srv/openvpn-monitor
 cd /srv/openvpn-monitor
 virtualenv .
@@ -50,7 +50,7 @@ See [configuration](#configuration) for details on configuring openvpn-monitor.
 ##### Debian / Ubuntu
 
 ```shell
-apt-get -y install python-geoip python-ipaddr python-humanize python-bottle python-semantic-version apache2 libapache2-mod-wsgi git wget geoip-database-extra
+apt-get -y install python-geoip python-ipaddr python-humanize python-bottle python-semantic-version apache2 libapache2-mod-wsgi git wget geoip-database-extra geoipupdate
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
 systemctl restart apache2
@@ -91,8 +91,8 @@ variables.
 #### Install dependencies
 
 ```shell
-# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra nginx uwsgi uwsgi-plugin-python  # (debian/ubuntu)
-# yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update nginx uwsgi uwsgi-plugin-python  # (centos/rhel)
+# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra nginx uwsgi uwsgi-plugin-python geoipupdate # (debian/ubuntu)
+# yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update nginx uwsgi uwsgi-plugin-python             # (centos/rhel)
 ```
 
 #### Checkout openvpn-monitor
