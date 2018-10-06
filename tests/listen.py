@@ -3,7 +3,6 @@
 import sys
 import socket
 import select
-from time import sleep
 
 host = '127.0.0.1'
 port = 5555
@@ -47,16 +46,16 @@ except socket.error as e:
 print('[+] Listening for connections on {0}:{1}'.format(host, port))
 
 data = ''
-exit = False
-while not exit:
+quit = False
+while not quit:
     conn, address = s.accept()
     print('[+] Connection from {0}'.format(address))
     while 1:
         try:
-            readable, writeable, in_error = \
+            readable, writable, in_error = \
                 select.select([conn, ], [conn, ], [], timeout)
-        except select.error, error:
-            print('[+] Closing connection from {0}'.format(address))
+        except select.error:
+            print('[+] Exception. Closing connection from {0}'.format(address))
             conn.shutdown(2)
             conn.close()
             break
@@ -86,11 +85,11 @@ while not exit:
                 conn.shutdown(2)
                 conn.close()
                 s.close()
-                exit = True
+                quit = True
                 break
             else:
                 pass
-        elif readable and writeable:
+        elif readable and writable:
             print('[+] Closing connection from {0}'.format(address))
             conn.shutdown(2)
             conn.close()
