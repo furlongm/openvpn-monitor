@@ -25,7 +25,7 @@ https://github.com/furlongm/openvpn-monitor
   - [nginx + uwsgi](#nginx--uwsgi)
   - [deb/rpm](#deb--rpm)
 
-N.B. all CentOS/RHEL instruction assum the EPEL repository has been installed:
+N.B. all CentOS/RHEL instructions assume the EPEL repository has been installed:
 
 ```shell
 yum install -y epel-release
