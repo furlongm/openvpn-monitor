@@ -168,13 +168,14 @@ class OpenvpnMgmtInterface(object):
             vpn = self.vpns[kwargs['vpn_id']]
             self._socket_connect(vpn)
             if vpn['socket_connected']:
-                version = self.send_command('version\n')
-                sem_ver = semver(self.parse_version(version).split(' ')[1])
-                if sem_ver.minor == 4 and 'port' not in kwargs:
+                release = self.send_command('version\n')
+                version = semver(self.parse_version(release).split(' ')[1])
+                if version.major == 2 and \
+                        version.minor >= 4 and \
+                        'port' not in kwargs:
                     command = 'client-kill {0!s}\n'.format(kwargs['client_id'])
                 else:
                     command = 'kill {0!s}:{1!s}\n'.format(kwargs['ip'], kwargs['port'])
-                info('Sending command: {0!s}'.format(command))
                 self.send_command(command)
                 self._socket_disconnect()
 
@@ -197,16 +198,15 @@ class OpenvpnMgmtInterface(object):
                 self._socket_disconnect()
 
     def collect_data(self, vpn):
-        version = self.send_command('version\n')
-        vpn['version'] = self.parse_version(version)
-        vpn['semver'] = semver(vpn['version'].split(' ')[1])
+        ver = self.send_command('version\n')
+        vpn['release'] = self.parse_version(ver)
+        vpn['version'] = semver(vpn['release'].split(' ')[1])
         state = self.send_command('state\n')
         vpn['state'] = self.parse_state(state)
         stats = self.send_command('load-stats\n')
         vpn['stats'] = self.parse_stats(stats)
         status = self.send_command('status 3\n')
-        vpn['sessions'] = self.parse_status(status, vpn['semver'], self.gi,
-                                            self.geoip_version)
+        vpn['sessions'] = self.parse_status(status, vpn['version'])
 
     def _socket_send(self, command):
         if sys.version_info[0] == 2:
@@ -261,6 +261,7 @@ class OpenvpnMgmtInterface(object):
         self.s.close()
 
     def send_command(self, command):
+        info('Sending command: {0!s}'.format(command))
         self._socket_send(command)
         data = ''
         if command.startswith('kill') or command.startswith('client-kill'):
@@ -316,8 +317,9 @@ class OpenvpnMgmtInterface(object):
         stats['bytesout'] = int(re.sub('bytesout=', '', parts[2]).replace('\r\n', ''))
         return stats
 
-    @staticmethod
-    def parse_status(data, version, gi, geoip_version):
+    def parse_status(self, data, version):
+        gi = self.gi
+        geoip_version = self.geoip_version
         client_section = False
         routes_section = False
         sessions = {}
@@ -414,7 +416,7 @@ class OpenvpnMgmtInterface(object):
                     session['local_ip'] = ip_address(local_ipv4)
                 else:
                     session['local_ip'] = ''
-                if version.minor == 4:
+                if version.major == 2 and version.minor >= 4:
                     local_ipv6 = parts.popleft()
                     if local_ipv6:
                         session['local_ip'] = ip_address(local_ipv6)
@@ -427,7 +429,7 @@ class OpenvpnMgmtInterface(object):
                     session['username'] = username
                 else:
                     session['username'] = common_name
-                if version.minor == 4:
+                if version.major == 2 and version.minor >= 4:
                     session['client_id'] = parts.popleft()
                     session['peer_id'] = parts.popleft()
                 sessions[str(session['local_ip'])] = session
@@ -670,7 +672,7 @@ class OpenvpnHtmlPrinter(object):
 
         output('</div>')
         output('<div class="panel-footer panel-custom">')
-        output('{0!s}'.format(vpn['version']))
+        output('{0!s}'.format(vpn['release']))
         output('</div>')
         output('</div>')
 
