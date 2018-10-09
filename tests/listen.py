@@ -46,14 +46,14 @@ except socket.error as e:
 print('[+] Listening for connections on {0}:{1}'.format(host, port))
 
 data = ''
-quit = False
-while not quit:
+received_exit = False
+while not received_exit:
     conn, address = s.accept()
     print('[+] Connection from {0}'.format(address))
     while 1:
         try:
-            readable, writable, in_error = \
-                select.select([conn, ], [conn, ], [], timeout)
+            readable, writable, exceptional = \
+                select.select([conn], [conn], [], timeout)
         except select.error:
             print('[+] Exception. Closing connection from {0}'.format(address))
             conn.shutdown(2)
@@ -85,7 +85,7 @@ while not quit:
                 conn.shutdown(2)
                 conn.close()
                 s.close()
-                quit = True
+                received_exit = True
                 break
             else:
                 pass
