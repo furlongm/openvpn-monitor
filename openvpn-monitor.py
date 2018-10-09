@@ -738,6 +738,8 @@ class OpenvpnHtmlPrinter(object):
             if vpn_mode == 'Client':
                 self.print_client_session(session)
             elif vpn_mode == 'Server':
+                if not session['local_ip']:
+                    continue
                 self.print_server_session(vpn_id, session, show_disconnect)
             output('</tr>')
 
@@ -772,6 +774,8 @@ class OpenvpnHtmlPrinter(object):
             if 'sessions' in vpn:
                 output('bounds.extend(centre);')
                 for skey, session in list(vpn['sessions'].items()):
+                    if not session['local_ip']:
+                        continue
                     if 'longitude' in session and 'latitude' in session:
                         output('var latlng = new L.latLng({0!s}, {1!s});'.format(
                             session['latitude'], session['longitude']))
