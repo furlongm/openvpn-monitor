@@ -233,12 +233,6 @@ class OpenvpnMgmtInterface(object):
                 self.s = socket.create_connection((host, port), timeout)
             if self.s:
                 vpn['socket_connected'] = True
-                data = ''
-                while 1:
-                    socket_data = self._socket_recv(1024)
-                    data += socket_data
-                    if data.endswith('\r\n'):
-                        break
         except socket.timeout as e:
             vpn['error'] = '{0!s}'.format(e)
             warning('socket timeout: {0!s}'.format(e))
