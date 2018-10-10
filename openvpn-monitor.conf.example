@@ -4,7 +4,7 @@ site=Example
 #latitude=40.72
 #longitude=-74
 maps=True
-geoip_data=/usr/share/GeoIP/GeoIPCity.dat
+geoip_data=/var/lib/GeoIP/GeoLite2-City.mmdb
 datetime_format=%d/%m/%Y %H:%M:%S
 
 [VPN1]

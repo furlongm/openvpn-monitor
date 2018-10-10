@@ -35,8 +35,8 @@ yum install -y epel-release
 ### virtualenv + pip + gunicorn
 
 ```shell
-# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra geoipupdate                  # (debian/ubuntu)
-# yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update geolite2-city python2-geoip2 # (centos/rhel)
+# apt-get install python-virtualenv geoip-database-extra geoipupdate      # (debian/ubuntu)
+# yum install python-virtualenv GeoIP-update geolite2-city python2-geoip2 # (centos/rhel)
 mkdir /srv/openvpn-monitor
 cd /srv/openvpn-monitor
 virtualenv .
@@ -56,7 +56,7 @@ See [configuration](#configuration) for details on configuring openvpn-monitor.
 ##### Debian / Ubuntu
 
 ```shell
-apt-get -y install python-geoip python-ipaddr python-humanize python-bottle python-semantic-version apache2 libapache2-mod-wsgi git wget geoip-database-extra geoipupdate
+apt-get -y install git wget apache2 libapache2-mod-wsgi python2-geoip2 python-ipaddr python-humanize python-bottle python-semantic-version geoip-database-extra geoipupdate
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
 systemctl restart apache2
@@ -65,7 +65,7 @@ systemctl restart apache2
 ##### CentOS / RHEL
 
 ```shell
-yum install -y python-GeoIP python-ipaddr python-humanize python-bottle python-semantic_version httpd mod_wsgi git wget GeoIP-data GeoIP-update geolite2-city python2-geoip2
+yum install -y git wget httpd mod_wsgi python2-geoip2 python-ipaddr python-humanize python-bottle python-semantic_version geolite2-city GeoIP-update
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/httpd/conf.d/openvpn-monitor.conf
 systemctl restart httpd
 ```
