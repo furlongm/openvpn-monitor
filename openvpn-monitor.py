@@ -129,7 +129,7 @@ class ConfigLoader(object):
             try:
                 self.settings[var] = config.get('openvpn-monitor', var)
             except configparser.NoSectionError:
-                # remove before 1.0.0 release
+                # backwards compat
                 try:
                     self.settings[var] = config.get('OpenVPN-Monitor', var)
                 except configparser.NoOptionError:
