@@ -774,7 +774,7 @@ class OpenvpnHtmlPrinter(object):
             if 'sessions' in vpn:
                 output('bounds.extend(centre);')
                 for skey, session in list(vpn['sessions'].items()):
-                    if not session['local_ip']:
+                    if 'local_ip' not in session or not session['local_ip']:
                         continue
                     if 'longitude' in session and 'latitude' in session:
                         output('var latlng = new L.latLng({0!s}, {1!s});'.format(
