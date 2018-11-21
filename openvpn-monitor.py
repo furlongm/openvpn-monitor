@@ -612,9 +612,16 @@ class OpenvpnHtmlPrinter(object):
         output('<h3 class="panel-title">{0!s}</h3></div>'.format(vpn['name']))
         output('<div class="panel-body">')
         output('Could not connect to ')
-        output('{0!s}:{1!s} ({2!s})</div></div>'.format(vpn['host'],
-                                                        vpn['port'],
-                                                        vpn['error']))
+        if 'host' in vpn and 'port' in vpn:
+            output('{0!s}:{1!s} ({2!s})</div></div>'.format(vpn['host'],
+                                                            vpn['port'],
+                                                            vpn['error']))
+        elif 'socket' in vpn:
+            output('{0!s} ({1!s})</div></div>'.format(vpn['socket'],
+                                                      vpn['error']))
+        else:
+            warning('fail to get socket or network info: {}'.format(vpn))
+            output('network or unix socket</div></div>')
 
     def print_vpn(self, vpn_id, vpn):
 
