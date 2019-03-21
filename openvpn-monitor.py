@@ -698,7 +698,7 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(session['local_ip']))
         output('<td>{0!s}</td>'.format(session['remote_ip']))
 
-        if 'location' in session:
+        if 'location' in session and session['location'] is not None:
             if session['location'] == 'RFC1918':
                 output('<td>RFC1918</td>')
             else:
