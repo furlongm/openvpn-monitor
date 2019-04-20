@@ -191,16 +191,19 @@ class OpenvpnMgmtInterface(object):
                 self._socket_disconnect()
 
         geoip_data = cfg.settings['geoip_data']
-        if geoip_data.endswith('.mmdb') and geoip2_available:
-            self.gi = database.Reader(geoip_data)
-            self.geoip_version = 2
-        elif geoip_data.endswith('.dat') and geoip1_available:
-            self.gi = geoip1.open(geoip_data, geoip1.GEOIP_STANDARD)
-            self.geoip_version = 1
-        else:
+        self.geoip_version = None
+        self.gi = None
+        try:
+            if geoip_data.endswith('.mmdb') and geoip2_available:
+                self.gi = database.Reader(geoip_data)
+                self.geoip_version = 2
+            elif geoip_data.endswith('.dat') and geoip1_available:
+                self.gi = geoip1.open(geoip_data, geoip1.GEOIP_STANDARD)
+                self.geoip_version = 1
+            else:
+                warning('No compatible geoip1 or geoip2 data/libraries found.')
+        except IOError:
             warning('No compatible geoip1 or geoip2 data/libraries found.')
-            self.geoip_version = None
-            self.gi = None
 
         for key, vpn in list(self.vpns.items()):
             self._socket_connect(vpn)
