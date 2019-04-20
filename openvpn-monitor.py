@@ -40,6 +40,7 @@ except ImportError:
 
 try:
     from geoip2 import database
+    from geoip2.errors import AddressNotFoundError
     geoip2_available = True
 except ImportError:
     geoip2_available = False
@@ -417,6 +418,8 @@ class OpenvpnMgmtInterface(object):
                             session['country'] = gir.country.name
                             session['longitude'] = gir.location.longitude
                             session['latitude'] = gir.location.latitude
+                    except AddressNotFoundError:
+                        pass
                     except SystemError:
                         pass
                 local_ipv4 = parts.popleft()
