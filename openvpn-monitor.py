@@ -404,12 +404,13 @@ class OpenvpnMgmtInterface(object):
                     try:
                         if geoip_version == 1:
                             gir = gi.record_by_addr(str(session['remote_ip']))
-                            session['location'] = gir['country_code']
-                            session['region'] = get_str(gir['region'])
-                            session['city'] = get_str(gir['city'])
-                            session['country'] = gir['country_name']
-                            session['longitude'] = gir['longitude']
-                            session['latitude'] = gir['latitude']
+                            if gir is not None:
+                                session['location'] = gir['country_code']
+                                session['region'] = get_str(gir['region'])
+                                session['city'] = get_str(gir['city'])
+                                session['country'] = gir['country_name']
+                                session['longitude'] = gir['longitude']
+                                session['latitude'] = gir['latitude']
                         elif geoip_version == 2:
                             gir = gi.city(str(session['remote_ip']))
                             session['location'] = gir.country.iso_code
