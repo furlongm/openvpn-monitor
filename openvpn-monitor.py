@@ -1,9 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Licensed under GPL v3
 # Copyright 2011 VPAC <http://www.vpac.org>
-# Copyright 2012-2016 Marcus Furlong <furlongm@gmail.com>
+# Copyright 2012-2019 Marcus Furlong <furlongm@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3 only.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>
 
 from __future__ import absolute_import
 from __future__ import division
@@ -29,6 +40,7 @@ except ImportError:
 
 try:
     from geoip2 import database
+    from geoip2.errors import AddressNotFoundError
     geoip2_available = True
 except ImportError:
     geoip2_available = False
@@ -180,16 +192,19 @@ class OpenvpnMgmtInterface(object):
                 self._socket_disconnect()
 
         geoip_data = cfg.settings['geoip_data']
-        if geoip_data.endswith('.mmdb') and geoip2_available:
-            self.gi = database.Reader(geoip_data)
-            self.geoip_version = 2
-        elif geoip_data.endswith('.dat') and geoip1_available:
-            self.gi = geoip1.open(geoip_data, geoip1.GEOIP_STANDARD)
-            self.geoip_version = 1
-        else:
+        self.geoip_version = None
+        self.gi = None
+        try:
+            if geoip_data.endswith('.mmdb') and geoip2_available:
+                self.gi = database.Reader(geoip_data)
+                self.geoip_version = 2
+            elif geoip_data.endswith('.dat') and geoip1_available:
+                self.gi = geoip1.open(geoip_data, geoip1.GEOIP_STANDARD)
+                self.geoip_version = 1
+            else:
+                warning('No compatible geoip1 or geoip2 data/libraries found.')
+        except IOError:
             warning('No compatible geoip1 or geoip2 data/libraries found.')
-            self.geoip_version = None
-            self.gi = None
 
         for key, vpn in list(self.vpns.items()):
             self._socket_connect(vpn)
@@ -389,12 +404,13 @@ class OpenvpnMgmtInterface(object):
                     try:
                         if geoip_version == 1:
                             gir = gi.record_by_addr(str(session['remote_ip']))
-                            session['location'] = gir['country_code']
-                            session['region'] = get_str(gir['region'])
-                            session['city'] = get_str(gir['city'])
-                            session['country'] = gir['country_name']
-                            session['longitude'] = gir['longitude']
-                            session['latitude'] = gir['latitude']
+                            if gir is not None:
+                                session['location'] = gir['country_code']
+                                session['region'] = get_str(gir['region'])
+                                session['city'] = get_str(gir['city'])
+                                session['country'] = gir['country_name']
+                                session['longitude'] = gir['longitude']
+                                session['latitude'] = gir['latitude']
                         elif geoip_version == 2:
                             gir = gi.city(str(session['remote_ip']))
                             session['location'] = gir.country.iso_code
@@ -403,6 +419,8 @@ class OpenvpnMgmtInterface(object):
                             session['country'] = gir.country.name
                             session['longitude'] = gir.location.longitude
                             session['latitude'] = gir.location.latitude
+                    except AddressNotFoundError:
+                        pass
                     except SystemError:
                         pass
                 local_ipv4 = parts.popleft()
@@ -698,7 +716,7 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(session['local_ip']))
         output('<td>{0!s}</td>'.format(session['remote_ip']))
 
-        if 'location' in session:
+        if 'location' in session and session['location'] is not None:
             if session['location'] == 'RFC1918':
                 output('<td>RFC1918</td>')
             else:
