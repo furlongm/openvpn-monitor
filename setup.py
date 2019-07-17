@@ -42,6 +42,7 @@ setup(
     py_modules=['openvpn-monitor', ],
     install_requires=install_requires,
     long_description=long_description,
+    long_description_content_type='text/markdown',
     data_files=data_files,
     classifiers=[
         'Development Status :: 4 - Beta',
