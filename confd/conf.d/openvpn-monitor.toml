@@ -1,0 +1,6 @@
+[template]
+src = "openvpn-monitor.conf.tmpl"
+dest = "/openvpn-monitor/openvpn-monitor.conf"
+keys = [
+  "/openvpnmonitor"
+]

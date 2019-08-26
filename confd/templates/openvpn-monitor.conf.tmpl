@@ -1,0 +1,27 @@
+[OpenVPN-Monitor]
+{{- range $i := ls "/openvpnmonitor/default" }}
+{{- if eq $i "datetimeformat" }}
+datetime_format={{ replace (getv (printf "/openvpnmonitor/default/%s" $i)) "%%" "%" -1 -}}
+{{else}}
+{{$i}}={{ getv (printf "/openvpnmonitor/default/%s" $i) -}}
+{{end -}}
+{{end}}
+geoip_data=/usr/share/GeoIP/GeoIPCity.dat
+{{ if not (exists "/openvpnmonitor/default/datetimeformat") -}}
+datetime_format=%d/%m/%Y %H:%M:%S
+{{end}}
+
+{{- range $i := ls "/openvpnmonitor/sites" -}}
+{{if not (exists (printf "/openvpnmonitor/sites/%s/alias" $i)) }}
+[Site {{$i}}]
+{{ end -}}
+{{- range $foo := ls (printf "/openvpnmonitor/sites/%s" $i) }}
+{{- if eq $foo "alias" }}
+[{{ getv (printf "/openvpnmonitor/sites/%s/%s" $i $foo) }}]
+{{else -}}
+{{if exists (printf "/openvpnmonitor/sites/%s/%s" $i $foo) }}
+{{- $foo }}={{- getv (printf "/openvpnmonitor/sites/%s/%s" $i $foo) -}}
+{{end}}
+{{ end -}}
+{{end -}}
+{{end -}}
