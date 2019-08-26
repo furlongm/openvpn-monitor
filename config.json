@@ -1,0 +1,30 @@
+{
+  "name": "Openvpn Monitor",
+  "version": "0.0.1",
+  "slug": "openvpn_monitor",
+  "description": "OpenVPN Monitor is a web-based utility that displays the status of OpenVPN servers. It includes information such as the usernames/hostnames connected, remote and VPN IP addresses, approximate locations (using GeoIP), traffic consumption and more.",
+  "arch": ["armhf", "armv7", "aarch64", "amd64", "i386"],
+  "startup": "system",
+  "boot": "auto",
+  "options": {},
+  "environment": {
+	"OPENVPNMONITOR_DEFAULT_DATETIMEFORMAT":"%%d/%%m/%%Y",
+	"OPENVPNMONITOR_DEFAULT_LATITUDE": "-37",
+	"OPENVPNMONITOR_DEFAULT_LOGO":"logo.jpg",
+	"OPENVPNMONITOR_DEFAULT_LONGITUDE":"144",
+	"OPENVPNMONITOR_DEFAULT_MAPS":true,
+	"OPENVPNMONITOR_DEFAULT_SITE":"Test",
+	"OPENVPNMONITOR_SITES_0_ALIAS":"UDP",
+	"OPENVPNMONITOR_SITES_0_HOST":"openvpn-udp",
+	"OPENVPNMONITOR_SITES_0_NAME":"5555",
+	"OPENVPNMONITOR_SITES_1_ALIAS":"TCP",
+	"OPENVPNMONITOR_SITES_1_HOST":"openvpn-udp",
+	"OPENVPNMONITOR_SITES_1_NAME":"TCP",
+	"OPENVPNMONITOR_SITES_1_PORT":"5555"
+  },
+  "schema": {},
+  "ports": {
+	"80/tcp": 80
+	},
+  "privileged": ["NET_ADMIN"]
+}
