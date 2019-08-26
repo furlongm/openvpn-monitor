@@ -7,19 +7,9 @@ RUN apk add --no-cache --virtual .build-dependencies gcc linux-headers geoip-dev
   && pip install gunicorn
 
 RUN mkdir /openvpn-monitor 
-
 COPY . /openvpn-monitor
-
 RUN pip install /openvpn-monitor 
-
 RUN apk del .build-dependencies
-
-RUN mkdir -p /usr/share/GeoIP/ \
-  && cd /usr/share/GeoIP/ \
-  && wget https://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz \
-  && gunzip GeoLite2-City.tar.gz \
-  && mv GeoLiteCity.dat GeoIPCity.dat
-
 RUN apk add --no-cache geoip
 
 COPY confd /etc/confd
