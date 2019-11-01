@@ -169,7 +169,7 @@ Add the following line to your OpenVPN server configuration to run the
 management console on 127.0.0.1 port 5555:
 
 ```
-management 127.0.0.1 5555
+management 127.0.0.1 5555 /etc/openvpn/secret
 ```
 
 Refer to the OpenVPN documentation for further information on how to secure
