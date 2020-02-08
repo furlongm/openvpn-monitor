@@ -759,14 +759,14 @@ class OpenvpnHtmlPrinter(object):
 
     def print_session_table(self, vpn_id, vpn_mode, sessions, show_disconnect):
         for key, session in list(sessions.items()):
-            output('<tr>')
             if vpn_mode == 'Client':
+                output('<tr>')
                 self.print_client_session(session)
-            elif vpn_mode == 'Server':
-                if not session['local_ip']:
-                    continue
+                output('</tr>')
+            elif vpn_mode == 'Server' and session['local_ip']:
+                output('<tr>')
                 self.print_server_session(vpn_id, session, show_disconnect)
-            output('</tr>')
+                output('</tr>')
 
     def print_maps_html(self):
         output('<div class="panel panel-info"><div class="panel-heading">')
