@@ -178,12 +178,24 @@ access to the management interface.
 
 ### Configure openvpn-monitor
 
-Copy the example configuration file `openvpn-monitor.conf.example` to the same
+You can copy the example configuration file `openvpn-monitor.conf.example` to the same
 directory as openvpn-monitor.py.
 
 ```shell
 cp openvpn-monitor.conf.example openvpn-monitor.conf
 
+```
+
+Alternatively, you can use the environment variable OM_CONFIG_FILE to pass the 
+configuration file name to openvpn-monitor.py.
+
+```shell
+export OM_CONFIG_FILE=/opt/openvpn-monitor/openvpn-monitor.conf
+python openvpn-monitor.py
+```
+or
+```shell
+gunicorn openvpn-monitor -b 0.0.0.0:80 -e OM_CONFIG_FILE=/etc/openvpn-monitor.conf
 ```
 
 In this file you can set site name, add a logo, set the default map location
