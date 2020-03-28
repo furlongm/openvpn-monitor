@@ -107,7 +107,8 @@ class ConfigLoader(object):
         config = configparser.RawConfigParser()
         contents = config.read(config_file)
 
-        if not contents and config_file == './{0!s}'.format(OM_CONFIG_FILENAME):
+        if not contents and config_file == \
+                './{0!s}'.format(OM_CONFIG_FILENAME):
             warning('Config file does not exist or is unreadable: {0!s}'.format(config_file))
             if sys.prefix == '/usr':
                 conf_path = '/etc/'
