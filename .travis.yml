@@ -1,7 +1,7 @@
 language: python
 python:
   - "2.7"
-  - "3.4"
+  - "3.6"
 addons:
  apt:
    packages:
@@ -17,4 +17,5 @@ script:
 env:
   - TOXENV=py27-flake8
   - TOXENV=py27
-  - TOXENV=py34
+  - TOXENV=py36-flake8
+  - TOXENV=py36
