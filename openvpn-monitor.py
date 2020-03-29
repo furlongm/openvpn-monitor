@@ -546,7 +546,7 @@ class OpenvpnHtmlPrinter(object):
         output('<script src="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.30.6/js/parsers/parser-network.min.js" integrity="sha256-oQTnMXEL+HMou3Kn2ep3VPFg661GGqkB59Tpbo4kBMc=" crossorigin="anonymous"></script>')     # noqa
         output('<script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha256-U5ZEeKfGNOja007MMD3YBI0A3OSZOQbeG6z2f2Y0hu8=" crossorigin="anonymous"></script>')                    # noqa
         output('<script>$(document).ready(function(){')
-        output('$("table.tablesorter").tablesorter({theme:"bootstrap", headerTemplate:"{content} {icon}", widgets:["uitheme"]});')
+        output('$("table.tablesorter").tablesorter({sortList: [[0,0]], theme:"bootstrap", headerTemplate:"{content} {icon}", widgets:["uitheme"]});')
         output('});</script>')
         if self.maps:
             output('<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/leaflet.js" integrity="sha256-CNm+7c26DTTCGRQkM9vp7aP85kHFMqs9MhPEuytF+fQ=" crossorigin="anonymous"></script>')                             # noqa
