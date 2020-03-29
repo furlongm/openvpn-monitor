@@ -717,21 +717,23 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(session['remote_ip']))
 
         if 'location' in session and session['location'] is not None:
+            flag = 'images/flags/{0!s}.png'.format(session['location'].lower())
+            if 'country' in session and session['country'] is not None:
+                country = session['country']
+                full_location = country
+            if 'region' in session and session['region'] is not None:
+                region = session['region']
+                full_location = '{0!s}, {1!s}'.format(region, full_location)
+            if 'city' in session and session['city'] is not None:
+                city = session['city']
+                full_location = '{0!s}, {1!s}'.format(city, full_location)
             if session['location'] == 'RFC1918':
-                output('<td>RFC1918</td>')
-            else:
-                flag = 'images/flags/{0!s}.png'.format(session['location'].lower())
-                if 'country' in session and session['country'] is not None:
-                    country = session['country']
-                    full_location = country
-                if 'region' in session and session['region'] is not None:
-                    region = session['region']
-                    full_location = '{0!s}, {1!s}'.format(region, full_location)
-                if 'city' in session and session['city'] is not None:
-                    city = session['city']
-                    full_location = '{0!s}, {1!s}'.format(city, full_location)
-                output('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, full_location))
-                output('{0!s}</td>'.format(full_location))
+                city = 'RFC1918'
+                country = 'Internet'
+                full_location = '{0!s}, {1!s}'.format(city, country)
+                flag = 'images/flags/rfc.png'
+            output('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, full_location))
+            output('{0!s}</td>'.format(full_location))
         else:
             output('<td>Unknown</td>')
 
