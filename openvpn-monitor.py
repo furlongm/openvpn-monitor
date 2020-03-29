@@ -72,7 +72,6 @@ def output(s):
 def info(*objs):
     print("INFO:", *objs, file=sys.stderr)
 
-
 def warning(*objs):
     print("WARNING:", *objs, file=sys.stderr)
 
@@ -470,8 +469,8 @@ class OpenvpnMgmtInterface(object):
 
 class OpenvpnHtmlPrinter(object):
 
-    def __init__(self, cfg, monitor):
-        self.init_vars(cfg.settings, monitor)
+    def __init__(self, cfg, monitor, script_name):
+        self.init_vars(cfg.settings, monitor, script_name)
         self.print_html_header()
         for key, vpn in self.vpns:
             if vpn['socket_connected']:
@@ -482,7 +481,9 @@ class OpenvpnHtmlPrinter(object):
             self.print_maps_html()
             self.print_html_footer()
 
-    def init_vars(self, settings, monitor):
+    def init_vars(self, settings, monitor, script_name):
+
+        self.script_name = script_name
 
         self.vpns = list(monitor.vpns.items())
 
@@ -588,7 +589,7 @@ class OpenvpnHtmlPrinter(object):
         if self.logo:
             output('<a href="#" class="pull-right"><img alt="Logo" ')
             output('style="max-height:46px; padding-top:3px;" ')
-            output('src="images/{0!s}"></a>'.format(self.logo))
+            output('src="{0}images/{1!s}"></a>'.format(self.script_name, self.logo))
 
         output('</div></div></nav>')
         output('<div class="container-fluid">')
@@ -720,7 +721,7 @@ class OpenvpnHtmlPrinter(object):
             if session['location'] == 'RFC1918':
                 output('<td>RFC1918</td>')
             else:
-                flag = 'images/flags/{0!s}.png'.format(session['location'].lower())
+                flag = '{0}images/flags/{1!s}.png'.format(self.script_name, session['location'].lower())
                 if 'country' in session and session['country'] is not None:
                     country = session['country']
                     full_location = country
@@ -826,7 +827,7 @@ class OpenvpnHtmlPrinter(object):
 def main(**kwargs):
     cfg = ConfigLoader(args.config)
     monitor = OpenvpnMgmtInterface(cfg, **kwargs)
-    OpenvpnHtmlPrinter(cfg, monitor)
+    OpenvpnHtmlPrinter(cfg, monitor, kwargs['script_name'])
     if args.debug:
         pretty_vpns = pformat((dict(monitor.vpns)))
         debug("=== begin vpns\n{0!s}\n=== end vpns".format(pretty_vpns))
@@ -876,15 +877,17 @@ def monitor_wsgi():
 
     @app.route('/', method='GET')
     def get_slash():
-        return render()
+        script_name = request.script_name
+        return render(script_name=script_name)
 
     @app.route('/', method='POST')
     def post_slash():
+        script_name = request.script_name
         vpn_id = request.forms.get('vpn_id')
         ip = request.forms.get('ip')
         port = request.forms.get('port')
         client_id = request.forms.get('client_id')
-        return render(vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
+        return render(script_name=script_name, vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
 
     @app.route('/<filename:re:.*\.(jpg|png)>', method='GET')
     def get_images(filename):
