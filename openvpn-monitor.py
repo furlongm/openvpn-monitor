@@ -56,9 +56,9 @@ from collections import OrderedDict, deque
 from pprint import pformat
 from semantic_version import Version as semver
 
-OM_CONFIG_FILENAME = 'openvpn-monitor.conf'
-OM_CONFIG_FILE_TO_LOAD = os.environ.get('OM_CONFIG_FILE',
-                                        './{0!s}'.format(OM_CONFIG_FILENAME))
+DEFAULT_CONFIG_FILENAME = 'openvpn-monitor.conf'
+CONFIG_FILE_TO_LOAD = os.environ.get('OM_CONFIG_FILE',
+                                     './{0!s}'.format(DEFAULT_CONFIG_FILENAME))
 
 if sys.version_info[0] == 2:
     reload(sys) # noqa
@@ -108,13 +108,13 @@ class ConfigLoader(object):
         contents = config.read(config_file)
 
         if not contents and config_file == \
-                './{0!s}'.format(OM_CONFIG_FILENAME):
+                './{0!s}'.format(DEFAULT_CONFIG_FILENAME):
             warning('Config file does not exist or is unreadable: {0!s}'.format(config_file))
             if sys.prefix == '/usr':
                 conf_path = '/etc/'
             else:
                 conf_path = sys.prefix + '/etc/'
-            config_file = conf_path + OM_CONFIG_FILENAME
+            config_file = conf_path + DEFAULT_CONFIG_FILENAME
             contents = config.read(config_file)
 
         if contents:
@@ -844,7 +844,7 @@ def get_args():
                         required=False, default=False,
                         help='Run in debug mode')
     parser.add_argument('-c', '--config', type=str,
-                        required=False, default=OM_CONFIG_FILE_TO_LOAD,
+                        required=False, default=CONFIG_FILE_TO_LOAD,
                         help='Path to config file openvpn-monitor.conf')
     return parser.parse_args()
 
@@ -908,7 +908,7 @@ if __name__.startswith('_mod_wsgi_') or \
 
     class args(object):
         debug = False
-        config = OM_CONFIG_FILE_TO_LOAD
+        config = CONFIG_FILE_TO_LOAD
 
     wsgi = True
     wsgi_output = ''
