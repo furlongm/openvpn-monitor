@@ -57,7 +57,7 @@ from pprint import pformat
 from semantic_version import Version as semver
 
 OM_CONFIG_FILENAME = 'openvpn-monitor.conf'
-OM_CONFIG_FILE_TO_LOAD = os.environ.get('OM_CONFIG_FILE_TO_LOAD',
+OM_CONFIG_FILE_TO_LOAD = os.environ.get('OM_CONFIG_FILE',
                                         './{0!s}'.format(OM_CONFIG_FILENAME))
 
 if sys.version_info[0] == 2:
