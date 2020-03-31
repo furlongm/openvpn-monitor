@@ -45,11 +45,12 @@ try:
 except ImportError:
     geoip2_available = False
 
-import socket
-import re
 import argparse
-import sys
 import os
+import re
+import socket
+import string
+import sys
 from datetime import datetime
 from humanize import naturalsize
 from collections import OrderedDict, deque
@@ -448,9 +449,22 @@ class OpenvpnMgmtInterface(object):
 
             if routes_section:
                 local_ip = parts[1]
-                last_seen = parts[5]
+                remote_ip = parts[3]
+                last_seen = get_date(parts[5], uts=True)
                 if local_ip in sessions:
-                    sessions[local_ip]['last_seen'] = get_date(last_seen, uts=True)
+                    sessions[local_ip]['last_seen'] = last_seen
+                elif self.is_mac_address(local_ip):
+                    matching_local_ips = [sessions[s]['local_ip']
+                                          for s in sessions if remote_ip ==
+                                          self.get_remote_address(sessions[s]['remote_ip'], sessions[s]['port'])]
+                    if len(matching_local_ips) == 1:
+                        local_ip = '{0!s}'.format(matching_local_ips[0])
+                        if 'last_seen' in sessions[local_ip]:
+                            prev_last_seen = sessions[local_ip]['last_seen']
+                            if prev_last_seen < last_seen:
+                                sessions[local_ip]['last_seen'] = last_seen
+                        else:
+                            sessions[local_ip]['last_seen'] = last_seen
 
         if args.debug:
             if sessions:
@@ -466,6 +480,19 @@ class OpenvpnMgmtInterface(object):
         for line in data.splitlines():
             if line.startswith('OpenVPN'):
                 return line.replace('OpenVPN Version: ', '')
+
+    @staticmethod
+    def is_mac_address(s):
+        return len(s) == 17 and \
+            len(s.split(':')) == 6 and \
+            all(c in string.hexdigits for c in s.replace(':', ''))
+
+    @staticmethod
+    def get_remote_address(ip, port):
+        if port:
+            return '{0!s}:{1!s}'.format(ip, port)
+        else:
+            return '{0!s}'.format(ip)
 
 
 class OpenvpnHtmlPrinter(object):
@@ -745,7 +772,7 @@ class OpenvpnHtmlPrinter(object):
             output('<td>{0!s}</td>'.format(
                 session['last_seen'].strftime(self.datetime_format)))
         else:
-            output('<td>ERROR</td>')
+            output('<td>Unknown</td>')
         output('<td>{0!s}</td>'.format(total_time))
         if show_disconnect:
             output('<td><form method="post">')
