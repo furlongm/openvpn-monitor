@@ -28,9 +28,8 @@ except ImportError:
 
 try:
     from ipaddr import IPAddress as ip_address
-    from ipaddr import IPv6Address
 except ImportError:
-    from ipaddress import ip_address, IPv6Address
+    from ipaddress import ip_address
 
 try:
     import GeoIP as geoip1
@@ -389,11 +388,7 @@ class OpenvpnMgmtInterface(object):
                     remote = remote_str
                     port = None
                 remote_ip = ip_address(remote)
-                if isinstance(remote_ip, IPv6Address) and \
-                        remote_ip.ipv4_mapped is not None:
-                    session['remote_ip'] = remote_ip.ipv4_mapped
-                else:
-                    session['remote_ip'] = remote_ip
+                session['remote_ip'] = remote_ip
                 if port:
                     session['port'] = int(port)
                 else:
@@ -428,7 +423,7 @@ class OpenvpnMgmtInterface(object):
                     session['local_ip'] = ip_address(local_ipv4)
                 else:
                     session['local_ip'] = ''
-                if version.major == 2 and version.minor >= 4:
+                if version.major >= 2 and version.minor >= 4:
                     local_ipv6 = parts.popleft()
                     if local_ipv6:
                         session['local_ip'] = ip_address(local_ipv6)
