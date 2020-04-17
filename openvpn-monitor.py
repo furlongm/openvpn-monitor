@@ -795,7 +795,7 @@ class OpenvpnHtmlPrinter(object):
     def print_maps_html(self):
         output('<div class="panel panel-info"><div class="panel-heading">')
         output('<h3 class="panel-title">Map View</h3></div><div class="panel-body">')
-        output('<div id="map_canvas" style="height:500px"></div>')
+        output('<div id="map_canvas" style="height:800px"></div>')
         output('<script type="text/javascript">')
         output('var map = L.map("map_canvas", { fullscreenControl: true, '
                'fullscreenControlOptions: { position: "topleft" }  });')
