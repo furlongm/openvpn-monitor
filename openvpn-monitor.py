@@ -404,7 +404,6 @@ class OpenvpnMgmtInterface(object):
                             gir = gi.record_by_addr(str(session['remote_ip']))
                             if gir is not None:
                                 session['location'] = gir['country_code']
-                                session['region'] = get_str(gir['region'])
                                 session['city'] = get_str(gir['city'])
                                 session['country'] = gir['country_name']
                                 session['longitude'] = gir['longitude']
@@ -412,7 +411,6 @@ class OpenvpnMgmtInterface(object):
                         elif geoip_version == 2:
                             gir = gi.city(str(session['remote_ip']))
                             session['location'] = gir.country.iso_code
-                            session['region'] = gir.subdivisions.most_specific.iso_code
                             session['city'] = gir.city.name
                             session['country'] = gir.country.name
                             session['longitude'] = gir.location.longitude
@@ -745,9 +743,6 @@ class OpenvpnHtmlPrinter(object):
             if 'country' in session and session['country'] is not None:
                 country = session['country']
                 full_location = country
-            if 'region' in session and session['region'] is not None:
-                region = session['region']
-                full_location = '{0!s}, {1!s}'.format(region, full_location)
             if 'city' in session and session['city'] is not None:
                 city = session['city']
                 full_location = '{0!s}, {1!s}'.format(city, full_location)
