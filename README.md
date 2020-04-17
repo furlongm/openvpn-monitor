@@ -178,11 +178,11 @@ access to the management interface.
 
 ### Configure openvpn-monitor
 
-Copy the example configuration file `openvpn-monitor.conf.example` to the same
+Copy the example configuration file `openvpn-monitor.conf` to the same
 directory as openvpn-monitor.py.
 
 ```shell
-cp openvpn-monitor.conf.example openvpn-monitor.conf
+cp openvpn-monitor.conf /path/to/destination
 
 ```
 
