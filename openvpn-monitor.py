@@ -566,9 +566,13 @@ class OpenvpnHtmlPrinter(object):
         output('<script src="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/jquery.tablesorter.min.js" integrity="sha256-dtGH1XcAyKopMui5x20KnPxuGuSx9Rs6piJB/4Oqu6I=" crossorigin="anonymous"></script>')         # noqa
         output('<script src="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/jquery.tablesorter.widgets.min.js" integrity="sha256-GxbszpUzg+iYIcyDGyNVLz9Y0dQvzmQgXXVk5cHJbw0=" crossorigin="anonymous"></script>') # noqa
         output('<script src="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/parsers/parser-network.min.js" integrity="sha256-rV5r5lDTGqNm0Nw6Q/uRKvlco8igIg2PSo3daI1vykA=" crossorigin="anonymous"></script>')     # noqa
-        output('<script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script>')              # noqa
+        output('<script src="//cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.31.3/js/parsers/parser-duration.min.js" integrity="sha256-2S5Bce79Ixl5XxjV4ppO7JN8GVi19fMxXZfw1lHS+3Y=" crossorigin="anonymous"></script>')    # noqa
+        output('<script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js" integrity="sha256-nuL8/2cJ5NDSSwnKD8VqreErSWHtnEP9E7AySL+1ev4=" crossorigin="anonymous"></script>')                    # noqa
         output('<script>$(document).ready(function(){')
-        output('$("table.tablesorter").tablesorter({sortList: [[0,0]], theme:"bootstrap", headerTemplate:"{content} {icon}", widgets:["uitheme"]});')
+        output('$("table.tablesorter").tablesorter({')
+        output('sortList: [[0,0]], theme:"bootstrap", headerTemplate:"{content} {icon}", widgets:["uitheme"],')
+        output('durationLabels : "(?:years|year|y),(?:days|day|d),(?:hours|hour|h),(?:minutes|minute|min|m),(?:seconds|second|sec|s)"')
+        output('});')
         output('});</script>')
         if self.maps:
             output('<script src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.6.0/leaflet.js" integrity="sha256-fNoRrwkP2GuYPbNSJmMJOCyfRB2DhPQe0rGTgzRsyso=" crossorigin="anonymous"></script>')                             # noqa
@@ -637,7 +641,10 @@ class OpenvpnHtmlPrinter(object):
         output('tablesorter tablesorter-bootstrap">')
         output('<thead><tr>')
         for header in headers:
-            output('<th>{0!s}</th>'.format(header))
+            if header == 'Time Online':
+                output('<th class="sorter-duration">{0!s}</th>'.format(header))
+            else:
+                output('<th>{0!s}</th>'.format(header))
         output('</tr></thead><tbody>')
 
     @staticmethod
