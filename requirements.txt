@@ -1,4 +1,4 @@
-geoip2==2.9.0
+geoip2==4.0.2
 humanize==0.5.1
 ipaddr==2.2.0; python_version <= '2.7'
 six==1.12.0
