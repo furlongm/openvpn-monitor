@@ -751,7 +751,7 @@ class OpenvpnHtmlPrinter(object):
             if 'city' in session and session['city'] is not None:
                 city = session['city']
                 full_location = '{0!s}, {1!s}'.format(city, full_location)
-            if session['location'] == 'RFC1918' or session['location'] == 'loopback':
+            if session['location'] in ['RFC1918', 'loopback']:
                 if session['location'] == 'RFC1918':
                     city = 'RFC1918'
                 elif session['location'] == 'loopback':
