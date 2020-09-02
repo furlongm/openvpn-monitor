@@ -521,6 +521,10 @@ class OpenvpnHtmlPrinter(object):
         self.maps = False
         if 'maps' in settings and settings['maps'] == 'True':
             self.maps = True
+            if 'maps_height' in settings:
+                self.maps_height = settings['maps_height']
+            else:
+                self.maps_height = 500
 
         self.latitude = 40.72
         self.longitude = -74
@@ -800,7 +804,7 @@ class OpenvpnHtmlPrinter(object):
     def print_maps_html(self):
         output('<div class="panel panel-info"><div class="panel-heading">')
         output('<h3 class="panel-title">Map View</h3></div><div class="panel-body">')
-        output('<div id="map_canvas" style="height:800px"></div>')
+        output('<div id="map_canvas" style="height:{0!s}px"></div>'.format(self.maps_height))
         output('<script type="text/javascript">')
         output('var map = L.map("map_canvas", { fullscreenControl: true, '
                'fullscreenControlOptions: { position: "topleft" }  });')

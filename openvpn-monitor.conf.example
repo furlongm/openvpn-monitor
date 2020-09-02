@@ -4,6 +4,7 @@ site=Example
 #latitude=40.72
 #longitude=-74
 maps=True
+maps_height=500
 geoip_data=/var/lib/GeoIP/GeoLite2-City.mmdb
 datetime_format=%d/%m/%Y %H:%M:%S
 
