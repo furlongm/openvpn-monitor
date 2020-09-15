@@ -180,7 +180,7 @@ class OpenvpnMgmtInterface(object):
             vpn = self.vpns[kwargs['vpn_id']]
             self._socket_connect(vpn)
             if vpn['socket_connected']:
-                release = self.send_command('version\n')
+                release = self.send_command(vpn, 'version\n')
                 version = semver(self.parse_version(release).split(' ')[1])
                 if version.major == 2 and \
                         version.minor >= 4 and \
@@ -188,8 +188,8 @@ class OpenvpnMgmtInterface(object):
                     command = 'client-kill {0!s}\n'.format(kwargs['client_id'])
                 else:
                     command = 'kill {0!s}:{1!s}\n'.format(kwargs['ip'], kwargs['port'])
-                self.send_command(command)
-                self._socket_disconnect()
+                self.send_command(vpn, command)
+                self._socket_disconnect(vpn)
 
         geoip_data = cfg.settings['geoip_data']
         self.geoip_version = None
@@ -210,30 +210,46 @@ class OpenvpnMgmtInterface(object):
             self._socket_connect(vpn)
             if vpn['socket_connected']:
                 self.collect_data(vpn)
-                self._socket_disconnect()
+                self._socket_disconnect(vpn)
 
     def collect_data(self, vpn):
-        ver = self.send_command('version\n')
+        ver = self.send_command(vpn, 'version\n')
         vpn['release'] = self.parse_version(ver)
         vpn['version'] = semver(vpn['release'].split(' ')[1])
-        state = self.send_command('state\n')
+        state = self.send_command(vpn, 'state\n')
         vpn['state'] = self.parse_state(state)
-        stats = self.send_command('load-stats\n')
+        stats = self.send_command(vpn, 'load-stats\n')
         vpn['stats'] = self.parse_stats(stats)
-        status = self.send_command('status 3\n')
+        status = self.send_command(vpn, 'status 3\n')
         vpn['sessions'] = self.parse_status(status, vpn['version'])
 
-    def _socket_send(self, command):
-        if sys.version_info[0] == 2:
-            self.s.send(command)
-        else:
-            self.s.send(bytes(command, 'utf-8'))
+    def _socket_send(self, vpn, command):
+        try:
+            if sys.version_info[0] == 2:
+                self.s.send(command)
+            else:
+                self.s.send(bytes(command, 'utf-8'))
+        except socket.timeout as e:
+            vpn['error'] = '{0!s}'.format(e)
+            warning('socket timeout: {0!s}'.format(e))
+            vpn['socket_connected'] = False
+            if self.s:
+                self.s.shutdown(socket.SHUT_RDWR)
+                self.s.close()
 
-    def _socket_recv(self, length):
-        if sys.version_info[0] == 2:
-            return self.s.recv(length)
-        else:
-            return self.s.recv(length).decode('utf-8')
+    def _socket_recv(self, vpn, length=1024):
+        try:
+            if sys.version_info[0] == 2:
+                return self.s.recv(length)
+            else:
+                return self.s.recv(length).decode('utf-8')
+        except socket.timeout as e:
+            vpn['error'] = '{0!s}'.format(e)
+            warning('socket timeout: {0!s}'.format(e))
+            vpn['socket_connected'] = False
+            if self.s:
+                self.s.shutdown(socket.SHUT_RDWR)
+                self.s.close()
 
     def _socket_connect(self, vpn):
         timeout = 3
@@ -264,19 +280,19 @@ class OpenvpnMgmtInterface(object):
             warning('unexpected error: {0!s}'.format(e))
             vpn['socket_connected'] = False
 
-    def _socket_disconnect(self):
-        self._socket_send('quit\n')
+    def _socket_disconnect(self, vpn):
+        self._socket_send(vpn, 'quit\n')
         self.s.shutdown(socket.SHUT_RDWR)
         self.s.close()
 
-    def send_command(self, command):
+    def send_command(self, vpn, command):
         info('Sending command: {0!s}'.format(command))
-        self._socket_send(command)
+        self._socket_send(vpn, command)
         data = ''
         if command.startswith('kill') or command.startswith('client-kill'):
             return
         while 1:
-            socket_data = self._socket_recv(1024)
+            socket_data = self._socket_recv(vpn)
             socket_data = re.sub('>INFO(.)*\r\n', '', socket_data)
             data += socket_data
             if command == 'load-stats\n' and data != '':
