@@ -2,5 +2,5 @@ geoip2==2.9.0
 humanize==0.5.1
 ipaddr==2.2.0; python_version <= '2.7'
 six==1.12.0
-bottle==0.12.17
+bottle==0.12.19
 semantic_version==2.6.0
