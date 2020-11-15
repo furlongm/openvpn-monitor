@@ -184,7 +184,7 @@ class OpenvpnMgmtInterface(object):
                 version = semver(self.parse_version(release).split(' ')[1])
                 if version.major == 2 and \
                         version.minor >= 4 and \
-                        'port' not in kwargs:
+                        'client_id' in kwargs:
                     command = 'client-kill {0!s}\n'.format(kwargs['client_id'])
                 else:
                     command = 'kill {0!s}:{1!s}\n'.format(kwargs['ip'], kwargs['port'])
