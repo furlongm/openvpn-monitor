@@ -207,7 +207,7 @@ class OpenvpnMgmtInterface(object):
         except IOError:
             warning('No compatible geoip1 or geoip2 data/libraries found.')
 
-        for key, vpn in list(self.vpns.items()):
+        for _, vpn in list(self.vpns.items()):
             self._socket_connect(vpn)
             if vpn['socket_connected']:
                 self.collect_data(vpn)
@@ -589,7 +589,7 @@ class OpenvpnHtmlPrinter(object):
         output('<span class="caret"></span></a>')
         output('<ul class="dropdown-menu">')
 
-        for key, vpn in self.vpns:
+        for _, vpn in self.vpns:
             if vpn['name']:
                 anchor = vpn['name'].lower().replace(' ', '_')
                 output('<li><a href="#{0!s}">{1!s}</a></li>'.format(anchor, vpn['name']))
@@ -781,7 +781,7 @@ class OpenvpnHtmlPrinter(object):
             output('Disconnect</button></form></td>')
 
     def print_session_table(self, vpn_id, vpn_mode, sessions, show_disconnect):
-        for key, session in list(sessions.items()):
+        for _, session in list(sessions.items()):
             if vpn_mode == 'Client':
                 output('<tr>')
                 self.print_client_session(session)
@@ -818,10 +818,10 @@ class OpenvpnHtmlPrinter(object):
         output('oms.addListener("spiderfy", function(markers) {')
         output('   map.closePopup();')
         output('});')
-        for vkey, vpn in self.vpns:
+        for _, vpn in self.vpns:
             if vpn.get('sessions'):
                 output('bounds.extend(centre);')
-                for skey, session in list(vpn['sessions'].items()):
+                for _, session in list(vpn['sessions'].items()):
                     if not session.get('local_ip'):
                         continue
                     if session.get('latitude') and session.get('longitude'):
