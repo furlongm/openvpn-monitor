@@ -95,6 +95,10 @@ def get_str(s):
         return s
 
 
+def is_truthy(s):
+    return s in ['True', 'true', 'Yes', 'yes', True]
+
+
 class ConfigLoader(object):
 
     def __init__(self, config_file):
@@ -163,10 +167,7 @@ class ConfigLoader(object):
             except configparser.Error as e:
                 warning('CONFIG: {0!s} on option {1!s}: '.format(e, option))
                 vpn[option] = None
-        if 'show_disconnect' in vpn and vpn['show_disconnect'] == 'True':
-            vpn['show_disconnect'] = True
-        else:
-            vpn['show_disconnect'] = False
+        vpn['show_disconnect'] = is_truthy(vpn.get('show_disconnect', False))
         if args.debug:
             debug("=== begin section\n{0!s}\n=== end section".format(vpn))
 
@@ -176,7 +177,7 @@ class OpenvpnMgmtInterface(object):
     def __init__(self, cfg, **kwargs):
         self.vpns = cfg.vpns
 
-        if 'vpn_id' in kwargs:
+        if kwargs.get('vpn_id'):
             vpn = self.vpns[kwargs['vpn_id']]
             self._socket_connect(vpn)
             if vpn['socket_connected']:
@@ -184,7 +185,7 @@ class OpenvpnMgmtInterface(object):
                 version = semver(self.parse_version(release).split(' ')[1])
                 if version.major == 2 and \
                         version.minor >= 4 and \
-                        'client_id' in kwargs:
+                        kwargs.get('client_id'):
                     command = 'client-kill {0!s}\n'.format(kwargs['client_id'])
                 else:
                     command = 'kill {0!s}:{1!s}\n'.format(kwargs['ip'], kwargs['port'])
@@ -239,7 +240,7 @@ class OpenvpnMgmtInterface(object):
         timeout = 3
         self.s = False
         try:
-            if 'socket' in vpn:
+            if vpn.get('socket'):
                 self.s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 self.s.connect(vpn['socket'])
             else:
@@ -448,7 +449,7 @@ class OpenvpnMgmtInterface(object):
                 local_ip = parts[1]
                 remote_ip = parts[3]
                 last_seen = get_date(parts[5], uts=True)
-                if local_ip in sessions:
+                if sessions.get(local_ip):
                     sessions[local_ip]['last_seen'] = last_seen
                 elif self.is_mac_address(local_ip):
                     matching_local_ips = [sessions[s]['local_ip']
@@ -456,7 +457,7 @@ class OpenvpnMgmtInterface(object):
                                           self.get_remote_address(sessions[s]['remote_ip'], sessions[s]['port'])]
                     if len(matching_local_ips) == 1:
                         local_ip = '{0!s}'.format(matching_local_ips[0])
-                        if 'last_seen' in sessions[local_ip]:
+                        if sessions[local_ip].get('last_seen'):
                             prev_last_seen = sessions[local_ip]['last_seen']
                             if prev_last_seen < last_seen:
                                 sessions[local_ip]['last_seen'] = last_seen
@@ -507,33 +508,15 @@ class OpenvpnHtmlPrinter(object):
             self.print_html_footer()
 
     def init_vars(self, settings, monitor):
-
         self.vpns = list(monitor.vpns.items())
-
-        self.site = 'Example'
-        if 'site' in settings:
-            self.site = settings['site']
-
-        self.logo = None
-        if 'logo' in settings:
-            self.logo = settings['logo']
-
-        self.maps = False
-        if 'maps' in settings and settings['maps'] == 'True':
-            self.maps = True
-            if 'maps_height' in settings:
-                self.maps_height = settings['maps_height']
-            else:
-                self.maps_height = 500
-
-        self.latitude = 40.72
-        self.longitude = -74
-        if 'latitude' in settings:
-            self.latitude = settings['latitude']
-        if 'longitude' in settings:
-            self.longitude = settings['longitude']
-
-        self.datetime_format = settings['datetime_format']
+        self.site = settings.get('site', 'Example')
+        self.logo = settings.get('logo')
+        self.maps = is_truthy(settings.get('maps', False))
+        if self.maps:
+            self.maps_height = settings.get('maps_height', 500)
+        self.latitude = settings.get('latitude', 40.72)
+        self.longitude = settings.get('longitude', -74)
+        self.datetime_format = settings.get('datetime_format')
 
     def print_html_header(self):
 
@@ -665,15 +648,15 @@ class OpenvpnHtmlPrinter(object):
         output('<h3 class="panel-title">{0!s}</h3></div>'.format(vpn['name']))
         output('<div class="panel-body">')
         output('Could not connect to ')
-        if 'host' in vpn and 'port' in vpn:
+        if vpn.get('host') and vpn.get('port'):
             output('{0!s}:{1!s} ({2!s})</div></div>'.format(vpn['host'],
                                                             vpn['port'],
                                                             vpn['error']))
-        elif 'socket' in vpn:
+        elif vpn.get('socket'):
             output('{0!s} ({1!s})</div></div>'.format(vpn['socket'],
                                                       vpn['error']))
         else:
-            warning('fail to get socket or network info: {}'.format(vpn))
+            warning('failed to get socket or network info: {}'.format(vpn))
             output('network or unix socket</div></div>')
 
     def print_vpn(self, vpn_id, vpn):
@@ -751,15 +734,15 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s}</td>'.format(session['local_ip']))
         output('<td>{0!s}</td>'.format(session['remote_ip']))
 
-        if 'location' in session and session['location'] is not None:
+        if session.get('location'):
             flag = 'images/flags/{0!s}.png'.format(session['location'].lower())
-            if 'country' in session and session['country'] is not None:
+            if session.get('country'):
                 country = session['country']
                 full_location = country
-            if 'region' in session and session['region'] is not None:
+            if session.get('region'):
                 region = session['region']
                 full_location = '{0!s}, {1!s}'.format(region, full_location)
-            if 'city' in session and session['city'] is not None:
+            if session.get('city'):
                 city = session['city']
                 full_location = '{0!s}, {1!s}'.format(city, full_location)
             if session['location'] in ['RFC1918', 'loopback']:
@@ -779,7 +762,7 @@ class OpenvpnHtmlPrinter(object):
         output('<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True)))
         output('<td>{0!s}</td>'.format(
             session['connected_since'].strftime(self.datetime_format)))
-        if 'last_seen' in session:
+        if session.get('last_seen'):
             output('<td>{0!s}</td>'.format(
                 session['last_seen'].strftime(self.datetime_format)))
         else:
@@ -788,10 +771,10 @@ class OpenvpnHtmlPrinter(object):
         if show_disconnect:
             output('<td><form method="post">')
             output('<input type="hidden" name="vpn_id" value="{0!s}">'.format(vpn_id))
-            if 'port' in session:
+            if session.get('port'):
                 output('<input type="hidden" name="ip" value="{0!s}">'.format(session['remote_ip']))
                 output('<input type="hidden" name="port" value="{0!s}">'.format(session['port']))
-            if 'client_id' in session:
+            if session.get('client_id'):
                 output('<input type="hidden" name="client_id" value="{0!s}">'.format(session['client_id']))
             output('<button type="submit" class="btn btn-xs btn-danger">')
             output('<span class="glyphicon glyphicon-remove"></span> ')
@@ -836,12 +819,12 @@ class OpenvpnHtmlPrinter(object):
         output('   map.closePopup();')
         output('});')
         for vkey, vpn in self.vpns:
-            if 'sessions' in vpn:
+            if vpn.get('sessions'):
                 output('bounds.extend(centre);')
                 for skey, session in list(vpn['sessions'].items()):
-                    if 'local_ip' not in session or not session['local_ip']:
+                    if not session.get('local_ip'):
                         continue
-                    if 'longitude' in session and 'latitude' in session:
+                    if session.get('latitude') and session.get('longitude'):
                         output('var latlng = new L.latLng({0!s}, {1!s});'.format(
                             session['latitude'], session['longitude']))
                         output('bounds.extend(latlng);')
