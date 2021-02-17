@@ -173,6 +173,13 @@ in /etc/openvpn/pw-file:
 management 127.0.0.1 5555 pw-file
 ```
 
+To run the management console on a socket, with the management password
+in /etc/openvpn/pw-file:
+
+```
+management socket-name unix pw-file
+```
+
 Refer to the OpenVPN documentation for further information on how to secure
 access to the management interface.
 
