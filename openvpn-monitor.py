@@ -137,6 +137,7 @@ class ConfigLoader(object):
         self.vpns['Default VPN'] = {'name': 'default',
                                     'host': 'localhost',
                                     'port': '5555',
+                                    'password': '',
                                     'show_disconnect': False}
 
     def parse_global_section(self, config):
@@ -248,6 +249,9 @@ class OpenvpnMgmtInterface(object):
                 port = int(vpn['port'])
                 self.s = socket.create_connection((host, port), timeout)
             if self.s:
+                password = vpn.get('password')
+                if password:
+                    self.wait_for_data(password=password)
                 vpn['socket_connected'] = True
         except socket.timeout as e:
             vpn['error'] = '{0!s}'.format(e)
@@ -273,13 +277,23 @@ class OpenvpnMgmtInterface(object):
     def send_command(self, command):
         info('Sending command: {0!s}'.format(command))
         self._socket_send(command)
-        data = ''
         if command.startswith('kill') or command.startswith('client-kill'):
             return
+        return self.wait_for_data(command=command)
+
+    def wait_for_data(self, password=None, command=None):
+        data = ''
         while 1:
             socket_data = self._socket_recv(1024)
             socket_data = re.sub('>INFO(.)*\r\n', '', socket_data)
             data += socket_data
+            if data.endswith('ENTER PASSWORD:'):
+                if password:
+                    self._socket_send('{0!s}\n'.format(password))
+                else:
+                    warning('password requested but no password supplied by configuration')
+            if data.endswith('SUCCESS: password is correct\r\n'):
+                break
             if command == 'load-stats\n' and data != '':
                 break
             elif data.endswith("\nEND\r\n"):
