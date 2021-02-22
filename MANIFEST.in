@@ -1,6 +1,6 @@
 include README.md
 include openvpn-monitor.py
-include openvpn-monitor.conf
+include openvpn-monitor.conf.example
 include AUTHORS
 include COPYING
 include MANIFEST.in
