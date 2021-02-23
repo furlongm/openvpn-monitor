@@ -1,0 +1,128 @@
+name: Create release, build and upload release assets
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: check-version
+        run: |
+          version=$(echo "${{ github.ref }}" | cut -d/ -f3)
+          grep ${version} VERSION.txt || exit 1
+  create-release:
+    needs: check-version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Create release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Create upload_url artifact
+        run: |
+          echo "${{ steps.create_release.outputs.upload_url }}" > upload_url.txt
+      - name: Upload upload_url artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: upload_url.txt
+          path: upload_url.txt
+  build-and-upload-deb-asset:
+    needs: create-release
+    runs-on: ubuntu-latest
+    container:
+      image: debian:buster
+    steps:
+      - name: Install build dependencies
+        run: |
+          apt update
+          export DEBIAN_FRONTEND=noninteractive
+          apt -y install python3-stdeb dh-python
+          # https://bugs.launchpad.net/bugs/1916551
+          sed -i -e "s/python-all/python3-all/g" /usr/lib/python3/dist-packages/stdeb/util.py
+      - uses: actions/checkout@v2
+      - name: Download upload_url artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: upload_url.txt
+      - name: Get upload_url
+        run: |
+          export upload_url=$(cat upload_url.txt)
+          rm upload_url.txt
+          echo "upload_url=${upload_url}" >> $GITHUB_ENV
+      - name: Build deb package
+        run: |
+          python3 setup.py --command-packages=stdeb.command bdist_deb
+      - name: Get version
+        run: echo "version=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Upload deb
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ env.upload_url }}
+          asset_name: ${{ format('python3-openvpn-monitor_{0}-1_all.deb', env.version) }}
+          asset_path: ${{ format('deb_dist/python3-openvpn-monitor_{0}-1_all.deb', env.version) }}
+          asset_content_type: application/vnd.debian.binary-package
+  build-and-upload-rpm-asset:
+    needs: create-release
+    runs-on: ubuntu-latest
+    container:
+      image: centos:8
+    steps:
+      - name: Install build dependencies
+        run: |
+          dnf -y install rpm-build python3 python3-setuptools git
+      - uses: actions/checkout@v2
+      - name: Download upload_url artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: upload_url.txt
+      - name: Get upload_url
+        run: |
+          export upload_url=$(cat upload_url.txt)
+          rm upload_url.txt
+          echo "upload_url=${upload_url}" >> $GITHUB_ENV
+      - name: Build rpm packages
+        run: |
+          python3 setup.py bdist_rpm
+      - name: Get version
+        run: echo "version=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Upload rpm
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ env.upload_url }}
+          asset_name: ${{ format('python3-openvpn-monitor-{0}-1.noarch.rpm', env.version) }}
+          asset_path: ${{ format('dist/openvpn-monitor-{0}-1.noarch.rpm', env.version) }}
+          asset_content_type: application/x-rpm
+  upload-package-to-pypi:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine
+      - name: Build and publish
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: |
+          python setup.py sdist bdist_wheel
+          twine upload dist/*

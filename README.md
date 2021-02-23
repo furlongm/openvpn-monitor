@@ -166,10 +166,18 @@ TBD
 ### Configure OpenVPN
 
 Add the following line to your OpenVPN server configuration to run the
-management console on 127.0.0.1 port 5555:
+management console on 127.0.0.1 port 5555, with the management password
+in /etc/openvpn/pw-file:
 
 ```
-management 127.0.0.1 5555
+management 127.0.0.1 5555 pw-file
+```
+
+To run the management console on a socket, with the management password
+in /etc/openvpn/pw-file:
+
+```
+management socket-name unix pw-file
 ```
 
 Refer to the OpenVPN documentation for further information on how to secure

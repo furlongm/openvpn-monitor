@@ -12,4 +12,5 @@ datetime_format=%d/%m/%Y %H:%M:%S
 host=localhost
 port=5555
 name=Staff VPN
+password=
 show_disconnect=False
