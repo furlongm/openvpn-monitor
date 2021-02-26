@@ -56,7 +56,7 @@ See [configuration](#configuration) for details on configuring openvpn-monitor.
 ##### Debian / Ubuntu
 
 ```shell
-apt-get -y install git apache2 libapache2-mod-wsgi python-geoip2 python-ipaddr python-humanize python-bottle python-semantic-version geoip-database-extra geoipupdate
+apt-get -y install git apache2 libapache2-mod-wsgi-py3 python3-geoip2 python3-ipaddr python3-humanize python3-bottle python3-semantic-version geoip-database
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
 systemctl restart apache2
