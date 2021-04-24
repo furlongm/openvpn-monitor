@@ -180,18 +180,26 @@ class OpenvpnMgmtInterface(object):
 
         if kwargs.get('vpn_id'):
             vpn = self.vpns[kwargs['vpn_id']]
-            self._socket_connect(vpn)
-            if vpn['socket_connected']:
-                release = self.send_command('version\n')
-                version = semver(self.parse_version(release).split(' ')[1])
-                if version.major == 2 and \
-                        version.minor >= 4 and \
-                        kwargs.get('client_id'):
-                    command = 'client-kill {0!s}\n'.format(kwargs['client_id'])
-                else:
-                    command = 'kill {0!s}:{1!s}\n'.format(kwargs['ip'], kwargs['port'])
-                self.send_command(command)
-                self._socket_disconnect()
+            disconnection_allowed = vpn['show_disconnect']
+            if disconnection_allowed:
+                self._socket_connect(vpn)
+                if vpn['socket_connected']:
+                    release = self.send_command('version\n')
+                    version = semver(self.parse_version(release).split(' ')[1])
+                    command = False
+                    client_id = int(kwargs.get('client_id'))
+                    if version.major == 2 and \
+                            version.minor >= 4 and \
+                            client_id:
+                        command = 'client-kill {0!s}\n'.format(client_id)
+                    else:
+                        ip = ip_address(kwargs['ip'])
+                        port = int(kwargs['port'])
+                        if ip and port:
+                            command = 'kill {0!s}:{1!s}\n'.format(ip, port)
+                    if command:
+                        self.send_command(command)
+                    self._socket_disconnect()
 
         geoip_data = cfg.settings['geoip_data']
         self.geoip_version = None
