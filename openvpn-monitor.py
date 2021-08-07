@@ -56,6 +56,9 @@ from collections import OrderedDict, deque
 from pprint import pformat
 from semantic_version import Version as semver
 
+from logging import debug, info, warning
+from management_connection import ManagementConnection
+
 if sys.version_info[0] == 2:
     reload(sys) # noqa
     sys.setdefaultencoding('utf-8')
@@ -182,24 +185,25 @@ class OpenvpnMgmtInterface(object):
             vpn = self.vpns[kwargs['vpn_id']]
             disconnection_allowed = vpn['show_disconnect']
             if disconnection_allowed:
-                self._socket_connect(vpn)
-                if vpn['socket_connected']:
-                    release = self.send_command('version\n')
+                connection = ManagementConnection(vpn)
+                connection.connect()
+                if connection.is_connected():
+                    release = connection.send_command('version')
                     version = semver(self.parse_version(release).split(' ')[1])
                     command = False
                     client_id = int(kwargs.get('client_id'))
                     if version.major == 2 and \
                             version.minor >= 4 and \
                             client_id:
-                        command = 'client-kill {0!s}\n'.format(client_id)
+                        command = 'client-kill {0!s}'.format(client_id)
                     else:
                         ip = ip_address(kwargs['ip'])
                         port = int(kwargs['port'])
                         if ip and port:
-                            command = 'kill {0!s}:{1!s}\n'.format(ip, port)
+                            command = 'kill {0!s}:{1!s}'.format(ip, port)
                     if command:
-                        self.send_command(command)
-                    self._socket_disconnect()
+                        connection.send_command(command)
+                    connection.disconnect()
 
         geoip_data = cfg.settings['geoip_data']
         self.geoip_version = None
@@ -217,98 +221,22 @@ class OpenvpnMgmtInterface(object):
             warning('No compatible geoip1 or geoip2 data/libraries found.')
 
         for _, vpn in list(self.vpns.items()):
-            self._socket_connect(vpn)
-            if vpn['socket_connected']:
-                self.collect_data(vpn)
-                self._socket_disconnect()
+            self.collect_data(vpn)
 
     def collect_data(self, vpn):
-        ver = self.send_command('version\n')
-        vpn['release'] = self.parse_version(ver)
-        vpn['version'] = semver(vpn['release'].split(' ')[1])
-        state = self.send_command('state\n')
-        vpn['state'] = self.parse_state(state)
-        stats = self.send_command('load-stats\n')
-        vpn['stats'] = self.parse_stats(stats)
-        status = self.send_command('status 3\n')
-        vpn['sessions'] = self.parse_status(status, vpn['version'])
-
-    def _socket_send(self, command):
-        if sys.version_info[0] == 2:
-            self.s.send(command)
-        else:
-            self.s.send(bytes(command, 'utf-8'))
-
-    def _socket_recv(self, length):
-        if sys.version_info[0] == 2:
-            return self.s.recv(length)
-        else:
-            return self.s.recv(length).decode('utf-8')
-
-    def _socket_connect(self, vpn):
-        timeout = 3
-        self.s = False
-        try:
-            if vpn.get('socket'):
-                self.s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                self.s.connect(vpn['socket'])
-            else:
-                host = vpn['host']
-                port = int(vpn['port'])
-                self.s = socket.create_connection((host, port), timeout)
-            if self.s:
-                password = vpn.get('password')
-                if password:
-                    self.wait_for_data(password=password)
-                vpn['socket_connected'] = True
-        except socket.timeout as e:
-            vpn['error'] = '{0!s}'.format(e)
-            warning('socket timeout: {0!s}'.format(e))
-            vpn['socket_connected'] = False
-            if self.s:
-                self.s.shutdown(socket.SHUT_RDWR)
-                self.s.close()
-        except socket.error as e:
-            vpn['error'] = '{0!s}'.format(e.strerror)
-            warning('socket error: {0!s}'.format(e))
-            vpn['socket_connected'] = False
-        except Exception as e:
-            vpn['error'] = '{0!s}'.format(e)
-            warning('unexpected error: {0!s}'.format(e))
-            vpn['socket_connected'] = False
-
-    def _socket_disconnect(self):
-        self._socket_send('quit\n')
-        self.s.shutdown(socket.SHUT_RDWR)
-        self.s.close()
-
-    def send_command(self, command):
-        info('Sending command: {0!s}'.format(command))
-        self._socket_send(command)
-        if command.startswith('kill') or command.startswith('client-kill'):
-            return
-        return self.wait_for_data(command=command)
-
-    def wait_for_data(self, password=None, command=None):
-        data = ''
-        while 1:
-            socket_data = self._socket_recv(1024)
-            socket_data = re.sub('>INFO(.)*\r\n', '', socket_data)
-            data += socket_data
-            if data.endswith('ENTER PASSWORD:'):
-                if password:
-                    self._socket_send('{0!s}\n'.format(password))
-                else:
-                    warning('password requested but no password supplied by configuration')
-            if data.endswith('SUCCESS: password is correct\r\n'):
-                break
-            if command == 'load-stats\n' and data != '':
-                break
-            elif data.endswith("\nEND\r\n"):
-                break
-        if args.debug:
-            debug("=== begin raw data\n{0!s}\n=== end raw data".format(data))
-        return data
+        connection = ManagementConnection(vpn)
+        connection.connect()
+        if connection.is_connected():
+            ver = connection.send_command('version')
+            vpn['release'] = self.parse_version(ver)
+            vpn['version'] = semver(vpn['release'].split(' ')[1])
+            state = connection.send_command('state')
+            vpn['state'] = self.parse_state(state)
+            stats = connection.send_command('load-stats')
+            vpn['stats'] = self.parse_stats(stats)
+            status = connection.send_command('status 3')
+            vpn['sessions'] = self.parse_status(status, vpn['version'])
+        connection.disconnect()
 
     @staticmethod
     def parse_state(data):
