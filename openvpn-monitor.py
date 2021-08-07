@@ -185,7 +185,7 @@ class OpenvpnMgmtInterface(object):
             vpn = self.vpns[kwargs['vpn_id']]
             disconnection_allowed = vpn['show_disconnect']
             if disconnection_allowed:
-                connection = ManagementConnection(vpn)
+                connection = ManagementConnection(vpn, args.debug)
                 connection.connect()
                 if connection.is_connected():
                     release = connection.send_command('version')
@@ -224,7 +224,7 @@ class OpenvpnMgmtInterface(object):
             self.collect_data(vpn)
 
     def collect_data(self, vpn):
-        connection = ManagementConnection(vpn)
+        connection = ManagementConnection(vpn, args.debug)
         connection.connect()
         if connection.is_connected():
             ver = connection.send_command('version')

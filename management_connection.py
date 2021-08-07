@@ -7,8 +7,9 @@ from logging import debug, info, warning
 
 class ManagementConnection(object):
 
-    def __init__(self, vpn_config):
-        self.__vpn_config = vpn_config;
+    def __init__(self, vpn_config, debug = False):
+        self.__vpn_config = vpn_config
+        self.__debug = debug
         self.__timeout = 3
         self.__error = False
         self.__socket = False
@@ -63,8 +64,8 @@ class ManagementConnection(object):
                 break
             elif data.endswith("\nEND\r\n"):
                 break
-        #if args.debug:
-        #    debug("=== begin raw data\n{0!s}\n=== end raw data".format(data))
+        if self.__debug:
+            debug("=== begin raw data\n{0!s}\n=== end raw data".format(data))
         return data
 
     def __send(self, data):
@@ -76,8 +77,8 @@ class ManagementConnection(object):
     def __recv(self, length):
         if sys.version_info[0] == 2:
             return self.__socket.recv(length)
-        else:
-            return self.__socket.recv(length).decode('utf-8')
+
+        return self.__socket.recv(length).decode('utf-8')
 
     def disconnect(self):
         if self.__socket:
