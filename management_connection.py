@@ -110,12 +110,19 @@ class ManagementConnection(object):
 
     def __connect_tls(self):
         info('TLS socket connect')
-        context = ssl.create_default_context()
+        context = self.__create_tls_context()
+        self.__connect_tcp()
+        self.__socket = context.wrap_socket(self.__socket)
+
+    def __create_tls_context(self):
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        context.options |= ssl.OP_NO_TLSv1
+        context.options |= ssl.OP_NO_TLSv1_1
         if (self.__vpn_config.get('ssl') == 'any-cert'):
             context.check_hostname = False
             context.verify_mode = ssl.CERT_NONE
-        self.__connect_tcp()
-        self.__socket = context.wrap_socket(self.__socket)
+
+        return context
 
     def __is_tcp_socket(self):
         return self.__vpn_config.get('host') and not self.__vpn_config.get('ssl')
