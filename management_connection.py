@@ -53,7 +53,7 @@ class ManagementConnection(object):
             data += socket_data
             if data.endswith('ENTER PASSWORD:'):
                 if password:
-                    self._socket_send('{0!s}\n'.format(password))
+                    self.__send('{0!s}\n'.format(password))
                 else:
                     warning('password requested but no password supplied by configuration')
             if data.endswith('SUCCESS: password is correct\r\n'):
