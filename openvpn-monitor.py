@@ -625,7 +625,10 @@ class OpenvpnHtmlPrinter(object):
         if self.logo:
             output('<a href="#" class="pull-right"><img alt="Logo" ')
             output('style="max-height:46px; padding-top:3px;" ')
-            output('src="images/{0!s}"></a>'.format(self.logo))
+            if "http://" in self.logo or "https://" in self.logo:
+                output('src="{0!s}"></a>'.format(self.logo))
+            else:
+                output('src="images/{0!s}"></a>'.format(self.logo))
 
         output('</div></div></nav>')
         output('<div class="container-fluid">')
