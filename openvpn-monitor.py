@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # Copyright 2011 VPAC <http://www.vpac.org>
@@ -553,7 +553,10 @@ class OpenvpnHtmlPrinter(object):
         if self.logo:
             output('<a href="#" class="pull-right"><img alt="Logo" ')
             output('style="max-height:46px; padding-top:3px;" ')
-            output('src="images/{0!s}"></a>'.format(self.logo))
+            if self.logo.startswith("http"):
+                output('src="{0!s}"></a>'.format(self.logo))
+            else:
+                output('src="images/{0!s}"></a>'.format(self.logo))
 
         output('</div></div></nav>')
         output('<div class="container-fluid">')

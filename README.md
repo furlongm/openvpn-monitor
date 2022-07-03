@@ -11,6 +11,12 @@ server, however it does not necessarily need to.
 [![](https://raw.githubusercontent.com/furlongm/openvpn-monitor/gh-pages/screenshots/openvpn-monitor.png)](https://raw.githubusercontent.com/furlongm/openvpn-monitor/gh-pages/screenshots/openvpn-monitor.png)
 
 
+## Supported Operating Systems
+  - Ubuntu 20.04 LTS (focal)
+  - Debian 10 (buster)
+  - CentOS/RHEL 8
+
+
 ## Source
 
 The current source code is available on github:
@@ -19,6 +25,7 @@ https://github.com/furlongm/openvpn-monitor
 
 
 ## Install Options
+
   - [virtualenv + pip + gunicorn](#virtualenv--pip--gunicorn)
   - [apache](#apache)
   - [docker](#docker)
@@ -28,20 +35,28 @@ https://github.com/furlongm/openvpn-monitor
 N.B. all CentOS/RHEL instructions assume the EPEL repository has been installed:
 
 ```shell
-yum install -y epel-release
+dnf -y install epel-release
 
 ```
+
+If selinux is enabled the following changes are required for host/port to work:
+
+```
+dnf -y install policycoreutils-python-utils
+semanage port -a -t openvpn_port_t -p tcp 5555
+setsebool -P httpd_can_network_connect=1
+```
+
 
 ### virtualenv + pip + gunicorn
 
 ```shell
-# apt-get install python-virtualenv geoip-database-extra geoipupdate      # (debian/ubuntu)
-# yum install python-virtualenv GeoIP-update geolite2-city python2-geoip2 # (centos/rhel)
+# apt -y install python3-virtualenv geoip-database geoip-database-extra # (debian/ubuntu)
+# dnf -y install python3-virtualenv geolite2-city                       # (centos/rhel)
 mkdir /srv/openvpn-monitor
 cd /srv/openvpn-monitor
-virtualenv .
+virtualenv -p python3 .
 . bin/activate
-pip install --upgrade pip
 pip install openvpn-monitor gunicorn
 gunicorn openvpn-monitor -b 0.0.0.0:80
 ```
@@ -56,7 +71,7 @@ See [configuration](#configuration) for details on configuring openvpn-monitor.
 ##### Debian / Ubuntu
 
 ```shell
-apt-get -y install git apache2 libapache2-mod-wsgi python-geoip2 python-ipaddr python-humanize python-bottle python-semantic-version geoip-database-extra geoipupdate
+apt -y install git apache2 libapache2-mod-wsgi python3-geoip2 python3-humanize python3-bottle python3-semantic-version geoip-database geoip-database-extra
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
 systemctl restart apache2
@@ -65,7 +80,7 @@ systemctl restart apache2
 ##### CentOS / RHEL
 
 ```shell
-yum install -y git httpd mod_wsgi python2-geoip2 python-ipaddr python-humanize python-bottle python-semantic_version geolite2-city GeoIP-update
+dnf -y install git httpd mod_wsgi python3-geoip2 python3-humanize python3-bottle python3-semantic_version geolite2-city
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/httpd/conf.d/openvpn-monitor.conf
 systemctl restart httpd
 ```
@@ -96,8 +111,8 @@ variables.
 #### Install dependencies
 
 ```shell
-# apt-get install gcc libgeoip-dev python-virtualenv python-dev geoip-database-extra nginx uwsgi uwsgi-plugin-python geoipupdate                  # (debian/ubuntu)
-# yum install gcc geoip-devel python-virtualenv python-devel GeoIP-data GeoIP-update nginx uwsgi uwsgi-plugin-python geolite2-city python2-geoip2 # (centos/rhel)
+# apt -y install git gcc nginx uwsgi uwsgi-plugin-python3 virtualenv python3-dev libgeoip-dev geoip-database geoip-database-extra  # (debian/ubuntu)
+# dnf -y install git gcc nginx uwsgi uwsgi-plugin-python3 virtualenv python3-devel geoip-devel geolite2-city                       # (centos/rhel)
 ```
 
 #### Checkout openvpn-monitor
@@ -106,21 +121,21 @@ variables.
 cd /srv
 git clone https://github.com/furlongm/openvpn-monitor.git
 cd openvpn-monitor
-virtualenv .
+virtualenv -p python3 .
 . bin/activate
 pip install -r requirements.txt
 ```
 
 #### uWSGI app config
 
-Create a uWSGI config in `/etc/uwsgi/apps-available/openvpn-monitor.ini`
+Create a uWSGI config: `/etc/uwsgi/apps-available/openvpn-monitor.ini`
 
 ```
 [uwsgi]
 base = /srv
 project = openvpn-monitor
 logto = /var/log/uwsgi/app/%(project).log
-plugins = python
+plugins = python3
 chdir = %(base)/%(project)
 virtualenv = %(chdir)
 module = openvpn-monitor:application
@@ -130,7 +145,7 @@ mount=/openvpn-monitor=openvpn-monitor.py
 
 #### Nginx site config
 
-Create an Nginx config in `/etc/nginx/sites-available/openvpn-monitor`
+Create an Nginx config: `/etc/nginx/sites-available/openvpn-monitor`
 
 ```
 server {
@@ -146,9 +161,10 @@ server {
 
 ```shell
 ln -s /etc/uwsgi/apps-available/openvpn-monitor.ini /etc/uwsgi/apps-enabled/
-service uwsgi restart
+systemctl restart uwsgi
 ln -s /etc/nginx/sites-available/openvpn-monitor /etc/nginx/sites-enabled/
-service nginx reload
+rm /etc/nginx/sites-enabled/default
+systemctl restart nginx
 ```
 
 See [configuration](#configuration) for details on configuring openvpn-monitor.
@@ -209,14 +225,14 @@ generates correctly:
 
 ```shell
 cd /var/www/html/openvpn-monitor
-python openvpn-monitor.py
+python3 openvpn-monitor.py
 ```
 
 Further debugging can be enabled by specifying the `--debug` flag:
 
 ```shell
 cd /var/www/html/openvpn-monitor
-python openvpn-monitor.py -d
+python3 openvpn-monitor.py -d
 ```
 
 
