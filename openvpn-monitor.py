@@ -62,14 +62,6 @@ if sys.version_info[0] == 2:
     sys.setdefaultencoding('utf-8')
 
 
-def output(s):
-    global wsgi, wsgi_output
-    if not wsgi:
-        print(s)
-    else:
-        wsgi_output += s
-
-
 def info(*objs):
     print("INFO:", *objs, file=sys.stderr)
 
@@ -552,12 +544,11 @@ env.globals.update({
 
 if __name__ == '__main__':
     args = get_args()
-    wsgi = False
     template = env.get_template('openvpn-monitor.html.j2')
     cfg = ConfigLoader(args.config)
     monitor = OpenvpnMgmtInterface(cfg)
 
-    output(template.render(build_template_context(cfg, monitor)))
+    print(template.render(build_template_context(cfg, monitor)))
 
 def view(template_name):
     def decorator(view_func):
@@ -630,6 +621,4 @@ if __name__.startswith('_mod_wsgi_') or \
         debug = False
         config = './openvpn-monitor.conf'
 
-    wsgi = True
-    wsgi_output = ''
     application = monitor_wsgi()
