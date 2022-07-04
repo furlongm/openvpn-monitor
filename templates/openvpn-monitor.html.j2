@@ -1,0 +1,30 @@
+{% import 'macros.html.j2' as macros -%}
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{{ site }} OpenVPN Status Monitor</title>
+        <meta http-equiv="refresh" content="300" />
+        {% include 'stylesheets.html.j2' %}
+        {% include 'javascript.html.j2' %}
+    </head>
+    <body>
+        {% include 'navbar.html.j2' %}
+        <div class="container-fluid">
+            {% for name, vpn in vpns %}
+                {% if vpn.socket_connected %}
+                    {{ macros.available_vpn(vpn, datetime_format) }}
+                {% else %}
+                    {{ macros.unavailable_vpn(vpn) }}
+                {% endif %}
+            {% endfor %}
+
+            {% if maps %}
+                {% include 'map.html.j2' %}
+            {% endif %}
+        </div>
+    </body>
+</html>
+

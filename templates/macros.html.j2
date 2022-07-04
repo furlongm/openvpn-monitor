@@ -1,0 +1,171 @@
+{% macro client_session_headers() -%}
+    <tr>
+        <th>Tun-Tap-Read</th>
+        <th>Tun-Tap-Write</th>
+        <th>TCP-UDP-Read</th>
+        <th>TCP-UDP-Write</th>
+        <th>Auth-Read</th>
+    </tr>
+{% endmacro %}
+
+{% macro client_session(session) %}
+    <tr>
+        <td>{{ session.tuntap_read }} ({{ session.tuntap_read | humanize_naturalsize(binary=True) }})</td>
+        <td>{{ session.tuntap_write }} ({{ session.tuntap_write | humanize_naturalsize(binary=True) }})</td>
+        <td>{{ session.tcpudp_read }} ({{ session.tcpudp_read | humanize_naturalsize(binary=True) }})</td>
+        <td>{{ session.tcpudp_write }} ({{ session.tcpudp_write | humanize_naturalsize(binary=True) }})</td>
+        <td>{{ session.auth_read }} ({{ session.auth_read | humanize_naturalsize(binary=True) }})</td>
+    </tr>
+{% endmacro %}
+
+{% macro server_session_headers(vpn) -%}
+    <tr>
+        <th>Username / Hostname</th>
+        <th>VPN IP</th>
+        <th>Remote IP</th>
+        <th>Location</th>
+        <th>Bytes In</th>
+        <th>Bytes Out</th>
+        <th>Connected Since</th>
+        <th>Last Ping</th>
+        <th class="sorter-duration">Time Online</th>
+        {% if vpn.show_disconnect %}
+            <th>Action</th>
+        {% endif %}
+    </tr>
+{% endmacro %}
+
+{% macro server_session(vpn, session, datetime_format) %}
+    <tr>
+        <td>{{ session.username }}</td>
+        <td>{{ session.local_ip }}</td>
+        <td>{{ session.remote_ip }}</td>
+        <td>
+            {% if session.get('location') %}
+                {% if session.location == 'RFC1918' or session.location == 'loopback' %}
+                    {% set flag = 'rfc' %}
+                    {% set full_location = session.location ~ ', Internet' %}
+                {% else %}
+                    {% set flag = session.location | lower %}
+                    {% set full_location = session.city ~ ', ' ~ session.region ~ ', ' ~ session.country %}
+                {% endif %}
+                    <img src="images/flags/{{ flag }}.png" title="{{ full_location }}" alt="{{ full_location }}" /> {{ full_location }}
+            {% else %}
+                Unknown
+            {% endif %}
+        </td>
+        <td>{{ session.bytes_recv }} ({{ session.bytes_recv | humanize_naturalsize(binary=True) }})</td>
+        <td>{{ session.bytes_sent }} ({{ session.bytes_sent | humanize_naturalsize(binary=True) }})</td>
+        <td>{{ session.connected_since.strftime(datetime_format) }}</td>
+        <td>
+            {% if session.get('last_seen') %}
+                {{ session.last_seen.strftime(datetime_format) }}
+            {% else %}
+                Unknown
+            {% endif %}
+        </td>
+        <td>{{ ((now() - session.connected_since) | string) [:-7] }}</td>
+        {% if vpn.show_disconnect %}
+            <td>
+                <form method="post">
+                    <input type="hidden" name="vpn_id" value="{{ vpn.id }}">
+                    {% if session.get('port') %}
+                        <input type="hidden" name="ip" value="{{ session.remote_ip }}">
+                        <input type="hidden" name="port" value="{{ session.port }}">
+                    {% endif %}
+                    {% if session.get('client_id') %}
+                        <input type="hidden" name="client_id" value="{{ session.client_id }}">
+                    {% endif %}
+                    <button type="submit" class="btn btn-xs btn-danger">
+                        <span class="glyphicon glyphicon-remove"></span> Disconnect
+                    </button>
+                </form>
+            </td>
+        {% endif %}
+    </tr>
+{% endmacro %}
+
+{% macro vpn_sessions(vpn, datetime_format) -%}
+    <div class="table-responsive">
+        <table id="sessions" class="table table-striped table-bordered table-hover table-condensed table-responsive tablesorter tablesorter-bootstrap">
+            <thead>
+                {% if vpn.state.mode == 'Client' %}
+                    {{ client_session_headers() }}
+                {% else %}
+                   {{ server_session_headers(vpn) }}
+                {% endif %}
+            </thead>
+            <tbody>
+                {% if vpn.state.mode == 'Client' %}
+                    {% for sname, session in vpn.sessions.items() %}
+                        {{ client_session(session) }}
+                    {% endfor %}
+                {% else %}
+                    {% for sname, session in vpn.sessions.items() %}
+                        {{ server_session(vpn, session, datetime_format) }}
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+{% endmacro %}
+
+{% macro unavailable_vpn(vpn) -%}
+    <div class="panel panel-danger" id="{{ name | lower | replace(' ', '_') }}">
+        <div class="panel-heading"><h3 class="panel-title">{{ vpn.name }}</h3></div>
+        <div class="panel-body">
+            Could not connect to 
+                {% if vpn.get('host') and vpn.get('port') %}
+                    {{ vpn.host }}:{{ vpn.port }} ({{ vpn.error }})
+                {% elif vpn.get('socket') %}
+                    {{ vpn.socket }} ({{ vpn.error }})
+                {% else %}
+                    network or unix socket
+                {% endif %}
+        </div>
+    </div>
+{% endmacro %}
+
+{% macro available_vpn(vpn, datetime_format) -%}
+<div class="panel panel-success" id="{{ name | lower | replace(' ', '_') }}">
+    <div class="panel-heading"><h3 class="panel-title">{{ vpn.name }}</h3></div>
+    <div class="panel-body">
+        <div class="table-responsive">
+            <table class="table table-condensed table-responsive">
+                <thead>
+                    <tr>
+                        <th>VPN Mode</th>
+                        <th>Status</th>
+                        <th>Pingable</th>
+                        <th>Clients</th>
+                        <th>Total Bytes In</th>
+                        <th>Total Bytes Out</th>
+                        <th>Up Since</th>
+                        <th>Local IP Address</th>
+                        {% if vpn.state.mode == 'Client' %}
+                            <th>Remote IP Address</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{{ vpn.state.mode }}</td>
+                        <td>{{ vpn.state.connected }}</td>
+                        <td>{% if vpn.state.success == 'SUCCESS' %}Yes{% else %}No{% endif %}</td>
+                        <td>{{ vpn.stats.nclients }}</td>
+                        <td>{{ vpn.stats.bytesin }} ({{ vpn.stats.bytesin | humanize_naturalsize(binary=True) }})</td>
+                        <td>{{ vpn.stats.bytesout }} ({{ vpn.stats.bytesout | humanize_naturalsize(binary=True) }})</td>
+                        <td>{{ vpn.state.up_since.strftime(datetime_format) }}</td>
+                        <td>{{ vpn.state.local_ip }}</td>
+                        {% if vpn.state.mode == 'Client' %}
+                            <td>{{ vpn.state.remote_ip }}</td>
+                        {% endif %}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {{ vpn_sessions(vpn, datetime_format) }}
+    <div class="panel-footer panel-custom">{{ vpn.release }}</div>
+</div>    
+{% endmacro -%}
