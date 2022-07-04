@@ -603,9 +603,13 @@ def monitor_wsgi():
     @view('openvpn-monitor.html.j2')
     def post_slash():
         cfg = ConfigLoader(args.config)
-        monitor = OpenvpnMgmtInterface(cfg, monitor)
+        vpn_id = request.forms.get('vpn_id')
+        ip = request.forms.get('ip')
+        port = request.forms.get('port')
+        client_id = request.forms.get('client_id')
+        monitor = OpenvpnMgmtInterface(cfg, vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
 
-        return build_template_context(vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
+        return build_template_context(cfg, monitor)
 
     @app.route('/<filename:re:.*\.(jpg|png)>', method='GET')
     def get_images(filename):
