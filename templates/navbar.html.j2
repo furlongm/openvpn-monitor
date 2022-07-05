@@ -18,9 +18,9 @@
                                 <li><a href="#{{ vpn.name | lower | replace(' ', ':') }}">{{ vpn.name }}</a></li>
                             {% endif %}
                         {% endfor %}
-                        {% if maps %}<li><a href="#map_canvas">Map View</a></li>{% endif %}
                     </ul>
                 </li>
+                {% if maps %}<li><a href="#map_canvas">Map View</a></li>{% endif %}
             </ul>
             {% if logo %}
                 <a href="#" class="pull-right"><img alt="Logo" style="max-height:46px; padding-top:3px;"
