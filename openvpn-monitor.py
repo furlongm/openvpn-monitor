@@ -535,7 +535,8 @@ def get_args():
 
 env = jinja2.Environment(
     loader = jinja2.FileSystemLoader('./templates'),
-    extensions = ["jinja2_humanize_extension.HumanizeExtension"]
+    extensions = ["jinja2_humanize_extension.HumanizeExtension"],
+    autoescape = True
 )
 
 env.globals.update({
