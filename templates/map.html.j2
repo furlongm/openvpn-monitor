@@ -1,0 +1,45 @@
+<div class="panel panel-info">
+        <div class="panel-heading"><h3 class="panel-title">Map View</h3></div>
+        <div class="panel-body">
+            <div id="map_canvas" style="height:{{ maps_height }}px"></div>
+            <script>
+                var map = L.map("map_canvas", { fullscreenControl: true, fullscreenControlOptions: { position: "topleft" }  });
+                var centre = L.latLng({{ latitude }}, {{ longitude }});
+                map.setView(centre, 8);
+                url = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+                var layer = new L.TileLayer(url, {});
+                map.addLayer(layer);
+                var bounds = L.latLngBounds(centre);
+                var oms = new OverlappingMarkerSpiderfier(map,{keepSpiderfied:true});
+                
+                // spiderfy - add popups for closeby icons
+                var popup = new L.Popup({closeButton:false, offset:new L.Point(0.5,-24)});
+                oms.addListener("click", function(marker) {
+                    popup.setContent(marker.alt);
+                    popup.setLatLng(marker.getLatLng());
+                    map.openPopup(popup);
+                });
+
+                // spiderfy - close popups when clicking elsewhere
+                oms.addListener("spiderfy", function(markers) { map.closePopup(); });
+
+                {% for name, vpn in vpns %}
+                    {% if vpn.get('sessions') %}
+                        bounds.extend(centre);
+                        {% for sname, session in vpn.sessions.items() %}
+                            {% if session.get('local_ip') and session.get('latitude') and session.get('longitude') %}
+                                var latlng = new L.latLng({{ session.latitude }}, {{ session.longitude }});
+                                bounds.extend(latlng);
+                                var client_marker = L.marker(latlng).addTo(map);
+                                oms.addMarker(client_marker);
+                                var client_popup = L.popup().setLatLng(latlng);
+                                client_popup.setContent("{{ session.username }} - {{ session.remote_ip}}");
+                                client_marker.bindPopup(client_popup);
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+                map.fitBounds(bounds);
+            </script>
+        </div>
+    </div>
