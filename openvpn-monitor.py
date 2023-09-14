@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2011 VPAC <http://www.vpac.org>
-# Copyright 2012-2019 Marcus Furlong <furlongm@gmail.com>
+# Copyright 2012-2023 Marcus Furlong <furlongm@gmail.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,49 +16,21 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-try:
-    import ConfigParser as configparser
-except ImportError:
-    import configparser
-
-try:
-    from ipaddr import IPAddress as ip_address
-except ImportError:
-    from ipaddress import ip_address
-
-try:
-    import GeoIP as geoip1
-    geoip1_available = True
-except ImportError:
-    geoip1_available = False
-
-try:
-    from geoip2 import database
-    from geoip2.errors import AddressNotFoundError
-    geoip2_available = True
-except ImportError:
-    geoip2_available = False
-
 import argparse
+import configparser
 import os
 import re
+import semver
 import socket
 import string
 import sys
+from collections import OrderedDict, deque
 from datetime import datetime
 from humanize import naturalsize
-from collections import OrderedDict, deque
+from ipaddress import ip_address
+from geoip2 import database
+from geoip2.errors import AddressNotFoundError
 from pprint import pformat
-from semantic_version import Version as semver
-
-if sys.version_info[0] == 2:
-    reload(sys) # noqa
-    sys.setdefaultencoding('utf-8')
 
 
 def output(s):
@@ -70,29 +42,26 @@ def output(s):
 
 
 def info(*objs):
-    print("INFO:", *objs, file=sys.stderr)
+    print('INFO:', *objs, file=sys.stderr)
 
 
 def warning(*objs):
-    print("WARNING:", *objs, file=sys.stderr)
+    print('WARNING:', *objs, file=sys.stderr)
 
 
 def debug(*objs):
-    print("DEBUG:\n", *objs, file=sys.stderr)
+    print('DEBUG\n', *objs, file=sys.stderr)
 
 
 def get_date(date_string, uts=False):
     if not uts:
-        return datetime.strptime(date_string, "%a %b %d %H:%M:%S %Y")
+        return datetime.strptime(date_string, '%a %b %d %H:%M:%S %Y')
     else:
         return datetime.fromtimestamp(float(date_string))
 
 
 def get_str(s):
-    if sys.version_info[0] == 2 and s is not None:
-        return s.decode('ISO-8859-1')
-    else:
-        return s
+    return s
 
 
 def is_truthy(s):
@@ -108,7 +77,7 @@ class ConfigLoader(object):
         contents = config.read(config_file)
 
         if not contents and config_file == './openvpn-monitor.conf':
-            warning('Config file does not exist or is unreadable: {0!s}'.format(config_file))
+            warning(f'Config file does not exist or is unreadable: {config_file}')
             if sys.prefix == '/usr':
                 conf_path = '/etc/'
             else:
@@ -117,9 +86,9 @@ class ConfigLoader(object):
             contents = config.read(config_file)
 
         if contents:
-            info('Using config file: {0!s}'.format(config_file))
+            info(f'Using config file: {config_file}')
         else:
-            warning('Config file does not exist or is unreadable: {0!s}'.format(config_file))
+            warning(f'Config file does not exist or is unreadable: {config_file}')
             self.load_default_settings()
 
         for section in config.sections():
@@ -132,7 +101,7 @@ class ConfigLoader(object):
         info('Using default settings => localhost:5555')
         self.settings = {'site': 'Default Site',
                          'maps': 'True',
-                         'geoip_data': '/usr/share/GeoIP/GeoIPCity.dat',
+                         'geoip_data': '/usr/share/GeoIP/GeoLite2-City.mmdb',
                          'datetime_format': '%d/%m/%Y %H:%M:%S'}
         self.vpns['Default VPN'] = {'name': 'default',
                                     'host': 'localhost',
@@ -154,7 +123,7 @@ class ConfigLoader(object):
             except configparser.NoOptionError:
                 pass
         if args.debug:
-            debug("=== begin section\n{0!s}\n=== end section".format(self.settings))
+            debug(f'=== begin section\n{self.settings}\n=== end section')
 
     def parse_vpn_section(self, config, section):
         self.vpns[section] = {}
@@ -164,13 +133,13 @@ class ConfigLoader(object):
             try:
                 vpn[option] = config.get(section, option)
                 if vpn[option] == -1:
-                    warning('CONFIG: skipping {0!s}'.format(option))
+                    warning(f'CONFIG: skipping {option}')
             except configparser.Error as e:
-                warning('CONFIG: {0!s} on option {1!s}: '.format(e, option))
+                warning(f'CONFIG: {e} on option {option}: ')
                 vpn[option] = None
         vpn['show_disconnect'] = is_truthy(vpn.get('show_disconnect', False))
         if args.debug:
-            debug("=== begin section\n{0!s}\n=== end section".format(vpn))
+            debug(f'=== begin section\n{vpn}\n=== end section')
 
 
 class OpenvpnMgmtInterface(object):
@@ -184,37 +153,24 @@ class OpenvpnMgmtInterface(object):
             if disconnection_allowed:
                 self._socket_connect(vpn)
                 if vpn['socket_connected']:
-                    release = self.send_command('version\n')
-                    version = semver(self.parse_version(release).split(' ')[1])
+                    full_version = self.send_command('version\n')
+                    release = self.parse_version(full_version)
+                    version = semver.parse_version_info(release.split(' ')[1])
                     command = False
                     client_id = int(kwargs.get('client_id'))
-                    if version.major == 2 and \
-                            version.minor >= 4 and \
-                            client_id:
-                        command = 'client-kill {0!s}\n'.format(client_id)
+                    if version.major == 2 and version.minor >= 4 and client_id:
+                        command = f'client-kill {client_id}\n'
                     else:
                         ip = ip_address(kwargs['ip'])
                         port = int(kwargs['port'])
                         if ip and port:
-                            command = 'kill {0!s}:{1!s}\n'.format(ip, port)
+                            command = f'kill {ip}:{port}\n'
                     if command:
                         self.send_command(command)
                     self._socket_disconnect()
 
         geoip_data = cfg.settings['geoip_data']
-        self.geoip_version = None
-        self.gi = None
-        try:
-            if geoip_data.endswith('.mmdb') and geoip2_available:
-                self.gi = database.Reader(geoip_data)
-                self.geoip_version = 2
-            elif geoip_data.endswith('.dat') and geoip1_available:
-                self.gi = geoip1.open(geoip_data, geoip1.GEOIP_STANDARD)
-                self.geoip_version = 1
-            else:
-                warning('No compatible geoip1 or geoip2 data/libraries found.')
-        except IOError:
-            warning('No compatible geoip1 or geoip2 data/libraries found.')
+        self.gi = database.Reader(geoip_data)
 
         for _, vpn in list(self.vpns.items()):
             self._socket_connect(vpn)
@@ -223,9 +179,9 @@ class OpenvpnMgmtInterface(object):
                 self._socket_disconnect()
 
     def collect_data(self, vpn):
-        ver = self.send_command('version\n')
-        vpn['release'] = self.parse_version(ver)
-        vpn['version'] = semver(vpn['release'].split(' ')[1])
+        full_version = self.send_command('version\n')
+        vpn['release'] = self.parse_version(full_version)
+        vpn['version'] = semver.parse_version_info(vpn['release'].split(' ')[1])
         state = self.send_command('state\n')
         vpn['state'] = self.parse_state(state)
         stats = self.send_command('load-stats\n')
@@ -262,19 +218,19 @@ class OpenvpnMgmtInterface(object):
                     self.wait_for_data(password=password)
                 vpn['socket_connected'] = True
         except socket.timeout as e:
-            vpn['error'] = '{0!s}'.format(e)
-            warning('socket timeout: {0!s}'.format(e))
+            vpn['error'] = e
+            warning(f'socket timeout: {e}')
             vpn['socket_connected'] = False
             if self.s:
                 self.s.shutdown(socket.SHUT_RDWR)
                 self.s.close()
         except socket.error as e:
-            vpn['error'] = '{0!s}'.format(e.strerror)
-            warning('socket error: {0!s}'.format(e))
+            vpn['error'] = e.strerror
+            warning(f'socket error: {e}')
             vpn['socket_connected'] = False
         except Exception as e:
-            vpn['error'] = '{0!s}'.format(e)
-            warning('unexpected error: {0!s}'.format(e))
+            vpn['error'] = e
+            warning(f'unexpected error: {e}')
             vpn['socket_connected'] = False
 
     def _socket_disconnect(self):
@@ -283,7 +239,7 @@ class OpenvpnMgmtInterface(object):
         self.s.close()
 
     def send_command(self, command):
-        info('Sending command: {0!s}'.format(command))
+        info(f'Sending command: {command}')
         self._socket_send(command)
         if command.startswith('kill') or command.startswith('client-kill'):
             return
@@ -297,17 +253,17 @@ class OpenvpnMgmtInterface(object):
             data += socket_data
             if data.endswith('ENTER PASSWORD:'):
                 if password:
-                    self._socket_send('{0!s}\n'.format(password))
+                    self._socket_send(f'{password}\n')
                 else:
                     warning('password requested but no password supplied by configuration')
             if data.endswith('SUCCESS: password is correct\r\n'):
                 break
             if command == 'load-stats\n' and data != '':
                 break
-            elif data.endswith("\nEND\r\n"):
+            elif data.endswith('\nEND\r\n'):
                 break
         if args.debug:
-            debug("=== begin raw data\n{0!s}\n=== end raw data".format(data))
+            debug(f'=== begin raw data\n{data}\n=== end raw data')
         return data
 
     @staticmethod
@@ -316,7 +272,7 @@ class OpenvpnMgmtInterface(object):
         for line in data.splitlines():
             parts = line.split(',')
             if args.debug:
-                debug("=== begin split line\n{0!s}\n=== end split line".format(parts))
+                debug(f'=== begin split line\n{parts}\n=== end split line')
             if parts[0].startswith('>INFO') or \
                parts[0].startswith('END') or \
                parts[0].startswith('>CLIENT'):
@@ -343,7 +299,7 @@ class OpenvpnMgmtInterface(object):
         line = re.sub('SUCCESS: ', '', data)
         parts = line.split(',')
         if args.debug:
-            debug("=== begin split line\n{0!s}\n=== end split line".format(parts))
+            debug(f'=== begin split line\n{parts}\n=== end split line')
         stats['nclients'] = int(re.sub('nclients=', '', parts[0]))
         stats['bytesin'] = int(re.sub('bytesin=', '', parts[1]))
         stats['bytesout'] = int(re.sub('bytesout=', '', parts[2]).replace('\r\n', ''))
@@ -351,7 +307,6 @@ class OpenvpnMgmtInterface(object):
 
     def parse_status(self, data, version):
         gi = self.gi
-        geoip_version = self.geoip_version
         client_section = False
         routes_section = False
         sessions = {}
@@ -360,7 +315,7 @@ class OpenvpnMgmtInterface(object):
         for line in data.splitlines():
             parts = deque(line.split('\t'))
             if args.debug:
-                debug("=== begin split line\n{0!s}\n=== end split line".format(parts))
+                debug(f'=== begin split line\n{parts}\n=== end split line')
 
             if parts[0].startswith('END'):
                 break
@@ -423,23 +378,13 @@ class OpenvpnMgmtInterface(object):
                     session['location'] = 'loopback'
                 else:
                     try:
-                        if geoip_version == 1:
-                            gir = gi.record_by_addr(str(session['remote_ip']))
-                            if gir is not None:
-                                session['location'] = gir['country_code']
-                                session['region'] = get_str(gir['region'])
-                                session['city'] = get_str(gir['city'])
-                                session['country'] = gir['country_name']
-                                session['longitude'] = gir['longitude']
-                                session['latitude'] = gir['latitude']
-                        elif geoip_version == 2:
-                            gir = gi.city(str(session['remote_ip']))
-                            session['location'] = gir.country.iso_code
-                            session['region'] = gir.subdivisions.most_specific.iso_code
-                            session['city'] = gir.city.name
-                            session['country'] = gir.country.name
-                            session['longitude'] = gir.location.longitude
-                            session['latitude'] = gir.location.latitude
+                        gir = gi.city(str(session['remote_ip']))
+                        session['location'] = gir.country.iso_code
+                        session['region'] = gir.subdivisions.most_specific.iso_code
+                        session['city'] = gir.city.name
+                        session['country'] = gir.country.name
+                        session['longitude'] = gir.location.longitude
+                        session['latitude'] = gir.location.latitude
                     except AddressNotFoundError:
                         pass
                     except SystemError:
@@ -478,7 +423,7 @@ class OpenvpnMgmtInterface(object):
                                           for s in sessions if remote_ip ==
                                           self.get_remote_address(sessions[s]['remote_ip'], sessions[s]['port'])]
                     if len(matching_local_ips) == 1:
-                        local_ip = '{0!s}'.format(matching_local_ips[0])
+                        local_ip = f'{matching_local_ips[0]}'
                         if sessions[local_ip].get('last_seen'):
                             prev_last_seen = sessions[local_ip]['last_seen']
                             if prev_last_seen < last_seen:
@@ -489,9 +434,9 @@ class OpenvpnMgmtInterface(object):
         if args.debug:
             if sessions:
                 pretty_sessions = pformat(sessions)
-                debug("=== begin sessions\n{0!s}\n=== end sessions".format(pretty_sessions))
+                debug(f'=== begin sessions\n{pretty_sessions}\n=== end sessions')
             else:
-                debug("no sessions")
+                debug('no sessions')
 
         return sessions
 
@@ -510,9 +455,9 @@ class OpenvpnMgmtInterface(object):
     @staticmethod
     def get_remote_address(ip, port):
         if port:
-            return '{0!s}:{1!s}'.format(ip, port)
+            return f'{ip}:{port}'
         else:
-            return '{0!s}'.format(ip)
+            return f'{ip}'
 
 
 class OpenvpnHtmlPrinter(object):
@@ -544,13 +489,13 @@ class OpenvpnHtmlPrinter(object):
 
         global wsgi
         if not wsgi:
-            output("Content-Type: text/html\n")
+            output('Content-Type: text/html\n')
         output('<!doctype html>')
         output('<html lang="en"><head>')
         output('<meta charset="utf-8">')
         output('<meta http-equiv="X-UA-Compatible" content="IE=edge">')
         output('<meta name="viewport" content="width=device-width, initial-scale=1">')
-        output('<title>{0!s} OpenVPN Status Monitor</title>'.format(self.site))
+        output(f'<title>{self.site} OpenVPN Status Monitor</title>')
         output('<meta http-equiv="refresh" content="300" />')
 
         # css
@@ -603,7 +548,7 @@ class OpenvpnHtmlPrinter(object):
         output('</button>')
 
         output('<a class="navbar-brand" href="#">')
-        output('{0!s} OpenVPN Status Monitor</a>'.format(self.site))
+        output(f'{self.site} OpenVPN Status Monitor</a>')
 
         output('</div><div class="collapse navbar-collapse" id="myNavbar">')
         output('<ul class="nav navbar-nav"><li class="dropdown">')
@@ -614,7 +559,7 @@ class OpenvpnHtmlPrinter(object):
         for _, vpn in self.vpns:
             if vpn['name']:
                 anchor = vpn['name'].lower().replace(' ', '_')
-                output('<li><a href="#{0!s}">{1!s}</a></li>'.format(anchor, vpn['name']))
+                output(f"<li><a href=\"#{anchor}\">{vpn['name']}</a></li>")
         output('</ul></li>')
 
         if self.maps:
@@ -625,10 +570,10 @@ class OpenvpnHtmlPrinter(object):
         if self.logo:
             output('<a href="#" class="pull-right"><img alt="Logo" ')
             output('style="max-height:46px; padding-top:3px;" ')
-            if self.logo.startswith("http"):
-                output('src="{0!s}"></a>'.format(self.logo))
+            if self.logo.startswith('http'):
+                output(f'src="{self.logo}"></a>')
             else:
-                output('src="images/{0!s}"></a>'.format(self.logo))
+                output(f'src="images/{self.logo}"></a>')
 
         output('</div></div></nav>')
         output('<div class="container-fluid">')
@@ -656,9 +601,9 @@ class OpenvpnHtmlPrinter(object):
         output('<thead><tr>')
         for header in headers:
             if header == 'Time Online':
-                output('<th class="sorter-duration">{0!s}</th>'.format(header))
+                output(f'<th class="sorter-duration">{header}</th>')
             else:
-                output('<th>{0!s}</th>'.format(header))
+                output(f'<th>{header}</th>')
         output('</tr></thead><tbody>')
 
     @staticmethod
@@ -668,20 +613,17 @@ class OpenvpnHtmlPrinter(object):
     @staticmethod
     def print_unavailable_vpn(vpn):
         anchor = vpn['name'].lower().replace(' ', '_')
-        output('<div class="panel panel-danger" id="{0!s}">'.format(anchor))
+        output(f'<div class="panel panel-danger" id="{anchor}">')
         output('<div class="panel-heading">')
-        output('<h3 class="panel-title">{0!s}</h3></div>'.format(vpn['name']))
+        output(f"<h3 class=\"panel-title\">{vpn['name']}</h3></div>")
         output('<div class="panel-body">')
         output('Could not connect to ')
         if vpn.get('host') and vpn.get('port'):
-            output('{0!s}:{1!s} ({2!s})</div></div>'.format(vpn['host'],
-                                                            vpn['port'],
-                                                            vpn['error']))
+            output(f"{vpn['host']}:{vpn['port']} ({vpn['error']})</div></div>")
         elif vpn.get('socket'):
-            output('{0!s} ({1!s})</div></div>'.format(vpn['socket'],
-                                                      vpn['error']))
+            output(f"{vpn['socket']} ({vpn['error']})</div></div>")
         else:
-            warning('failed to get socket or network info: {}'.format(vpn))
+            warning(f'failed to get socket or network info: {vpn}')
             output('network or unix socket</div></div>')
 
     def print_vpn(self, vpn_id, vpn):
@@ -703,9 +645,8 @@ class OpenvpnHtmlPrinter(object):
         show_disconnect = vpn['show_disconnect']
 
         anchor = vpn['name'].lower().replace(' ', '_')
-        output('<div class="panel panel-success" id="{0!s}">'.format(anchor))
-        output('<div class="panel-heading"><h3 class="panel-title">{0!s}</h3>'.format(
-            vpn['name']))
+        output(f'<div class="panel panel-success" id="{anchor}">')
+        output(f"<div class=\"panel-heading\"><h3 class=\"panel-title\">{vpn['name']}</h3>")
         output('</div><div class="panel-body">')
         output('<div class="table-responsive">')
         output('<table class="table table-condensed table-responsive">')
@@ -715,16 +656,16 @@ class OpenvpnHtmlPrinter(object):
         if vpn_mode == 'Client':
             output('<th>Remote IP Address</th>')
         output('</tr></thead><tbody>')
-        output('<tr><td>{0!s}</td>'.format(vpn_mode))
-        output('<td>{0!s}</td>'.format(connection))
-        output('<td>{0!s}</td>'.format(pingable))
-        output('<td>{0!s}</td>'.format(nclients))
-        output('<td>{0!s} ({1!s})</td>'.format(bytesin, naturalsize(bytesin, binary=True)))
-        output('<td>{0!s} ({1!s})</td>'.format(bytesout, naturalsize(bytesout, binary=True)))
-        output('<td>{0!s}</td>'.format(up_since.strftime(self.datetime_format)))
-        output('<td>{0!s}</td>'.format(local_ip))
+        output(f'<tr><td>{vpn_mode}</td>')
+        output(f'<td>{connection}</td>')
+        output(f'<td>{pingable}</td>')
+        output(f'<td>{nclients}</td>')
+        output(f'<td>{bytesin} ({naturalsize(bytesin, binary=True)})</td>')
+        output(f'<td>{bytesout} ({naturalsize(bytesout, binary=True)})</td>')
+        output(f'<td>{up_since.strftime(self.datetime_format)}</td>')
+        output(f'<td>{local_ip}</td>')
         if vpn_mode == 'Client':
-            output('<td>{0!s}</td>'.format(remote_ip))
+            output(f'<td>{remote_ip}</td>')
         output('</tr></tbody></table></div>')
 
         if vpn_mode == 'Client' or nclients > 0:
@@ -734,7 +675,7 @@ class OpenvpnHtmlPrinter(object):
 
         output('</div>')
         output('<div class="panel-footer panel-custom">')
-        output('{0!s}'.format(vpn['release']))
+        output(f"{vpn['release']}")
         output('</div>')
         output('</div>')
 
@@ -745,62 +686,60 @@ class OpenvpnHtmlPrinter(object):
         tcpudp_r = session['tcpudp_read']
         tcpudp_w = session['tcpudp_write']
         auth_r = session['auth_read']
-        output('<td>{0!s} ({1!s})</td>'.format(tuntap_r, naturalsize(tuntap_r, binary=True)))
-        output('<td>{0!s} ({1!s})</td>'.format(tuntap_w, naturalsize(tuntap_w, binary=True)))
-        output('<td>{0!s} ({1!s})</td>'.format(tcpudp_r, naturalsize(tcpudp_w, binary=True)))
-        output('<td>{0!s} ({1!s})</td>'.format(tcpudp_w, naturalsize(tcpudp_w, binary=True)))
-        output('<td>{0!s} ({1!s})</td>'.format(auth_r, naturalsize(auth_r, binary=True)))
+        output(f'<td>{tuntap_r} ({naturalsize(tuntap_r, binary=True)})</td>')
+        output(f'<td>{tuntap_w} ({naturalsize(tuntap_w, binary=True)})</td>')
+        output(f'<td>{tcpudp_r} ({naturalsize(tcpudp_w, binary=True)})</td>')
+        output(f'<td>{tcpudp_w} ({naturalsize(tcpudp_w, binary=True)})</td>')
+        output(f'<td>{auth_r} ({naturalsize(auth_r, binary=True)})</td>')
 
     def print_server_session(self, vpn_id, session, show_disconnect):
         total_time = str(datetime.now() - session['connected_since'])[:-7]
         bytes_recv = session['bytes_recv']
         bytes_sent = session['bytes_sent']
-        output('<td>{0!s}</td>'.format(session['username']))
-        output('<td>{0!s}</td>'.format(session['local_ip']))
-        output('<td>{0!s}</td>'.format(session['remote_ip']))
+        output(f"<td>{session['username']}</td>")
+        output(f"<td>{session['local_ip']}</td>")
+        output(f"<td>{session['remote_ip']}</td>")
 
         if session.get('location'):
-            flag = 'images/flags/{0!s}.png'.format(session['location'].lower())
+            flag = f'images/flags/{session["location"].lower()}.png'
             if session.get('country'):
                 country = session['country']
                 full_location = country
             if session.get('region'):
                 region = session['region']
-                full_location = '{0!s}, {1!s}'.format(region, full_location)
+                full_location = f'{region}, {full_location}'
             if session.get('city'):
                 city = session['city']
-                full_location = '{0!s}, {1!s}'.format(city, full_location)
+                full_location = f'{city}, {full_location}'
             if session['location'] in ['RFC1918', 'loopback']:
                 if session['location'] == 'RFC1918':
                     city = 'RFC1918'
                 elif session['location'] == 'loopback':
                     city = 'loopback'
                 country = 'Internet'
-                full_location = '{0!s}, {1!s}'.format(city, country)
+                full_location = f'{city}, {country}'
                 flag = 'images/flags/rfc.png'
-            output('<td><img src="{0!s}" title="{1!s}" alt="{1!s}" /> '.format(flag, full_location))
-            output('{0!s}</td>'.format(full_location))
+            output(f'<td><img src="{flag}" title="{full_location}" alt="{full_location}" /> ')
+            output(f'{full_location}</td>')
         else:
             output('<td>Unknown</td>')
 
-        output('<td>{0!s} ({1!s})</td>'.format(bytes_recv, naturalsize(bytes_recv, binary=True)))
-        output('<td>{0!s} ({1!s})</td>'.format(bytes_sent, naturalsize(bytes_sent, binary=True)))
-        output('<td>{0!s}</td>'.format(
-            session['connected_since'].strftime(self.datetime_format)))
+        output(f'<td>{bytes_recv} ({naturalsize(bytes_recv, binary=True)})</td>')
+        output(f'<td>{bytes_sent} ({naturalsize(bytes_sent, binary=True)})</td>')
+        output(f"<td>{session['connected_since'].strftime(self.datetime_format)}</td>")
         if session.get('last_seen'):
-            output('<td>{0!s}</td>'.format(
-                session['last_seen'].strftime(self.datetime_format)))
+            output(f"<td>{session['last_seen'].strftime(self.datetime_format)}</td>")
         else:
             output('<td>Unknown</td>')
-        output('<td>{0!s}</td>'.format(total_time))
+        output(f'<td>{total_time}</td>')
         if show_disconnect:
             output('<td><form method="post">')
-            output('<input type="hidden" name="vpn_id" value="{0!s}">'.format(vpn_id))
+            output(f'<input type="hidden" name="vpn_id" value="{vpn_id}">')
             if session.get('port'):
-                output('<input type="hidden" name="ip" value="{0!s}">'.format(session['remote_ip']))
-                output('<input type="hidden" name="port" value="{0!s}">'.format(session['port']))
+                output(f"<input type=\"hidden\" name=\"ip\" value=\"{session['remote_ip']}\">")
+                output(f"<input type=\"hidden\" name=\"port\" value=\"{session['port']}\">")
             if session.get('client_id'):
-                output('<input type="hidden" name="client_id" value="{0!s}">'.format(session['client_id']))
+                output(f"<input type=\"hidden\" name=\"client_id\" value=\"{session['client_id']}\">")
             output('<button type="submit" class="btn btn-xs btn-danger">')
             output('<span class="glyphicon glyphicon-remove"></span> ')
             output('Disconnect</button></form></td>')
@@ -819,11 +758,11 @@ class OpenvpnHtmlPrinter(object):
     def print_maps_html(self):
         output('<div class="panel panel-info"><div class="panel-heading">')
         output('<h3 class="panel-title">Map View</h3></div><div class="panel-body">')
-        output('<div id="map_canvas" style="height:{0!s}px"></div>'.format(self.maps_height))
+        output(f'<div id="map_canvas" style="height:{self.maps_height}px"></div>')
         output('<script>')
         output('var map = L.map("map_canvas", { fullscreenControl: true, '
                'fullscreenControlOptions: { position: "topleft" }  });')
-        output('var centre = L.latLng({0!s}, {1!s});'.format(self.latitude, self.longitude))
+        output(f'var centre = L.latLng({self.latitude}, {self.longitude});')
         output('map.setView(centre, 8);')
         output('url = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";')
         output('var layer = new L.TileLayer(url, {});')
@@ -850,14 +789,12 @@ class OpenvpnHtmlPrinter(object):
                     if not session.get('local_ip'):
                         continue
                     if session.get('latitude') and session.get('longitude'):
-                        output('var latlng = new L.latLng({0!s}, {1!s});'.format(
-                            session['latitude'], session['longitude']))
+                        output(f"var latlng = new L.latLng({session['latitude']}, {session['longitude']});")
                         output('bounds.extend(latlng);')
                         output('var client_marker = L.marker(latlng).addTo(map);')
                         output('oms.addMarker(client_marker);')
                         output('var client_popup = L.popup().setLatLng(latlng);')
-                        output('client_popup.setContent("{0!s} - {1!s}");'.format(
-                            session['username'], session['remote_ip']))
+                        output(f"client_popup.setContent(\"{session['username']} - {session['remote_ip']}\");")
                         output('client_marker.bindPopup(client_popup);')
         output('map.fitBounds(bounds);')
         output('</script>')
@@ -865,9 +802,8 @@ class OpenvpnHtmlPrinter(object):
 
     def print_html_footer(self):
         output('<div class="well well-sm">')
-        output('Page automatically reloads every 5 minutes.')
-        output('Last update: <b>{0!s}</b></div>'.format(
-            datetime.now().strftime(self.datetime_format)))
+        output('Page automatically reloads every 5 minutes. ')
+        output(f'Last update: <b>{datetime.now().strftime(self.datetime_format)}</b></div>')
         output('</div></body></html>')
 
 
@@ -877,7 +813,7 @@ def main(**kwargs):
     OpenvpnHtmlPrinter(cfg, monitor)
     if args.debug:
         pretty_vpns = pformat((dict(monitor.vpns)))
-        debug("=== begin vpns\n{0!s}\n=== end vpns".format(pretty_vpns))
+        debug(f'=== begin vpns\n{pretty_vpns}\n=== end vpns')
 
 
 def get_args():
