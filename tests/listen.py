@@ -60,19 +60,23 @@ while not received_exit:
             conn.close()
             break
         if readable:
-            data = conn.recv(1024)
+            data = conn.recv(1024).decode('utf-8')
         if data.endswith(u'\n'):
             if data.startswith(u'status 3'):
-                conn.send(status)
+                print('[+] Responding to status command')
+                conn.send(status.encode())
                 data = ''
             elif data.startswith(u'state'):
-                conn.send(state)
+                print('[+] Responding to state command')
+                conn.send(state.encode())
                 data = ''
             elif data.startswith(u'version'):
-                conn.send(version)
+                print('[+] Responding to version command')
+                conn.send(version.encode())
                 data = ''
             elif data.startswith(u'load-stats'):
-                conn.send(stats)
+                print('[+] Responding to load-stats command')
+                conn.send(stats.encode())
                 data = ''
             elif data.startswith(u'quit'):
                 print('[+] Closing connection from {0}'.format(address))
