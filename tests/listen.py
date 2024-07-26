@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
-import sys
-import socket
+import logging
 import select
+import socket
+import sys
+
+logging.basicConfig(stream=sys.stderr, format='%(asctime)s %(levelname)s %(message)s')
+logging.getLogger().setLevel(logging.INFO)
 
 host = '127.0.0.1'
 port = 5555
@@ -40,22 +44,22 @@ try:
     s.bind((host, port))
     s.listen(timeout)
 except socket.error as e:
-    print('Failed to create socket: {0}').format(e)
+    logging.error(f'Failed to create socket: {e}')
     sys.exit(1)
 
-print('[+] Listening for connections on {0}:{1}'.format(host, port))
+logging.info(f'Listening for connections on {host}:{port}')
 
 data = b''
 exit_listener = False
 while not exit_listener:
     conn, address = s.accept()
-    print('[+] Connection from {0}'.format(address))
+    logging.info(f'Connection from {address}')
     while 1:
         try:
             readable, writeable, in_error = \
                 select.select([conn, ], [conn, ], [], timeout)
         except (select.error, socket.error):
-            print('[+] Closing connection from {0}'.format(address))
+            logging.error(f'Closing connection from {address}')
             conn.shutdown(2)
             conn.close()
             break
@@ -75,12 +79,12 @@ while not exit_listener:
                 conn.send(bytes(stats, 'utf-8'))
                 data = b''
             elif data.decode().startswith('quit'):
-                print('[+] Closing connection from {0}'.format(address))
+                logging.info(f'Closing connection from {address}')
                 conn.close()
                 data = b''
                 break
             elif data.decode().startswith('exit'):
-                print('[+] Closing connection from {0}'.format(address))
+                logging.info(f'Closing connection from {address}')
                 conn.shutdown(2)
                 conn.close()
                 s.close()
@@ -89,8 +93,8 @@ while not exit_listener:
             else:
                 pass
         elif readable and writeable:
-            print('[+] Closing connection from {0}'.format(address))
+            logging.info(f'Closing connection from {address}')
             conn.shutdown(2)
             conn.close()
             break
-print('[+] Closing socket: {0}:{1}'.format(host, port))
+logging.info(f'Closing socket: {host}:{port}')
