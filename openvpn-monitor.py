@@ -155,8 +155,11 @@ class OpenvpnMgmtInterface(object):
                         self.send_command(command)
                     self._socket_disconnect()
 
-        geoip_data = cfg.settings['geoip_data']
-        self.gi = database.Reader(geoip_data)
+        geoip_data = cfg.settings.get('geoip_data')
+        maps = is_truthy(cfg.settings.get('maps', False))
+        self.gi = None
+        if maps and geoip_data:
+            self.gi = database.Reader(geoip_data)
 
         for _, vpn in list(self.vpns.items()):
             self._socket_connect(vpn)
@@ -360,15 +363,16 @@ class OpenvpnMgmtInterface(object):
                     session['location'] = 'loopback'
                 else:
                     try:
-                        gir = gi.city(str(session['remote_ip']))
-                        session['location'] = gir.country.iso_code
-                        session['region'] = gir.subdivisions.most_specific.iso_code
-                        session['city'] = gir.city.name
-                        session['country'] = gir.country.name
-                        session['longitude'] = gir.location.longitude
-                        session['latitude'] = gir.location.latitude
-                    except AddressNotFoundError:
-                        pass
+                        if gi:
+                            gir = gi.city(str(session['remote_ip']))
+                            session['location'] = gir.country.iso_code
+                            session['region'] = gir.subdivisions.most_specific.iso_code
+                            session['city'] = gir.city.name
+                            session['country'] = gir.country.name
+                            session['longitude'] = gir.location.longitude
+                            session['latitude'] = gir.location.latitude
+                    except AddressNotFoundError as e:
+                        logging.warning(e)
                     except SystemError:
                         pass
                 local_ipv4 = parts.popleft()
