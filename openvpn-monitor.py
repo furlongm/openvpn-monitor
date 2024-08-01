@@ -512,7 +512,7 @@ class OpenvpnHtmlPrinter(object):
         output('<script>$(document).ready(function(){')
         output('$("table.tablesorter").tablesorter({')
         output('sortList: [[0,0]], theme:"bootstrap", headerTemplate:"{content} {icon}", widgets:["uitheme"],')
-        output('durationLabels : "(?:years|year|y),(?:days|day|d),(?:hours|hour|h),(?:minutes|minute|min|m),(?:seconds|second|sec|s)"')
+        output('durationLabels : "(?:years|year|y),(?:days|day|d),(?:hours|hour|h),(?:minutes|minute|min|m),(?:seconds|second|sec|s)"')  # noqa
         output('});')
         output('});</script>')
         if self.maps:
