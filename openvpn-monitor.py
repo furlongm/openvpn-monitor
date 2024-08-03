@@ -812,22 +812,7 @@ def get_args():
     return parser.parse_args()
 
 
-if __name__ == '__main__':
-    args = get_args()
-    if args.debug:
-        logging.getLogger().setLevel(logging.DEBUG)
-    wsgi = False
-    main()
-
-
 def monitor_wsgi():
-    owd = os.getcwd()
-    if owd.endswith('site-packages') and sys.prefix != '/usr':
-        # virtualenv
-        image_dir = owd + '/../../../share/openvpn-monitor/'
-    else:
-        image_dir = ''
-
     app = Flask(__name__)
     app.url_map.strict_slashes = False
     if app.debug:
@@ -860,21 +845,32 @@ def monitor_wsgi():
             client_id = request.forms.get('client_id')
             return render(vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
 
-    @app.route('/images/flags/<filename>', methods=['GET'])
-    def get_images(filename):
+    @app.route('/images/<filename>', methods=['GET'])
+    def get_flag(filename):
         logging.debug(pformat(request.environ))
-        return send_from_directory(image_dir + 'images/flags', filename)
+        return send_file(f'images/{filename}')
+
+    @app.route('/images/flags/<filename>', methods=['GET'])
+    def get_image(filename):
+        logging.debug(pformat(request.environ))
+        return send_file(f'images/flags/{filename}')
 
     return app
 
 
-if __name__.startswith('_mod_wsgi_') or \
+if __name__ == '__main__':
+    args = get_args()
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
+    wsgi = False
+    main()
+elif __name__.startswith('_mod_wsgi_') or \
         __name__ == 'openvpn-monitor' or \
         __name__ == 'uwsgi_file_openvpn-monitor':
     if __file__ != 'openvpn-monitor.py':
         os.chdir(os.path.dirname(__file__))
         sys.path.append(os.path.dirname(__file__))
-    from flask import Flask, request, redirect, make_response, send_from_directory
+    from flask import Flask, request, redirect, make_response, send_file
 
     class args(object):
         debug = False
