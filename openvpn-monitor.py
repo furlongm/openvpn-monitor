@@ -33,7 +33,7 @@ from geoip2 import database
 from geoip2.errors import AddressNotFoundError
 from pprint import pformat
 
-logging.basicConfig(stream=sys.stderr, format='%(asctime)s %(levelname)s %(message)s')
+logging.basicConfig(stream=sys.stderr, format='[%(asctime)s] [%(process)d] [%(levelname)s] %(message)s')
 logging.getLogger().setLevel(logging.INFO)
 
 
@@ -228,7 +228,7 @@ class OpenvpnMgmtInterface(object):
         self.s.close()
 
     def send_command(self, command):
-        logging.info(f'Sending command: {command}')
+        logging.info(f'Sending openvpn management command: `{command.rstrip()}`')
         self._socket_send(command)
         if command.startswith('kill') or command.startswith('client-kill'):
             return
