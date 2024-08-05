@@ -44,7 +44,7 @@ If selinux is enabled the following changes are required for host/port to work:
 ```
 dnf -y install policycoreutils-python-utils
 semanage port -a -t openvpn_port_t -p tcp 5555
-setsebool -P httpd_can_network_connect=1
+setsebool -P httpd_can_network_connect 1
 ```
 
 
