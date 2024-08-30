@@ -1,0 +1,49 @@
+{% set connected_since = session.get('connected_since').strftime(datetime_format) %}
+{% set last_seen = session.get('last_seen').strftime(datetime_format) %}
+{% set total_connected_time = session.get('connected_since') | get_total_connected_time %}
+{% set bytes_recv = session.get('bytes_recv') %}
+{% set bytes_sent = session.get('bytes_sent') %}
+{% set username = session.get('username') %}
+{% set local_ip = session.get('local_ip') %}
+{% set remote_ip = session.get('remote_ip') %}
+{% set port = session.get('port') %}
+{% set client_id = session.get('client_id') %}
+{% set location = session.get('location') %}
+{% set full_location = session | get_full_location %}
+{% set flag = session | get_flag %}
+<td>{{ username }}</td>
+<td>{{ local_ip }}</td>
+<td>{{ remote_ip }}</td>
+{% if location %}
+<td><img src="{{ url_for('static', filename=flag) }}" title="{{ full_location }}" alt="{{ full_location }}">&nbsp;{{ full_location }}</td>
+{% else %}
+<td>Unknown</td>
+{% endif %}
+<td>{{ bytes_recv }} ({{ bytes_recv | get_naturalsize }})</td>
+<td>{{ bytes_sent }} ({{ bytes_sent | get_naturalsize }})</td>
+<td>{{ connected_since }}</td>
+{% if session.get('last_seen') %}
+<td>{{ last_seen }}</td>
+{% else %}
+<td>Unknown</td>
+{% endif %}
+<td>{{ total_connected_time }}</td>
+{% if show_disconnect %}
+<td>
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="vpn_id" value="{{ vpn_id }}">
+    {% if remote_ip is defined and port is defined %}
+    <input type="hidden" name="ip" value="{{ remote_ip }}">
+    <input type="hidden" name="port" value="{{ port }}">
+    {% endif %}
+    {% if client_id is defined %}
+    <input type="hidden" name="client_id" value="{{ client_id }}">
+    {% endif %}
+    <button type="submit" class="btn btn-xs btn-danger">
+      <span class="glyphicon glyphicon-remove"></span>
+      Disconnect
+    </button>
+  </form>
+</td>
+{% endif %}

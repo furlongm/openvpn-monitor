@@ -1,0 +1,19 @@
+{% block js %}
+<script src="{{ url_for('static', filename='dist/jquery/dist/jquery.min.js') }}"></script>
+<script src="{{ url_for('static', filename='dist/tablesorter/dist/js/jquery.tablesorter.min.js') }}"></script>
+<script src="{{ url_for('static', filename='dist/tablesorter/dist/js/jquery.tablesorter.widgets.min.js') }}"></script>
+<script src="{{ url_for('static', filename='dist/tablesorter/dist/js/parsers/parser-network.min.js') }}"></script>
+<script src="{{ url_for('static', filename='dist/tablesorter/dist/js/parsers/parser-duration.min.js') }}"></script>
+<script src="{{ url_for('static', filename='dist/bootstrap3/dist/js/bootstrap.min.js') }}"></script>
+<script>$(document).ready(function(){
+$("table.tablesorter").tablesorter({
+sortList: [[0,0]], theme:"bootstrap", headerTemplate:"{content} {icon}", widgets:["uitheme"],
+durationLabels : "(?:years|year|y),(?:days|day|d),(?:hours|hour|h),(?:minutes|minute|min|m),(?:seconds|second|sec|s)"
+});
+});</script>
+{% if enable_maps %}
+  <script src="{{ url_for('static', filename='dist/leaflet/dist/leaflet.js') }}"></script>
+  <script src="{{ url_for('static', filename='dist/overlapping-marker-spiderfier-leaflet/dist/oms.js') }}"></script>
+  <script src="{{ url_for('static', filename='dist/leaflet.fullscreen/Control.FullScreen.js') }}"></script>
+{% endif %}
+{% endblock %}

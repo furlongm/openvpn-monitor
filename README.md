@@ -3,16 +3,16 @@
 
 ## Summary
 
-openvpn-monitor is a simple python program to generate html that displays the
-status of an OpenVPN server, including all current connections. It uses the
-OpenVPN management console. It typically runs on the same host as the OpenVPN
-server, however it does not necessarily need to.
+openvpn-monitor is a flask app that displays the status of OpenVPN servers,
+including all current connections. It uses the OpenVPN management console.
+It typically runs on the same host as the OpenVPN server, but it can also
+manage remote servers.
 
 [![](https://raw.githubusercontent.com/furlongm/openvpn-monitor/gh-pages/screenshots/openvpn-monitor.png)](https://raw.githubusercontent.com/furlongm/openvpn-monitor/gh-pages/screenshots/openvpn-monitor.png)
 
 
 ## Supported Operating Systems
-  - Ubuntu 22.04 LTS (jammy)
+  - Ubuntu 24.04 LTS (noble)
   - Debian 11 (bullseye)
   - Rocky/Alma/RHEL 9
 
@@ -26,11 +26,11 @@ https://github.com/furlongm/openvpn-monitor
 
 ## Install Options
 
+  - [deb/rpm](#deb--rpm)
   - [virtualenv + pip + gunicorn](#virtualenv--pip--gunicorn)
   - [apache](#apache)
   - [docker](#docker)
   - [nginx + uwsgi](#nginx--uwsgi)
-  - [deb/rpm](#deb--rpm)
 
 N.B. all Rocky/Alma/RHEL instructions assume the EPEL repository has been installed:
 
@@ -55,10 +55,10 @@ setsebool -P httpd_can_network_connect 1
 # dnf -y install python3 geolite2-city  # (rocky/alma/rhel)
 mkdir /srv/openvpn-monitor
 cd /srv/openvpn-monitor
-python3 -m venv .
-. bin/activate
+python3 -m venv .venv
+. venv/bin/activate
 pip install openvpn-monitor gunicorn
-gunicorn openvpn-monitor -b 0.0.0.0:80
+gunicorn openvpn_monitor.app -b 0.0.0.0:80
 ```
 
 See [configuration](#configuration) for details on configuring openvpn-monitor.
@@ -71,20 +71,20 @@ See [configuration](#configuration) for details on configuring openvpn-monitor.
 ##### Debian / Ubuntu
 
 ```shell
-apt -y install git apache2 libapache2-mod-wsgi-py3 python3-geoip2 python3-humanize python3-flask python3-semver
+apt -y install git apache2 libapache2-mod-wsgi-py3 python3-geoip2 python3-humanize python3-flask python3-semver yarnpkg
 a2enmod rewrite wsgi
 echo "RewriteRule ^/openvpn-monitor$ /openvpn-monitor/ [R,L]" > /etc/apache2/conf-available/openvpn-monitor.conf
-echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" >> /etc/apache2/conf-available/openvpn-monitor.conf
+echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn_monitor/app.py" >> /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
-systemctl restart apache2
+service apache2 restart
 ```
 
 ##### CentOS / RHEL
 
 ```shell
-dnf -y install git httpd mod_wsgi python3-geoip2 python3-humanize python3-flask python3-semver geolite2-city
+dnf -y install git httpd mod_wsgi python3-geoip2 python3-humanize python3-flask python3-semver geolite2-city yarnpkg
 echo "RewriteRule ^/openvpn-monitor$ /openvpn-monitor/ [R,L]" > /etc/httpd/conf.d/openvpn-monitor.conf
-echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" >> /etc/httpd/conf.d/openvpn-monitor.conf
+echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn_monitor/app.py" >> /etc/httpd/conf.d/openvpn-monitor.conf
 systemctl restart httpd
 ```
 
@@ -93,6 +93,8 @@ systemctl restart httpd
 ```shell
 cd /var/www/html
 git clone https://github.com/furlongm/openvpn-monitor
+cd openvpn-monitor
+yarnpkg --prod --modules-folder openvpn_monitor/static/dist install
 ```
 
 See [configuration](#configuration) for details on configuring openvpn-monitor.
@@ -114,8 +116,8 @@ variables.
 #### Install dependencies
 
 ```shell
-# apt -y install git gcc nginx uwsgi uwsgi-plugin-python3 python3-dev python3-venv libgeoip-dev  # (debian/ubuntu)
-# dnf -y install git gcc nginx uwsgi uwsgi-plugin-python3 python3-devel geolite2-city            # (centos/rhel)
+apt -y install git gcc nginx uwsgi uwsgi-plugin-python3 python3-dev python3-venv libgeoip-dev yarnpkg  # (debian/ubuntu)
+dnf -y install git gcc nginx uwsgi uwsgi-plugin-python3 python3-devel geolite2-city yarnpkg            # (centos/rhel)
 ```
 
 #### Checkout openvpn-monitor
@@ -127,6 +129,7 @@ cd openvpn-monitor
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -r requirements.txt
+yarnpkg --prod --modules-folder openvpn_monitor/static/dist install
 ```
 
 #### uWSGI app config
@@ -143,7 +146,7 @@ chdir = %(base)/%(project)
 virtualenv = %(chdir)/.venv
 module = openvpn-monitor:application
 manage-script-name = true
-mount=/openvpn-monitor=openvpn-monitor.py
+mount=/openvpn-monitor=openvpn_monitor/app.py
 ```
 
 #### Nginx site config
@@ -198,10 +201,10 @@ access to the management interface.
 ### Configure openvpn-monitor
 
 Copy the example configuration file `openvpn-monitor.conf.example` to the same
-directory as openvpn-monitor.py.
+directory as app.py.
 
 ```shell
-cp openvpn-monitor.conf.example openvpn-monitor.conf
+cp openvpn-monitor.conf.example openvpn_monitor/openvpn-monitor.conf
 
 ```
 
@@ -211,23 +214,15 @@ In this file you can set site name, add a logo, set the default map location
 Once configured, navigate to `http://myipaddress/openvpn-monitor/`
 
 
-### Debugging
+### Development / Debugging
 
-openvpn-monitor can be run from the command line in order to test if the html
-generates correctly:
-
-```shell
-cd /var/www/html/openvpn-monitor
-python3 openvpn-monitor.py
-```
-
-Further debugging can be enabled by specifying the `--debug` flag:
+openvpn-monitor can be run from the command line for development / debugging
+purposes:
 
 ```shell
 cd /var/www/html/openvpn-monitor
-python3 openvpn-monitor.py -d
+flask --app openvpn_monitor/app run --debug
 ```
-
 
 ## License
 

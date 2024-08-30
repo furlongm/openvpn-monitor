@@ -1,0 +1,10 @@
+{% set tuntap_r = session.get('tuntap_read') %}
+{% set tuntap_w = session.get('tuntap_write') %}
+{% set tcpudp_r = session.get('tcpudp_read') %}
+{% set tcpudp_w = session.get('tcpudp_write') %}
+{% set auth_r = session.get('auth_read') %}
+<td>{{ tuntap_r }} ({{ tuntap_r | get_naturalsize }})</td>
+<td>{{ tuntap_w }} ({{ tuntap_w | get_naturalsize }})</td>
+<td>{{ tcpudp_r }} ({{ tcpudp_r | get_naturalsize }})</td>
+<td>{{ tcpudp_w }} ({{ tcpudp_w | get_naturalsize }})</td>
+<td>{{ auth_r }} ({{ auth_r | get_naturalsize }})</td>

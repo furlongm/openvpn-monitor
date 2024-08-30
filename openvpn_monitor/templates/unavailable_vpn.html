@@ -1,0 +1,8 @@
+<div class="panel panel-danger" id="{{ vpn | get_vpn_anchor }}">
+  <div class="panel-heading">
+    <h3 class="panel-title">{{ vpn['name'] }}</h3>
+  </div>
+  <div class="panel-body">
+    Could not connect to {{ vpn | get_vpn_error }}
+  </div>
+</div>

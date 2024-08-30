@@ -1,0 +1,62 @@
+{% if vpn.get('state').get('success') == 'SUCCESS' %}
+  {% set pingable = 'Yes' %}
+{% else %}
+  {% set pingable = 'No' %}
+{% endif %}
+{% set connection = vpn.get('state').get('connected') %}
+{% set nclients = vpn.get('stats').get('nclients')|int %}
+{% set bytesin = vpn.get('stats').get('bytesin')|int %}
+{% set bytesout = vpn.get('stats').get('bytesout')|int %}
+{% set vpn_mode = vpn.get('state').get('mode') %}
+{% set sessions = vpn.get('sessions', {}).items()  %}
+{% set local_ip = vpn.get('state').get('local_ip') %}
+{% set remote_ip = vpn.get('state').get('remote_ip') %}
+{% set up_since = vpn.get('state').get('up_since') %}
+{% set show_disconnect = vpn.get('show_disconnect') %}
+{% set vpn_version = vpn.get('release') %}
+
+<div class="panel panel-success" id="{{ vpn | get_vpn_anchor  }}">
+  <div class="panel-heading">
+    <h3 class="panel-title">{{ vpn.get('name') }}</h3>
+  </div>
+  <div class="panel-body">
+    <div class="table-responsive">
+      <table class="table table-condensed table-responsive">
+        <thead>
+          <tr>
+            <th>VPN Mode</th>
+            <th>Status</th>
+            <th>Pingable</th>
+            <th>Clients</th>
+            <th>Total Bytes In</th>
+            <th>Total Bytes Out</th>
+            <th>Up Since</th>
+            <th>Local IP Address</th>
+            {% if vpn_mode == 'Client' %}
+            <th>Remote IP Address</th>
+            {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ vpn_mode }}</td>
+            <td>{{ connection }}</td>
+            <td>{{ pingable }}</td>
+            <td>{{ nclients }}</td>
+            <td>{{ bytesin }} ({{ bytesin | get_naturalsize }})</td>
+            <td>{{ bytesout }} ({{ bytesin | get_naturalsize }})</td>
+            <td>{{ up_since.strftime(datetime_format) }}</td>
+            <td>{{ local_ip }}</td>
+            {% if vpn_mode == 'Client' %}
+            <td>{{ remote_ip }}</td>
+            {% endif %}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    {% if vpn_mode == 'Client' or nclients > 0 %}
+      {% include 'sessions.html' %}
+    {% endif %}
+  </div>
+  <div class="panel-footer panel-custom">{{ vpn_version }}</div>
+</div>
