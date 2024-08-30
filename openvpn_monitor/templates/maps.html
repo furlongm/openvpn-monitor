@@ -1,0 +1,11 @@
+{% if enable_maps %}
+<div class="panel panel-info">
+  <div class="panel-heading">
+    <h3 class="panel-title">Map View</h3>
+  </div>
+  <div class="panel-body">
+    <div id="map_canvas" style="height:{{ maps_height }}px"></div>
+    <script>{% include 'maps.js' %}</script>
+  </div>
+</div>
+{% endif %}

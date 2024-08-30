@@ -1,0 +1,26 @@
+<div class="table-responsive">
+  <table id="sessions_{{ vpn_id }}" class="table table-striped table-bordered table-hover table-condensed table-responsive tablesorter tablesorter-bootstrap">
+    <thead>
+     <tr>
+        {% set headers = vpn_mode | get_session_headers %}
+        {% if vpn_mode == 'Server' and show_disconnect %}
+          {% set headers = headers + ['Action'] %}
+        {% endif %}
+        {% for header in headers %}
+          {% if header == 'Time Online' %}<th class="sorter-duration">{% else %}<th>{% endif %}{{ header }}</th>
+        {% endfor %}
+     </tr>
+   </thead>
+   <tbody>
+     {% for _, session in sessions %}
+        <tr>
+          {% if vpn_mode == 'Client' %}
+            {% include 'client_session.html' %}
+          {% elif vpn_mode == 'Server' and session.get('local_ip') %}
+            {% include 'server_session.html' %}
+          {% endif %}
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
