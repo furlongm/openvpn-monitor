@@ -51,7 +51,7 @@ jobs:
           sed -i -e "s/python-all/python3-all/g" /usr/lib/python3/dist-packages/stdeb/util.py
       - uses: actions/checkout@v2
       - name: Download upload_url artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4.1.7
         with:
           name: upload_url.txt
       - name: Get upload_url
@@ -84,7 +84,7 @@ jobs:
           dnf -y install rpm-build python3 python3-setuptools git
       - uses: actions/checkout@v2
       - name: Download upload_url artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4.1.7
         with:
           name: upload_url.txt
       - name: Get upload_url
