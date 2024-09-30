@@ -1,0 +1,11 @@
+*~
+*.orig
+*.rej
+tmp*
+*.pyc
+*.pyo
+*~
+#*
+.svn
+.tox
+*.egg-info/

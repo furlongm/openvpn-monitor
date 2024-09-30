@@ -1,0 +1,10 @@
+Define openvpn_monitor_pythonpath /srv/openvpn-monitor/
+WSGIScriptAlias /openvpn-monitor ${openvpn_monitor_pythonpath}/openvpn-monitor/app.py
+WSGIPythonPath ${openvpn_monitor_pythonpath}
+
+<Directory ${openvpn_monitor_pythonpath}>
+    <Files app.py>
+        Require all granted
+    </Files>
+    AllowOverride All
+</Directory>
