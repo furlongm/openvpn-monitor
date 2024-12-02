@@ -12,9 +12,9 @@ server, however it does not necessarily need to.
 
 
 ## Supported Operating Systems
-  - Ubuntu 20.04 LTS (focal)
-  - Debian 10 (buster)
-  - CentOS/RHEL 8
+  - Ubuntu 22.04 LTS (jammy)
+  - Debian 11 (bullseye)
+  - Rocky/Alma/RHEL 9
 
 
 ## Source
@@ -32,11 +32,11 @@ https://github.com/furlongm/openvpn-monitor
   - [nginx + uwsgi](#nginx--uwsgi)
   - [deb/rpm](#deb--rpm)
 
-N.B. all CentOS/RHEL instructions assume the EPEL repository has been installed:
+N.B. all Rocky/Alma/RHEL instructions assume the EPEL repository has been installed:
 
 ```shell
 dnf -y install epel-release
-
+dnf makecache
 ```
 
 If selinux is enabled the following changes are required for host/port to work:
@@ -51,11 +51,11 @@ setsebool -P httpd_can_network_connect=1
 ### virtualenv + pip + gunicorn
 
 ```shell
-# apt -y install python3-virtualenv geoip-database geoip-database-extra # (debian/ubuntu)
-# dnf -y install python3-virtualenv geolite2-city                       # (centos/rhel)
+# apt -y install python3-venv           # (debian/ubuntu)
+# dnf -y install python3 geolite2-city  # (rocky/alma/rhel)
 mkdir /srv/openvpn-monitor
 cd /srv/openvpn-monitor
-virtualenv -p python3 .
+python3 -m venv .
 . bin/activate
 pip install openvpn-monitor gunicorn
 gunicorn openvpn-monitor -b 0.0.0.0:80
@@ -71,7 +71,7 @@ See [configuration](#configuration) for details on configuring openvpn-monitor.
 ##### Debian / Ubuntu
 
 ```shell
-apt -y install git apache2 libapache2-mod-wsgi python3-geoip2 python3-humanize python3-bottle python3-semantic-version geoip-database geoip-database-extra
+apt -y install git apache2 libapache2-mod-wsgi-py3 python3-geoip2 python3-humanize python3-bottle python3-semver
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
 systemctl restart apache2
@@ -80,7 +80,7 @@ systemctl restart apache2
 ##### CentOS / RHEL
 
 ```shell
-dnf -y install git httpd mod_wsgi python3-geoip2 python3-humanize python3-bottle python3-semantic_version geolite2-city
+dnf -y install git httpd mod_wsgi python3-geoip2 python3-humanize python3-bottle python3-semver geolite2-city
 echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/httpd/conf.d/openvpn-monitor.conf
 systemctl restart httpd
 ```
@@ -111,17 +111,17 @@ variables.
 #### Install dependencies
 
 ```shell
-# apt -y install git gcc nginx uwsgi uwsgi-plugin-python3 virtualenv python3-dev libgeoip-dev geoip-database geoip-database-extra  # (debian/ubuntu)
-# dnf -y install git gcc nginx uwsgi uwsgi-plugin-python3 virtualenv python3-devel geoip-devel geolite2-city                       # (centos/rhel)
+# apt -y install git gcc nginx uwsgi uwsgi-plugin-python3 python3-dev python3-venv libgeoip-dev  # (debian/ubuntu)
+# dnf -y install git gcc nginx uwsgi uwsgi-plugin-python3 python3-devel geolite2-city            # (centos/rhel)
 ```
 
 #### Checkout openvpn-monitor
 
 ```shell
 cd /srv
-git clone https://github.com/furlongm/openvpn-monitor.git
+git clone https://github.com/furlongm/openvpn-monitor
 cd openvpn-monitor
-virtualenv -p python3 .
+python3 -m venv .
 . bin/activate
 pip install -r requirements.txt
 ```
@@ -168,14 +168,6 @@ systemctl restart nginx
 ```
 
 See [configuration](#configuration) for details on configuring openvpn-monitor.
-
-
-
-### deb / rpm
-
-```shell
-TBD
-```
 
 ## Configuration
 

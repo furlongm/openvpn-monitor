@@ -1,4 +1,4 @@
-geoip2==4.5.0
-humanize==3.13.1
-bottle==0.12.20
-semantic_version==2.8.5
+geoip2==4.7.0
+humanize==4.8.0
+bottle==0.12.25
+semver==2.13.0
