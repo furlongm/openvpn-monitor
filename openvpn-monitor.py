@@ -843,36 +843,43 @@ def monitor_wsgi():
     else:
         image_dir = ''
 
-    app = Bottle()
+    app = Flask(__name__)
+    app.url_map.strict_slashes = False
+    if app.debug:
+        args.debug = True
 
     def render(**kwargs):
         global wsgi_output
         wsgi_output = ''
         main(**kwargs)
-        response.content_type = 'text/html;'
-        return wsgi_output
+        return make_response(wsgi_output)
 
-    @app.hook('before_request')
+    @app.before_request
     def strip_slash():
-        request.environ['PATH_INFO'] = request.environ.get('PATH_INFO', '/').rstrip('/')
-        if args.debug:
+        if args.debug or app.debug:
             debug(pformat(request.environ))
+        rp = request.path
+        if rp != '/' and rp.endswith('/'):
+            return redirect(rp.rstrip('/'))
 
-    @app.route('/', method='GET')
-    def get_slash():
-        return render()
+    @app.route('/', methods=['GET', 'POST'])
+    def handle_root():
+        if args.debug or app.debug:
+            debug(pformat(request.environ))
+        if request.method == 'GET':
+            return render()
+        elif request.method == 'POST':
+            vpn_id = request.forms.get('vpn_id')
+            ip = request.forms.get('ip')
+            port = request.forms.get('port')
+            client_id = request.forms.get('client_id')
+            return render(vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
 
-    @app.route('/', method='POST')
-    def post_slash():
-        vpn_id = request.forms.get('vpn_id')
-        ip = request.forms.get('ip')
-        port = request.forms.get('port')
-        client_id = request.forms.get('client_id')
-        return render(vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
-
-    @app.route('/<filename:re:.*\.(jpg|png)>', method='GET')
+    @app.route('/images/flags/<filename>', methods=['GET'])
     def get_images(filename):
-        return static_file(filename, image_dir)
+        if args.debug or app.debug:
+            debug(pformat(request.environ))
+        return send_from_directory(image_dir + 'images/flags', filename)
 
     return app
 
@@ -883,7 +890,7 @@ if __name__.startswith('_mod_wsgi_') or \
     if __file__ != 'openvpn-monitor.py':
         os.chdir(os.path.dirname(__file__))
         sys.path.append(os.path.dirname(__file__))
-    from bottle import Bottle, response, request, static_file
+    from flask import Flask, request, redirect, make_response, send_from_directory
 
     class args(object):
         debug = False
