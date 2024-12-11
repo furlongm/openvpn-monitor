@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import sys
 import socket
@@ -45,51 +45,51 @@ except socket.error as e:
 
 print('[+] Listening for connections on {0}:{1}'.format(host, port))
 
-data = ''
-received_exit = False
-while not received_exit:
+data = b''
+exit = False
+while not exit:
     conn, address = s.accept()
     print('[+] Connection from {0}'.format(address))
     while 1:
         try:
-            readable, writable, exceptional = \
-                select.select([conn], [conn], [], timeout)
-        except select.error:
-            print('[+] Exception. Closing connection from {0}'.format(address))
+            readable, writeable, in_error = \
+                select.select([conn, ], [conn, ], [], timeout)
+        except (select.error, socket.error):
+            print('[+] Closing connection from {0}'.format(address))
             conn.shutdown(2)
             conn.close()
             break
         if readable:
             data = conn.recv(1024)
-        if data.endswith(u'\n'):
-            if data.startswith(u'status 3'):
-                conn.send(status)
-                data = ''
-            elif data.startswith(u'state'):
-                conn.send(state)
-                data = ''
-            elif data.startswith(u'version'):
-                conn.send(version)
-                data = ''
-            elif data.startswith(u'load-stats'):
-                conn.send(stats)
-                data = ''
-            elif data.startswith(u'quit'):
+        if data.decode().endswith('\n'):
+            if data.decode().startswith('status 3'):
+                conn.send(bytes(status, 'utf-8'))
+                data = b''
+            elif data.decode().startswith('state'):
+                conn.send(bytes(state, 'utf-8'))
+                data = b''
+            elif data.decode().startswith('version'):
+                print('got vesi')
+                conn.send(bytes(version, 'utf-8'))
+                data = b''
+            elif data.decode().startswith('load-stats'):
+                conn.send(bytes(stats, 'utf-8'))
+                data = b''
+            elif data.decode().startswith('quit'):
                 print('[+] Closing connection from {0}'.format(address))
-                conn.shutdown(2)
                 conn.close()
-                data = ''
+                data = b''
                 break
-            elif data.startswith(u'exit'):
+            elif data.decode().startswith('exit'):
                 print('[+] Closing connection from {0}'.format(address))
                 conn.shutdown(2)
                 conn.close()
                 s.close()
-                received_exit = True
+                exit = True
                 break
             else:
                 pass
-        elif readable and writable:
+        elif readable and writeable:
             print('[+] Closing connection from {0}'.format(address))
             conn.shutdown(2)
             conn.close()
