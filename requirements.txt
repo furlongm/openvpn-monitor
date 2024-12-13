@@ -1,4 +1,4 @@
 geoip2==4.7.0
 humanize==4.8.0
-bottle==0.12.25
+Flask==3.0.0
 semver==2.13.0

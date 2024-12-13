@@ -18,6 +18,7 @@
 
 import argparse
 import configparser
+import logging
 import os
 import re
 import semver
@@ -32,6 +33,9 @@ from geoip2 import database
 from geoip2.errors import AddressNotFoundError
 from pprint import pformat
 
+logging.basicConfig(stream=sys.stderr, format='%(asctime)s %(levelname)s %(message)s')
+logging.getLogger().setLevel(logging.INFO)
+
 
 def output(s):
     global wsgi, wsgi_output
@@ -41,27 +45,11 @@ def output(s):
         wsgi_output += s
 
 
-def info(*objs):
-    print('INFO:', *objs, file=sys.stderr)
-
-
-def warning(*objs):
-    print('WARNING:', *objs, file=sys.stderr)
-
-
-def debug(*objs):
-    print('DEBUG\n', *objs, file=sys.stderr)
-
-
 def get_date(date_string, uts=False):
     if not uts:
         return datetime.strptime(date_string, '%a %b %d %H:%M:%S %Y')
     else:
         return datetime.fromtimestamp(float(date_string))
-
-
-def get_str(s):
-    return s
 
 
 def is_truthy(s):
@@ -77,7 +65,7 @@ class ConfigLoader(object):
         contents = config.read(config_file)
 
         if not contents and config_file == './openvpn-monitor.conf':
-            warning(f'Config file does not exist or is unreadable: {config_file}')
+            logging.warning(f'Config file does not exist or is unreadable: {config_file}')
             if sys.prefix == '/usr':
                 conf_path = '/etc/'
             else:
@@ -86,9 +74,9 @@ class ConfigLoader(object):
             contents = config.read(config_file)
 
         if contents:
-            info(f'Using config file: {config_file}')
+            logging.info(f'Using config file: {config_file}')
         else:
-            warning(f'Config file does not exist or is unreadable: {config_file}')
+            logging.warning(f'Config file does not exist or is unreadable: {config_file}')
             self.load_default_settings()
 
         for section in config.sections():
@@ -98,7 +86,7 @@ class ConfigLoader(object):
                 self.parse_vpn_section(config, section)
 
     def load_default_settings(self):
-        info('Using default settings => localhost:5555')
+        logging.info('Using default settings => localhost:5555')
         self.settings = {'site': 'Default Site',
                          'maps': 'True',
                          'geoip_data': '/usr/share/GeoIP/GeoLite2-City.mmdb',
@@ -122,8 +110,7 @@ class ConfigLoader(object):
                     pass
             except configparser.NoOptionError:
                 pass
-        if args.debug:
-            debug(f'=== begin section\n{self.settings}\n=== end section')
+        logging.debug(f'=== begin section\n{self.settings}\n=== end section')
 
     def parse_vpn_section(self, config, section):
         self.vpns[section] = {}
@@ -133,13 +120,12 @@ class ConfigLoader(object):
             try:
                 vpn[option] = config.get(section, option)
                 if vpn[option] == -1:
-                    warning(f'CONFIG: skipping {option}')
+                    logging.warning(f'CONFIG: skipping {option}')
             except configparser.Error as e:
-                warning(f'CONFIG: {e} on option {option}: ')
+                logging.warning(f'CONFIG: {e} on option {option}: ')
                 vpn[option] = None
         vpn['show_disconnect'] = is_truthy(vpn.get('show_disconnect', False))
-        if args.debug:
-            debug(f'=== begin section\n{vpn}\n=== end section')
+        logging.debug(f'=== begin section\n{vpn}\n=== end section')
 
 
 class OpenvpnMgmtInterface(object):
@@ -169,8 +155,11 @@ class OpenvpnMgmtInterface(object):
                         self.send_command(command)
                     self._socket_disconnect()
 
-        geoip_data = cfg.settings['geoip_data']
-        self.gi = database.Reader(geoip_data)
+        geoip_data = cfg.settings.get('geoip_data')
+        maps = is_truthy(cfg.settings.get('maps', False))
+        self.gi = None
+        if maps and geoip_data:
+            self.gi = database.Reader(geoip_data)
 
         for _, vpn in list(self.vpns.items()):
             self._socket_connect(vpn)
@@ -219,18 +208,18 @@ class OpenvpnMgmtInterface(object):
                 vpn['socket_connected'] = True
         except socket.timeout as e:
             vpn['error'] = e
-            warning(f'socket timeout: {e}')
+            logging.warning(f'socket timeout: {e}')
             vpn['socket_connected'] = False
             if self.s:
                 self.s.shutdown(socket.SHUT_RDWR)
                 self.s.close()
         except socket.error as e:
             vpn['error'] = e.strerror
-            warning(f'socket error: {e}')
+            logging.warning(f'socket error: {e}')
             vpn['socket_connected'] = False
         except Exception as e:
             vpn['error'] = e
-            warning(f'unexpected error: {e}')
+            logging.warning(f'unexpected error: {e}')
             vpn['socket_connected'] = False
 
     def _socket_disconnect(self):
@@ -239,7 +228,7 @@ class OpenvpnMgmtInterface(object):
         self.s.close()
 
     def send_command(self, command):
-        info(f'Sending command: {command}')
+        logging.info(f'Sending command: {command}')
         self._socket_send(command)
         if command.startswith('kill') or command.startswith('client-kill'):
             return
@@ -255,15 +244,14 @@ class OpenvpnMgmtInterface(object):
                 if password:
                     self._socket_send(f'{password}\n')
                 else:
-                    warning('password requested but no password supplied by configuration')
+                    logging.warning('password requested but no password supplied by configuration')
             if data.endswith('SUCCESS: password is correct\r\n'):
                 break
             if command == 'load-stats\n' and data != '':
                 break
             elif data.endswith('\nEND\r\n'):
                 break
-        if args.debug:
-            debug(f'=== begin raw data\n{data}\n=== end raw data')
+        logging.debug(f'=== begin raw data\n{data}\n=== end raw data')
         return data
 
     @staticmethod
@@ -271,8 +259,7 @@ class OpenvpnMgmtInterface(object):
         state = {}
         for line in data.splitlines():
             parts = line.split(',')
-            if args.debug:
-                debug(f'=== begin split line\n{parts}\n=== end split line')
+            logging.debug(f'=== begin split line\n{parts}\n=== end split line')
             if parts[0].startswith('>INFO') or \
                parts[0].startswith('END') or \
                parts[0].startswith('>CLIENT'):
@@ -298,8 +285,7 @@ class OpenvpnMgmtInterface(object):
         stats = {}
         line = re.sub('SUCCESS: ', '', data)
         parts = line.split(',')
-        if args.debug:
-            debug(f'=== begin split line\n{parts}\n=== end split line')
+        logging.debug(f'=== begin split line\n{parts}\n=== end split line')
         stats['nclients'] = int(re.sub('nclients=', '', parts[0]))
         stats['bytesin'] = int(re.sub('bytesin=', '', parts[1]))
         stats['bytesout'] = int(re.sub('bytesout=', '', parts[2]).replace('\r\n', ''))
@@ -314,8 +300,7 @@ class OpenvpnMgmtInterface(object):
 
         for line in data.splitlines():
             parts = deque(line.split('\t'))
-            if args.debug:
-                debug(f'=== begin split line\n{parts}\n=== end split line')
+            logging.debug(f'=== begin split line\n{parts}\n=== end split line')
 
             if parts[0].startswith('END'):
                 break
@@ -378,15 +363,16 @@ class OpenvpnMgmtInterface(object):
                     session['location'] = 'loopback'
                 else:
                     try:
-                        gir = gi.city(str(session['remote_ip']))
-                        session['location'] = gir.country.iso_code
-                        session['region'] = gir.subdivisions.most_specific.iso_code
-                        session['city'] = gir.city.name
-                        session['country'] = gir.country.name
-                        session['longitude'] = gir.location.longitude
-                        session['latitude'] = gir.location.latitude
-                    except AddressNotFoundError:
-                        pass
+                        if gi:
+                            gir = gi.city(str(session['remote_ip']))
+                            session['location'] = gir.country.iso_code
+                            session['region'] = gir.subdivisions.most_specific.iso_code
+                            session['city'] = gir.city.name
+                            session['country'] = gir.country.name
+                            session['longitude'] = gir.location.longitude
+                            session['latitude'] = gir.location.latitude
+                    except AddressNotFoundError as e:
+                        logging.warning(e)
                     except SystemError:
                         pass
                 local_ipv4 = parts.popleft()
@@ -431,12 +417,11 @@ class OpenvpnMgmtInterface(object):
                         else:
                             sessions[local_ip]['last_seen'] = last_seen
 
-        if args.debug:
-            if sessions:
-                pretty_sessions = pformat(sessions)
-                debug(f'=== begin sessions\n{pretty_sessions}\n=== end sessions')
-            else:
-                debug('no sessions')
+        if sessions:
+            pretty_sessions = pformat(sessions)
+            logging.debug(f'=== begin sessions\n{pretty_sessions}\n=== end sessions')
+        else:
+            logging.debug('no sessions')
 
         return sessions
 
@@ -527,7 +512,7 @@ class OpenvpnHtmlPrinter(object):
         output('<script>$(document).ready(function(){')
         output('$("table.tablesorter").tablesorter({')
         output('sortList: [[0,0]], theme:"bootstrap", headerTemplate:"{content} {icon}", widgets:["uitheme"],')
-        output('durationLabels : "(?:years|year|y),(?:days|day|d),(?:hours|hour|h),(?:minutes|minute|min|m),(?:seconds|second|sec|s)"')
+        output('durationLabels : "(?:years|year|y),(?:days|day|d),(?:hours|hour|h),(?:minutes|minute|min|m),(?:seconds|second|sec|s)"')  # noqa
         output('});')
         output('});</script>')
         if self.maps:
@@ -623,7 +608,7 @@ class OpenvpnHtmlPrinter(object):
         elif vpn.get('socket'):
             output(f"{vpn['socket']} ({vpn['error']})</div></div>")
         else:
-            warning(f'failed to get socket or network info: {vpn}')
+            logging.warning(f'failed to get socket or network info: {vpn}')
             output('network or unix socket</div></div>')
 
     def print_vpn(self, vpn_id, vpn):
@@ -811,9 +796,8 @@ def main(**kwargs):
     cfg = ConfigLoader(args.config)
     monitor = OpenvpnMgmtInterface(cfg, **kwargs)
     OpenvpnHtmlPrinter(cfg, monitor)
-    if args.debug:
-        pretty_vpns = pformat((dict(monitor.vpns)))
-        debug(f'=== begin vpns\n{pretty_vpns}\n=== end vpns')
+    pretty_vpns = pformat((dict(monitor.vpns)))
+    logging.debug(f'=== begin vpns\n{pretty_vpns}\n=== end vpns')
 
 
 def get_args():
@@ -830,12 +814,13 @@ def get_args():
 
 if __name__ == '__main__':
     args = get_args()
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
     wsgi = False
     main()
 
 
 def monitor_wsgi():
-
     owd = os.getcwd()
     if owd.endswith('site-packages') and sys.prefix != '/usr':
         # virtualenv
@@ -843,36 +828,42 @@ def monitor_wsgi():
     else:
         image_dir = ''
 
-    app = Bottle()
+    app = Flask(__name__)
+    app.url_map.strict_slashes = False
+    if app.debug:
+        args.debug = True
+    if args.debug:
+        logging.getLogger().setLevel(logging.DEBUG)
 
     def render(**kwargs):
         global wsgi_output
         wsgi_output = ''
         main(**kwargs)
-        response.content_type = 'text/html;'
-        return wsgi_output
+        return make_response(wsgi_output)
 
-    @app.hook('before_request')
+    @app.before_request
     def strip_slash():
-        request.environ['PATH_INFO'] = request.environ.get('PATH_INFO', '/').rstrip('/')
-        if args.debug:
-            debug(pformat(request.environ))
+        logging.debug(pformat(request.environ))
+        rp = request.path
+        if rp != '/' and rp.endswith('/'):
+            return redirect(rp.rstrip('/'))
 
-    @app.route('/', method='GET')
-    def get_slash():
-        return render()
+    @app.route('/', methods=['GET', 'POST'])
+    def handle_root():
+        logging.debug(pformat(request.environ))
+        if request.method == 'GET':
+            return render()
+        elif request.method == 'POST':
+            vpn_id = request.forms.get('vpn_id')
+            ip = request.forms.get('ip')
+            port = request.forms.get('port')
+            client_id = request.forms.get('client_id')
+            return render(vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
 
-    @app.route('/', method='POST')
-    def post_slash():
-        vpn_id = request.forms.get('vpn_id')
-        ip = request.forms.get('ip')
-        port = request.forms.get('port')
-        client_id = request.forms.get('client_id')
-        return render(vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
-
-    @app.route('/<filename:re:.*\.(jpg|png)>', method='GET')
+    @app.route('/images/flags/<filename>', methods=['GET'])
     def get_images(filename):
-        return static_file(filename, image_dir)
+        logging.debug(pformat(request.environ))
+        return send_from_directory(image_dir + 'images/flags', filename)
 
     return app
 
@@ -883,7 +874,7 @@ if __name__.startswith('_mod_wsgi_') or \
     if __file__ != 'openvpn-monitor.py':
         os.chdir(os.path.dirname(__file__))
         sys.path.append(os.path.dirname(__file__))
-    from bottle import Bottle, response, request, static_file
+    from flask import Flask, request, redirect, make_response, send_from_directory
 
     class args(object):
         debug = False
