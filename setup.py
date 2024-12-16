@@ -17,11 +17,7 @@ for dirpath, dirnames, filenames in os.walk('images/flags'):
 with open('requirements.txt') as rt:
     install_requires = []
     for line in rt.read().splitlines():
-        if line.endswith("python_version <= '2.7'"):
-            if sys.version_info[0] == 2:
-                install_requires.append(line.split(';')[0])
-        else:
-            install_requires.append(line)
+        install_requires.append(line)
 
 if sys.prefix == '/usr':
     conf_path = '/etc'

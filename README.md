@@ -44,7 +44,7 @@ If selinux is enabled the following changes are required for host/port to work:
 ```
 dnf -y install policycoreutils-python-utils
 semanage port -a -t openvpn_port_t -p tcp 5555
-setsebool -P httpd_can_network_connect=1
+setsebool -P httpd_can_network_connect 1
 ```
 
 
@@ -71,8 +71,10 @@ See [configuration](#configuration) for details on configuring openvpn-monitor.
 ##### Debian / Ubuntu
 
 ```shell
-apt -y install git apache2 libapache2-mod-wsgi-py3 python3-geoip2 python3-humanize python3-bottle python3-semver
-echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/apache2/conf-available/openvpn-monitor.conf
+apt -y install git apache2 libapache2-mod-wsgi-py3 python3-geoip2 python3-humanize python3-flask python3-semver
+a2enmod rewrite wsgi
+echo "RewriteRule ^/openvpn-monitor$ /openvpn-monitor/ [R,L]" > /etc/apache2/conf-available/openvpn-monitor.conf
+echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" >> /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
 systemctl restart apache2
 ```
@@ -80,8 +82,9 @@ systemctl restart apache2
 ##### CentOS / RHEL
 
 ```shell
-dnf -y install git httpd mod_wsgi python3-geoip2 python3-humanize python3-bottle python3-semver geolite2-city
-echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" > /etc/httpd/conf.d/openvpn-monitor.conf
+dnf -y install git httpd mod_wsgi python3-geoip2 python3-humanize python3-flask python3-semver geolite2-city
+echo "RewriteRule ^/openvpn-monitor$ /openvpn-monitor/ [R,L]" > /etc/httpd/conf.d/openvpn-monitor.conf
+echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn-monitor.py" >> /etc/httpd/conf.d/openvpn-monitor.conf
 systemctl restart httpd
 ```
 
@@ -89,7 +92,7 @@ systemctl restart httpd
 
 ```shell
 cd /var/www/html
-git clone https://github.com/furlongm/openvpn-monitor.git
+git clone https://github.com/furlongm/openvpn-monitor
 ```
 
 See [configuration](#configuration) for details on configuring openvpn-monitor.
@@ -121,8 +124,8 @@ variables.
 cd /srv
 git clone https://github.com/furlongm/openvpn-monitor
 cd openvpn-monitor
-python3 -m venv .
-. bin/activate
+python3 -m venv .venv
+. .venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -137,7 +140,7 @@ project = openvpn-monitor
 logto = /var/log/uwsgi/app/%(project).log
 plugins = python3
 chdir = %(base)/%(project)
-virtualenv = %(chdir)
+virtualenv = %(chdir)/.venv
 module = openvpn-monitor:application
 manage-script-name = true
 mount=/openvpn-monitor=openvpn-monitor.py
@@ -206,8 +209,6 @@ In this file you can set site name, add a logo, set the default map location
 (latitude and longitude). If not set, the default location is New York, USA.
 
 Once configured, navigate to `http://myipaddress/openvpn-monitor/`
-
-Note the trailing slash, the images may not appear without it.
 
 
 ### Debugging
