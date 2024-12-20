@@ -143,7 +143,9 @@ class OpenvpnMgmtInterface(object):
                     release = self.parse_version(full_version)
                     version = semver.parse_version_info(release.split(' ')[1])
                     command = False
-                    client_id = int(kwargs.get('client_id'))
+                    client_id = None
+                    if kwargs.get('client_id'):
+                        client_id = int(kwargs.get('client_id'))
                     if version.major == 2 and version.minor >= 4 and client_id:
                         command = f'client-kill {client_id}\n'
                     else:
@@ -839,10 +841,10 @@ def monitor_wsgi():
         if request.method == 'GET':
             return render()
         elif request.method == 'POST':
-            vpn_id = request.forms.get('vpn_id')
-            ip = request.forms.get('ip')
-            port = request.forms.get('port')
-            client_id = request.forms.get('client_id')
+            vpn_id = request.form.get('vpn_id')
+            ip = request.form.get('ip')
+            port = request.form.get('port')
+            client_id = request.form.get('client_id')
             return render(vpn_id=vpn_id, ip=ip, port=port, client_id=client_id)
 
     @app.route('/images/<filename>', methods=['GET'])
