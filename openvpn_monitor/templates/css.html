@@ -1,0 +1,20 @@
+{% block css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='dist/bootstrap3/dist/css/bootstrap.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='dist/bootstrap3/dist/css/bootstrap-theme.min.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='dist/tablesorter/dist/css/theme.bootstrap_3.min.css') }}">
+{% if enable_maps %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='dist/leaflet/dist/leaflet.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='dist/leaflet.fullscreen/Control.FullScreen.css') }}">
+{% endif %}
+<style>
+.panel-custom {
+   background-color:#777;
+   color:#fff;
+   font-size:80%;
+   vertical-align:baseline;
+   padding:.4em .4em .4em;
+   line-height:1;
+   font-weight:700;
+}
+</style>
+{% endblock %}

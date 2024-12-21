@@ -8,7 +8,7 @@ jobs:
   check-version:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: check-version
         run: |
           version=$(echo "${{ github.ref }}" | cut -d/ -f3)
@@ -17,7 +17,7 @@ jobs:
     needs: check-version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Create release
         id: create_release
         uses: actions/create-release@v1
@@ -32,7 +32,7 @@ jobs:
         run: |
           echo "${{ steps.create_release.outputs.upload_url }}" > upload_url.txt
       - name: Upload upload_url artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: upload_url.txt
           path: upload_url.txt
@@ -40,18 +40,16 @@ jobs:
     needs: create-release
     runs-on: ubuntu-latest
     container:
-      image: debian:buster
+      image: debian:bookworm
     steps:
       - name: Install build dependencies
         run: |
           apt update
           export DEBIAN_FRONTEND=noninteractive
           apt -y install python3-stdeb dh-python
-          # https://bugs.launchpad.net/bugs/1916551
-          sed -i -e "s/python-all/python3-all/g" /usr/lib/python3/dist-packages/stdeb/util.py
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Download upload_url artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: upload_url.txt
       - name: Get upload_url
@@ -82,9 +80,9 @@ jobs:
       - name: Install build dependencies
         run: |
           dnf -y install rpm-build python3 python3-setuptools git
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Download upload_url artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v4
         with:
           name: upload_url.txt
       - name: Get upload_url
@@ -110,9 +108,9 @@ jobs:
     needs: create-release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Set up python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: '3.x'
       - name: Install dependencies

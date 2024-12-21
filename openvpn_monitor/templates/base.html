@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="300">
+    <title>{{ site }} OpenVPN Status Monitor</title>
+    {% include 'css.html' %}
+    {% include 'js.html' %}
+  </head>
+  <body>
+    {% include 'navbar.html' %}
+    <div class="container-fluid">
+      {% for vpn_id, vpn in vpns %}
+        {% if vpn.get('management_connection_successful') %}
+          {% include 'vpn_info.html' %}
+        {% else %}
+          {% include 'unavailable_vpn.html' %}
+        {% endif %}
+      {% endfor %}
+      {% block content %}{% endblock %}
+      {% include 'maps.html' %}
+      <div class="well well-sm">
+        Page automatically reloads every 5 minutes. Last update: <b>{{ datetime_format | get_formatted_time_now }}</b>
+      </div>
+    </div>
+  </body>
+</html>
