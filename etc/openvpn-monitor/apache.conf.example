@@ -1,5 +1,5 @@
 Define openvpn_monitor_pythonpath /srv/openvpn-monitor/
-WSGIScriptAlias /openvpn-monitor ${openvpn_monitor_pythonpath}/openvpn-monitor/app.py
+WSGIScriptAlias /openvpn-monitor ${openvpn_monitor_pythonpath}/openvpn_monitor/app.py
 WSGIPythonPath ${openvpn_monitor_pythonpath}
 
 <Directory ${openvpn_monitor_pythonpath}>

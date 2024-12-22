@@ -1,10 +1,22 @@
-#!/bin/sh -e
+#!/bin/bash -e
 
 #DEBHELPER#
 
-if [ "$1" = "configure" ] ; then
+apache_conf_file=/etc/apache2/conf-available/openvpn-monitor.conf
 
-    echo 'WSGIScriptAlias /openvpn-monitor /usr/lib/python3/dist-packages/openvpn_monitor/app.py' > /etc/apache2/conf-available/python3-openvpn-monitor.conf
-    . /usr/share/apache2/apache2-maintscript-helper
-    apache2_invoke enconf python2-openvpn-monitor.conf
+if [ ! -e ${apache_conf_file} ] ; then
+    cp /etc/openvpn-monitor/apache.conf.example ${apache_conf_file}
 fi
+
+site_packages=/usr/lib/python3/dist-packages
+site_packages="${site_packages//\//\\\/}"
+if ! grep ${site_packages} ${apache_conf_file} >/dev/null 2>&1 ; then
+    sed -i -e "s/^\(Define openvpn_monitor_pythonpath\).*/\1 ${site_packages}/" ${apache_conf_file}
+    . /usr/share/apache2/apache2-maintscript-helper
+    apache2_invoke enconf openvpn-monitor.conf
+fi
+
+systemctl enable apache2
+systemctl restart apache2
+
+chown :www-data /etc/openvpn-monitor/openvpn-monitor.conf.example

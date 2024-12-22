@@ -1,9 +1,11 @@
 include README.md
-recursive-include openvpn_monitor *.py
-include openvpn-monitor.conf.example
 include AUTHORS
 include COPYING
 include MANIFEST.in
 include VERSION.txt
 include requirements.txt
+recursive-include openvpn_monitor *.py
 recursive-include openvpn_monitor/static/images *
+recursive-include openvpn_monitor/templates *
+include etc/openvpn-monitor/openvpn-monitor.conf.example
+include etc/openvpn-monitor/apache.conf.example

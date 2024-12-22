@@ -29,17 +29,19 @@ with open('README.md', 'r', encoding='utf_8') as r:
 with open('requirements.txt', 'r', encoding='utf_8') as rt:
     install_requires = rt.read().splitlines()
 
-data_files = []
-
-for dirpath, dirnames, filenames in os.walk('openvpn_monitor/static/images/flags'):
-    data_files = [('share/openvpn-monitor/images/flags',
-                  [os.path.join(dirpath, f) for f in filenames])]
+package_files = []
+for directory in ['openvpn_monitor/static', 'openvpn_monitor/templates']:
+    for (path, directories, filenames) in os.walk(directory):
+        for filename in filenames:
+            trimmed_path = path.replace('openvpn_monitor/', '')
+            package_files.append(os.path.join(trimmed_path, filename))
 
 if sys.prefix == '/usr':
     conf_path = '/etc'
 else:
     conf_path = sys.prefix
 
+data_files = []
 for dirpath, dirnames, filenames in os.walk('etc'):
     for i, dirname in enumerate(dirnames):
         if dirname.startswith('.'):
@@ -59,6 +61,7 @@ setup(
     keywords='web openvpn monitor',
     url='http://openvpn-monitor.openbytes.ie',
     packages=find_packages(),
+    package_data={'openvpn_monitor': package_files},
     install_requires=install_requires,
     long_description=long_description,
     long_description_content_type='text/markdown',
