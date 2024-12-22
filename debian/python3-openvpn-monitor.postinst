@@ -1,0 +1,10 @@
+#!/bin/sh -e
+
+#DEBHELPER#
+
+if [ "$1" = "configure" ] ; then
+
+    echo 'WSGIScriptAlias /openvpn-monitor /usr/lib/python3/dist-packages/openvpn_monitor/app.py' > /etc/apache2/conf-available/python3-openvpn-monitor.conf
+    . /usr/share/apache2/apache2-maintscript-helper
+    apache2_invoke enconf python2-openvpn-monitor.conf
+fi

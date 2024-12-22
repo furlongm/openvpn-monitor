@@ -39,7 +39,15 @@ if sys.prefix == '/usr':
     conf_path = '/etc'
 else:
     conf_path = sys.prefix
-data_files.append((conf_path, ['openvpn-monitor.conf.example']))
+
+for dirpath, dirnames, filenames in os.walk('etc'):
+    for i, dirname in enumerate(dirnames):
+        if dirname.startswith('.'):
+            del dirnames[i]
+    if filenames:
+        data_files.append(
+            ['/etc/openvpn-monitor', [os.path.join(dirpath, f) for f in filenames]]
+        )
 
 setup(
     name='openvpn-monitor',

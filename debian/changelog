@@ -1,0 +1,6 @@
+openvpn-monitor (2.0.0-1) stable; urgency=medium
+
+  [ Marcus Furlong ]
+  * initial debian release
+
+ -- Marcus Furlong <furlongm@gmail.com>  Sun, 22 Dec 2024 11:54:13 -0500

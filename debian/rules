@@ -1,0 +1,13 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+clean::
+	find -name *.pyc -exec rm {} \;
+	rm -rf debian/python3-openvpn-monitor build MANIFEST dist .pybuild openvpn-monitor.egg-info .tox
+	dh_clean
+
+export PYBUILD_NAME=openvpn-monitor
+
+%:
+	dh $@ --with python3 --buildsystem=pybuild
+
