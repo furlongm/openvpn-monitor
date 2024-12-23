@@ -3,9 +3,9 @@ site=Example
 #logo=logo.jpg
 #latitude=40.72
 #longitude=-74
-maps=True
+enable_maps=True
 maps_height=500
-geoip_data=/var/lib/GeoIP/GeoLite2-City.mmdb
+geoip_data=/usr/share/GeoIP/GeoLite2-City.mmdb
 datetime_format=%d/%m/%Y %H:%M:%S
 
 [VPN1]

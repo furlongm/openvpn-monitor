@@ -14,19 +14,19 @@ manage remote servers.
 
   - Ubuntu 24.04 LTS (noble)
   - Debian 11 (bullseye)
-  - Rocky/Alma/RHEL 9
+  - CentOS / Rocky / Alma / RHEL 9
 
 
 ## Installation Options
 
   - [source](#source)
-  - [deb/rpm](#deb--rpm)
+  - [deb/rpm](#debrpm)
   - [apache](#apache)
   - [docker](#docker)
   - [virtualenv + pip + gunicorn](#virtualenv--pip--gunicorn)
   - [nginx + uwsgi](#nginx--uwsgi)
 
-N.B. all Rocky/Alma/RHEL instructions assume the EPEL repository has been installed:
+N.B. all CentOS / Rocky / Alma / RHEL instructions assume the EPEL repository has been installed:
 
 ```shell
 dnf -y install epel-release
@@ -81,9 +81,8 @@ apt update
 apt -y install python3-openvpn-monitor
 ```
 
-### CentOS 9
+### CentOS / Rocky / Alma / RHEL 9
 
-This also applies to Rocky/Alma/RHEL
 
 ```shell
 curl -sS https://repo.openbytes.ie/openbytes.gpg > /etc/pki/rpm-gpg/RPM-GPG-KEY-openbytes
@@ -99,9 +98,9 @@ update-crypto-policies --set DEFAULT:SHA1
 dnf -y install epel-release
 dnf makecache
 dnf -y install python3-openvpn-monitor
-systemctl restart httpd
 ```
 
+See [configuration](#configuration) for details on configuring openvpn-monitor.
 
 ### apache
 
@@ -112,18 +111,20 @@ These instructions assume a source checkout to /var/www/html/openvpn-monitor
 ##### Debian / Ubuntu
 
 ```shell
-apt -y install git apache2 libapache2-mod-wsgi-py3 python3-geoip2 python3-humanize python3-flask python3-semver yarnpkg
-a2enmod rewrite wsgi
-echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn_monitor/app.py" > /etc/apache2/conf-available/openvpn-monitor.conf
+apt -y install git apache2 libapache2-mod-wsgi-py3 python3-geoip2 python3-humanize python3-flask python3-flaskext.wtf python3-semver yarnpkg
+cp /var/www/html/openvpn-monitor/etc/openvpn-monitor/apache.conf.example /etc/apache2/conf-available/openvpn-monitor.conf
+sed -i -e "s#^\(Define openvpn_monitor_pythonpath\).*#\1 /var/www/html/openvpn-monitor#" /etc/apache2/conf-available/openvpn-monitor.conf
 a2enconf openvpn-monitor
-service apache2 restart
+
+systemctl restart apache2
 ```
 
-##### CentOS / RHEL
+##### CentOS / Rocky / Alma / RHEL
 
 ```shell
-dnf -y install git httpd mod_wsgi python3-geoip2 python3-humanize python3-flask python3-semver geolite2-city yarnpkg
-echo "WSGIScriptAlias /openvpn-monitor /var/www/html/openvpn-monitor/openvpn_monitor/app.py" > /etc/httpd/conf.d/openvpn-monitor.conf
+dnf -y install git httpd mod_wsgi python3-geoip2 python3-humanize python3-flask python3-flask-wtf python3-semver geolite2-city yarnpkg
+cp /var/www/html/openvpn-monitor/etc/openvpn-monitor/apache.conf.example /etc/httpd/conf.d/openvpn-monitor.conf
+sed -i -e "s#^\(Define openvpn_monitor_pythonpath\).*#\1 /var/www/html/openvpn-monitor#" /etc/httpd/conf.d/openvpn-monitor.conf
 systemctl restart httpd
 ```
 
