@@ -7,9 +7,8 @@ if [ ! -e ${apache_conf_file} ] ; then
 fi
 
 site_packages=$(python3 -c 'import site; print(site.getsitepackages()[-1])')
-site_packages="${site_packages//\//\\\/}"
 if ! grep ${site_packages} ${apache_conf_file} >/dev/null 2>&1 ; then
-    sed -i -e "s/^\(Define openvpn_monitor_pythonpath\).*/\1 ${site_packages}/" ${apache_conf_file}
+    sed -i -e "s#^\(Define openvpn_monitor_pythonpath\).*#\1 ${site_packages}#" ${apache_conf_file}
 fi
 
 systemctl enable httpd
