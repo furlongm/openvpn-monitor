@@ -44,7 +44,7 @@
             <td>{{ pingable }}</td>
             <td>{{ nclients }}</td>
             <td>{{ bytesin }} ({{ bytesin | get_naturalsize }})</td>
-            <td>{{ bytesout }} ({{ bytesin | get_naturalsize }})</td>
+            <td>{{ bytesout }} ({{ bytesout | get_naturalsize }})</td>
             <td>{{ up_since.strftime(datetime_format) }}</td>
             <td>{{ local_ip }}</td>
             {% if vpn_mode == 'Client' %}
