@@ -20,8 +20,9 @@ import logging
 import os
 import secrets
 import sys
+import json 
 from datetime import datetime
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 from flask_wtf import CSRFProtect
 from humanize import naturalsize
 from pprint import pformat
@@ -187,8 +188,66 @@ def openvpn_monitor_wsgi():
                 port=port,
                 client_id=client_id,
             )
-            return render_template('base.html', vpns=vpns)
+            return render_template('base.html', vpns=vpns)      
+    
+    @app.route('/api/status')
+    def handle_api_vpnStatus():
+        vpn_data = VPNDataCollector(loaded_vpns, geoip_db.gi)
+        vpns = vpn_data.vpns.items()
+        pretty_vpns = pformat((dict(vpns)))
+        logging.debug(f'=== begin vpns\n{pretty_vpns}\n=== end vpns')
 
+        jsonVPN = []
+        totalVPNs = 0
+        totalClients = 0
+        totalBytesIn = 0
+        totalBytesOut = 0
+        for vpnId, vpnInfo in vpns:            
+            jsonVPN.append( {"Id": vpnId,
+                            "Name": vpnInfo["name"],
+                            "Status": vpnInfo["state"]["connected"],
+                            "Uptime": vpnInfo["state"]["up_since"], 
+                            "BytesIn": vpnInfo["stats"]["bytesin"],
+                            "BytesOut": vpnInfo["stats"]["bytesout"],
+                            "Clients": vpnInfo["stats"]["nclients"],
+                            })
+            totalVPNs += 1
+            totalClients += vpnInfo["stats"]["nclients"]
+            totalBytesIn += vpnInfo["stats"]["bytesin"]
+            totalBytesOut += vpnInfo["stats"]["bytesout"]
+            
+        statusInfo = {"Total": {
+                    "VPNs": totalVPNs,
+                    "Clients": totalClients,
+                    "BytesIn": totalBytesIn,
+                    "BytesOut": totalBytesOut
+                },
+                'VPNs': jsonVPN}
+        return jsonify(statusInfo) 
+    
+    
+    @app.route('/api/clients')
+    def handle_api_vpnClients():
+        vpn_data = VPNDataCollector(loaded_vpns, geoip_db.gi)
+        vpns = vpn_data.vpns.items()
+        pretty_vpns = pformat((dict(vpns)))
+        logging.debug(f'=== begin vpns\n{pretty_vpns}\n=== end vpns')
+
+        connectionsVPN = []
+        for vpnId, vpnInfo in vpns:            
+            for ip, sessionInf in vpnInfo["sessions"].items():
+                connectionsVPN.append({"LocalIp": ip,
+                                "VPNId": vpnId,
+                                "Username": sessionInf["username"],
+                                "ConnectedSince": sessionInf["connected_since"],
+                                "LastPing": sessionInf["last_ping"],
+                                "BytesIn": sessionInf["bytes_recv"],
+                                "BytesOut": sessionInf["bytes_sent"],
+                                "LastSeen": sessionInf["last_seen"]}   
+                                )
+        return jsonify(connectionsVPN)
+        
+        
     return app
 
 
