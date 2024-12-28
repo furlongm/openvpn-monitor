@@ -57,6 +57,7 @@ def openvpn_monitor_wsgi():
     settings = config.settings
     loaded_vpns = config.vpns
     geoip_db = GeoipDBLoader(settings)
+    datetime_format = settings.get('datetime_format', '%d/%m/%Y %H:%M:%S%z')
 
     @app.template_filter()
     def get_formatted_time_now(datetime_format):
@@ -206,7 +207,7 @@ def openvpn_monitor_wsgi():
             jsonVPN.append( {"Id": vpnId,
                             "Name": vpnInfo["name"],
                             "Status": vpnInfo["state"]["connected"],
-                            "Uptime": vpnInfo["state"]["up_since"], 
+                            "Uptime": vpnInfo["state"]["up_since"].strftime(datetime_format), 
                             "BytesIn": vpnInfo["stats"]["bytesin"],
                             "BytesOut": vpnInfo["stats"]["bytesout"],
                             "Clients": vpnInfo["stats"]["nclients"],
@@ -240,11 +241,10 @@ def openvpn_monitor_wsgi():
                                 "VPNId": vpnId,
                                 "RemoteIP": format(sessionInf["remote_ip"]),
                                 "Username": sessionInf["username"],
-                                "ConnectedSince": sessionInf["connected_since"],
-                                "LastSeen": sessionInf["last_seen"],
+                                "ConnectedSince": sessionInf["connected_since"].strftime(datetime_format),
+                                "LastSeen": sessionInf["last_seen"].strftime(datetime_format),
                                 "BytesIn": sessionInf["bytes_recv"],
-                                "BytesOut": sessionInf["bytes_sent"],
-                                "LastSeen": sessionInf["last_seen"]}   
+                                "BytesOut": sessionInf["bytes_sent"]}   
                                 )
         return jsonify(connectionsVPN)
         
