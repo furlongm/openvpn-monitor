@@ -238,10 +238,10 @@ def openvpn_monitor_wsgi():
             for ip, sessionInf in vpnInfo["sessions"].items():
                 connectionsVPN.append({"LocalIP": ip,
                                 "VPNId": vpnId,
-                                "RemoteIP": sessionInf["remote_ip"],
+                                "RemoteIP": format(sessionInf["remote_ip"]),
                                 "Username": sessionInf["username"],
                                 "ConnectedSince": sessionInf["connected_since"],
-                                "LastPing": sessionInf["last_ping"],
+                                "LastSeen": sessionInf["last_seen"],
                                 "BytesIn": sessionInf["bytes_recv"],
                                 "BytesOut": sessionInf["bytes_sent"],
                                 "LastSeen": sessionInf["last_seen"]}   
