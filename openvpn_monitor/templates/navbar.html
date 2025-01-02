@@ -23,10 +23,8 @@
       {% if maps %}<li><a href="#map_canvas">Map View</a></li>{% endif %}
     </ul>
       {% if logo %}
-        {% set logo_path = 'images/' + logo %}
         <a href="#" class="pull-right">
-          <img alt="Logo" style="max-height:46px; padding-top:3px;"
-          src={% if logo.startswith('http') %}"{{ logo }}"{% else %}"{{ url_for('static', filename=logo_path) }}"{% endif %}>
+          <img alt="Logo" style="max-height:46px; padding-top:3px;" src="images/logo">
         </a>
       {% endif %}
     </div>
