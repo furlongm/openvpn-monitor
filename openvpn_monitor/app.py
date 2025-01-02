@@ -21,7 +21,7 @@ import os
 import secrets
 import sys
 from datetime import datetime
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, send_file, current_app
 from flask_wtf import CSRFProtect
 from humanize import naturalsize
 from pprint import pformat
@@ -166,6 +166,23 @@ def openvpn_monitor_wsgi():
             longitude=longitude,
             datetime_format=datetime_format,
         )
+
+    @app.route('/images/logo', methods=['GET'])
+    def get_logo():
+        logo = settings.get('logo')
+        if logo.startswith('http'):
+            logging.info(f'Using `{logo}` for logo (http link)')
+            return logo
+        logo_file = os.path.join('/etc/openvpn-monitor', logo)
+        if os.path.isfile(logo_file) and os.access(logo_file, os.R_OK):
+            logging.info(f'Using `{logo_file}` for logo')
+            return send_file(logo_file)
+        logo_file = os.path.join(cwd, 'static/images', logo)
+        if os.path.isfile(logo_file) and os.access(logo_file, os.R_OK):
+            static_logo = f'images/{logo}'
+            logging.info(f'Using `{logo_file}` for logo (static)')
+            return current_app.send_static_file(static_logo)
+        logging.error(f'Logo defined but image not found, skipping')
 
     @app.route('/', methods=['GET', 'POST'])
     def handle_root():
