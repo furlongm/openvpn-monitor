@@ -1,8 +1,7 @@
 title: openvpn-monitor
 description: openvpn-monitor is a web based OpenVPN monitor, that shows current connection information, such as users, location and data transferred.
-google_analytics: 
+google_analytics: G-DXGRQSVSJC
 show_downloads: true
 theme: jekyll-theme-minimal
-
 gems:
   - jekyll-mentions
