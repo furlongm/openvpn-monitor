@@ -1,4 +1,6 @@
 # openvpn-monitor
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffurlongm%2Fopenvpn-monitor.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffurlongm%2Fopenvpn-monitor?ref=badge_shield)
+
 
 
 ## Summary
@@ -265,6 +267,9 @@ Once configured, navigate to `http://myipaddress/openvpn-monitor/`
 openvpn-monitor is licensed under the GPLv3, a copy of which can be found in
 the COPYING file.
 
+
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Ffurlongm%2Fopenvpn-monitor.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Ffurlongm%2Fopenvpn-monitor?ref=badge_large)
 
 ## Acknowledgements
 
