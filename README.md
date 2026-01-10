@@ -251,7 +251,7 @@ cp openvpn-monitor.conf.example openvpn_monitor/openvpn-monitor.conf
 or
 ```shell
 mkdir -p /etc/openvpn-monitor
-cp openvpn-monitor.conf.example /etc/openvpn_monitor/openvpn-monitor.conf
+cp openvpn-monitor.conf.example /etc/openvpn-monitor/openvpn-monitor.conf
 ```
 
 In this file you can set site name, add a logo, set the default map location
