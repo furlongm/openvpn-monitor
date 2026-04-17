@@ -28,7 +28,7 @@ from pprint import pformat
 
 cwd = os.path.dirname(__file__)
 os.chdir(cwd)
-sys.path.append(cwd)
+sys.path.insert(0, cwd)
 from config.loader import ConfigLoader                    # noqa
 from vpns.openvpn.data_collector import VPNDataCollector  # noqa
 from vpns.openvpn.disconnector import VPNDisconnector     # noqa
