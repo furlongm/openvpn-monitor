@@ -10,6 +10,7 @@
 {% set vpn_mode = vpn.get('state').get('mode') %}
 {% set sessions = vpn.get('sessions', {}).items()  %}
 {% set local_ip = vpn.get('state').get('local_ip') %}
+{% set local_ipv6 = vpn.get('state').get('local_ipv6') %}
 {% set remote_ip = vpn.get('state').get('remote_ip') %}
 {% set up_since = vpn.get('state').get('up_since') %}
 {% set show_disconnect = vpn.get('show_disconnect') %}
@@ -46,7 +47,7 @@
             <td>{{ bytesin }} ({{ bytesin | get_naturalsize }})</td>
             <td>{{ bytesout }} ({{ bytesout | get_naturalsize }})</td>
             <td>{{ up_since.strftime(datetime_format) }}</td>
-            <td>{{ local_ip }}</td>
+            <td>{% if local_ipv6 %}{{ local_ip }}<br>{{ local_ipv6 }}{% else %}{{ local_ip }}{% endif %}</td>
             {% if vpn_mode == 'Client' %}
             <td>{{ remote_ip }}</td>
             {% endif %}
