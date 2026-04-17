@@ -183,7 +183,7 @@ class VPNDataCollector(object):
                     session['local_ip'] = ip_address(local_ipv4)
                 else:
                     session['local_ip'] = ''
-                if version.major >= 2 and version.minor >= 4:
+                if version >= semver.Version.parse('2.4.0'):
                     local_ipv6 = parts.popleft()
                     if local_ipv6:
                         session['local_ip'] = ip_address(local_ipv6)
@@ -196,7 +196,7 @@ class VPNDataCollector(object):
                     session['username'] = username
                 else:
                     session['username'] = common_name
-                if version.major == 2 and version.minor >= 4:
+                if version >= semver.Version.parse('2.4.0'):
                     session['client_id'] = parts.popleft()
                     session['peer_id'] = parts.popleft()
                 sessions[str(session['local_ip'])] = session
