@@ -41,7 +41,13 @@ class VPNDataCollector(object):
         if connection.is_connected():
             full_version = connection.send_command('version')
             release = self.parse_version(full_version)
-            version = semver.parse_version_info(release.split(' ')[1])
+            if not release:
+                logging.error(f'Failed to parse version for VPN: {vpn.get("name")}')
+                vpn['management_connection_successful'] = False
+                vpn['error'] = 'Failed to parse version'
+                connection.disconnect()
+                return
+            version = semver.Version.parse(release.split(' ')[1])
             vpn['release'] = release
             vpn['version'] = version
             state = connection.send_command('state')
@@ -140,20 +146,15 @@ class VPNDataCollector(object):
                 parts.popleft()
                 common_name = parts.popleft()
                 remote_str = parts.popleft()
-                if remote_str.count(':') == 1:
-                    remote, port = remote_str.split(':')
-                elif '(' in remote_str:
-                    remote, port = remote_str.split('(')
-                    port = port[:-1]
-                else:
-                    remote = remote_str
-                    port = None
+                remote, port, protocol = self.parse_remote_address(remote_str)
                 remote_ip = ip_address(remote)
                 session['remote_ip'] = remote_ip
                 if port:
                     session['port'] = int(port)
                 else:
                     session['port'] = ''
+                if protocol:
+                    session['protocol'] = protocol
                 if session['remote_ip'].is_private:
                     session['location'] = 'RFC1918'
                 elif session['remote_ip'].is_loopback:
@@ -177,7 +178,7 @@ class VPNDataCollector(object):
                     session['local_ip'] = ip_address(local_ipv4)
                 else:
                     session['local_ip'] = ''
-                if version.major >= 2 and version.minor >= 4:
+                if version >= semver.Version.parse('2.4.0'):
                     local_ipv6 = parts.popleft()
                     if local_ipv6:
                         session['local_ip'] = ip_address(local_ipv6)
@@ -190,7 +191,7 @@ class VPNDataCollector(object):
                     session['username'] = username
                 else:
                     session['username'] = common_name
-                if version.major == 2 and version.minor >= 4:
+                if version >= semver.Version.parse('2.4.0'):
                     session['client_id'] = parts.popleft()
                     session['peer_id'] = parts.popleft()
                 sessions[str(session['local_ip'])] = session
@@ -198,12 +199,14 @@ class VPNDataCollector(object):
             if routes_section:
                 local_ip = parts[1]
                 remote_ip = parts[3]
+                route_remote, route_port, _ = self.parse_remote_address(remote_ip)
+                route_address = self.get_remote_address(route_remote, route_port)
                 last_seen = get_date(parts[5], uts=True)
                 if sessions.get(local_ip):
                     sessions[local_ip]['last_seen'] = last_seen
                 elif self.is_mac_address(local_ip):
                     matching_local_ips = [sessions[s]['local_ip']
-                                          for s in sessions if remote_ip ==
+                                          for s in sessions if route_address ==
                                           self.get_remote_address(sessions[s]['remote_ip'], sessions[s]['port'])]
                     if len(matching_local_ips) == 1:
                         local_ip = f'{matching_local_ips[0]}'
@@ -227,6 +230,36 @@ class VPNDataCollector(object):
         for line in data.splitlines():
             if line.startswith('OpenVPN'):
                 return line.replace('OpenVPN Version: ', '')
+        return None
+
+    @staticmethod
+    def parse_remote_address(remote_str):
+        """Parse remote address, stripping protocol prefix added in OpenVPN 2.7+.
+
+        Handles formats:
+          - 1.2.3.4:5678            (IPv4 with port, pre-2.7)
+          - 1.2.3.4(5678)           (IPv4 with port, alternative)
+          - ::ffff:1.2.3.4          (IPv6, no port)
+          - udp4:1.2.3.4:5678       (IPv4 with protocol prefix, 2.7+)
+          - udp6:::ffff:1.2.3.4     (IPv6 with protocol prefix, 2.7+)
+
+        Returns (address, port, protocol) tuple.
+        """
+        protocol = None
+        for prefix in ('udp4:', 'udp6:', 'tcp4:', 'tcp6:'):
+            if remote_str.startswith(prefix):
+                protocol = prefix[:-1]
+                remote_str = remote_str[len(prefix):]
+                break
+        if remote_str.count(':') == 1:
+            remote, port = remote_str.split(':')
+        elif '(' in remote_str:
+            remote, port = remote_str.split('(')
+            port = port[:-1]
+        else:
+            remote = remote_str
+            port = None
+        return remote, port, protocol
 
     @staticmethod
     def is_mac_address(s):
