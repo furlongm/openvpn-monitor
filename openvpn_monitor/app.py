@@ -21,19 +21,20 @@ import os
 import secrets
 import sys
 from datetime import datetime
-from flask import Flask, request, render_template, send_file, current_app
+from pprint import pformat
+
+from flask import Flask, current_app, render_template, request, send_file
 from flask_wtf import CSRFProtect
 from humanize import naturalsize
-from pprint import pformat
 
 cwd = os.path.dirname(__file__)
 os.chdir(cwd)
 sys.path.insert(0, cwd)
-from config.loader import ConfigLoader                    # noqa
+from config.loader import ConfigLoader  # noqa
+from location_data.maxmind.geoip import GeoipDBLoader  # noqa
+from util import is_truthy  # noqa
 from vpns.openvpn.data_collector import VPNDataCollector  # noqa
-from vpns.openvpn.disconnector import VPNDisconnector     # noqa
-from location_data.maxmind.geoip import GeoipDBLoader     # noqa
-from util import is_truthy                                # noqa
+from vpns.openvpn.disconnector import VPNDisconnector  # noqa
 
 logging.basicConfig(stream=sys.stderr, format='[%(asctime)s] [%(process)d] [%(levelname)s] %(message)s')
 logging.getLogger().setLevel(logging.INFO)

@@ -18,12 +18,13 @@
 
 import logging
 import re
-import semver
 import string
 from collections import deque
 from ipaddress import ip_address
-from geoip2.errors import AddressNotFoundError
 from pprint import pformat
+
+import semver
+from geoip2.errors import AddressNotFoundError
 from util import get_date
 from vpns.openvpn.management_connection import ManagementConnection
 

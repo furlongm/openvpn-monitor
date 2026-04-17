@@ -18,6 +18,7 @@
 
 import logging
 from ipaddress import ip_address
+
 from vpns.openvpn.management_connection import ManagementConnection
 
 

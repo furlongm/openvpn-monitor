@@ -66,5 +66,5 @@ select = ["Q", "I"]
 inline-quotes = "single"
 
 [tool.isort]
-profile = "google"
+profile = "black"
 line_length = 120
