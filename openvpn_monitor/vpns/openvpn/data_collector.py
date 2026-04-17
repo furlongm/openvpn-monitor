@@ -191,6 +191,8 @@ class VPNDataCollector(object):
                     session['username'] = username
                 else:
                     session['username'] = common_name
+                if common_name and common_name != username:
+                    session['hostname'] = common_name
                 if version >= semver.Version.parse('2.4.0'):
                     session['client_id'] = parts.popleft()
                     session['peer_id'] = parts.popleft()
