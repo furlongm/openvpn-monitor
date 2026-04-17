@@ -49,9 +49,10 @@ class VPNDisconnector(object):
                 logging.info(f'[{name}] Disconnecting client id `{client_id}`')
                 command = f'client-kill {client_id}'
             else:
-                ip = ip_address(kwargs.get('ip'))
+                ip_str = kwargs.get('ip')
                 port = kwargs.get('port')
-                if ip and port:
+                if ip_str and port:
+                    ip = ip_address(ip_str)
                     logging.info(f'[{name}] Disconnecting client `{ip}:{port}`')
                     command = f'kill {ip}:{port}'
             if command:
