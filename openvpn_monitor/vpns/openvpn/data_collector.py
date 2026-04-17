@@ -41,6 +41,12 @@ class VPNDataCollector(object):
         if connection.is_connected():
             full_version = connection.send_command('version')
             release = self.parse_version(full_version)
+            if not release:
+                logging.error(f'Failed to parse version for VPN: {vpn.get("name")}')
+                vpn['management_connection_successful'] = False
+                vpn['error'] = 'Failed to parse version'
+                connection.disconnect()
+                return
             version = semver.parse_version_info(release.split(' ')[1])
             vpn['release'] = release
             vpn['version'] = version
