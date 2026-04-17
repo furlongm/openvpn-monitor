@@ -227,7 +227,7 @@ class VPNDataCollector(object):
         for line in data.splitlines():
             if line.startswith('OpenVPN'):
                 return line.replace('OpenVPN Version: ', '')
-
+        return None
     @staticmethod
     def is_mac_address(s):
         return len(s) == 17 and \
