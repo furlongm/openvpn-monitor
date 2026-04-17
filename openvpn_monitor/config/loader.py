@@ -95,7 +95,7 @@ class ConfigLoader(object):
         for option in options:
             try:
                 vpn[option] = config.get(section, option)
-                if vpn[option] == -1:
+                if vpn[option] == '-1':
                     logging.warning(f'config: skipping {option}')
             except configparser.Error as e:
                 logging.warning(f'config: {e} on option {option}: ')
