@@ -67,23 +67,27 @@ class ManagementConnection(object):
         while 1:
             try:
                 socket_data = self.__recv(1024)
-            except TimeoutError:
+            except (socket.timeout, TimeoutError):
                 logging.error(f'[{self.__name}] Timeout receiving data')
                 break
-            socket_data = re.sub('>INFO(.)*\r\n', '', socket_data)
+            except ConnectionResetError:
+                logging.error(f'[{self.__name}] Connection closed by remote host')
+                break
+            socket_data = re.sub('>INFO.*\r\n', '', socket_data)
             data += socket_data
             if data.endswith('ENTER PASSWORD:'):
                 if password:
                     self.__send(f'{password}\n')
                 else:
                     logging.warning(f'[{self.__name}] Password requested but no password supplied by configuration')
-            if data.endswith('SUCCESS: password is correct\r\n'):
+                    break
+            if password is not None and data.endswith('SUCCESS: password is correct\r\n'):
                 break
             if command == 'load-stats' and data != '':
                 break
             if command == 'quit':
                 break
-            elif data.endswith("\nEND\r\n"):
+            elif data.endswith('\nEND\r\n'):
                 break
         logging.debug(f'[{self.__name}] === begin raw data\n{data}\n=== end raw data')
         return data
@@ -92,7 +96,10 @@ class ManagementConnection(object):
         self.__socket.send(bytes(data, 'utf-8'))
 
     def __recv(self, length):
-        return self.__socket.recv(length).decode('utf-8')
+        data = self.__socket.recv(length)
+        if not data:
+            raise ConnectionResetError(f'[{self.__name}] Connection closed by remote host')
+        return data.decode('utf-8')
 
     def disconnect(self):
         if self.__socket:
@@ -101,13 +108,18 @@ class ManagementConnection(object):
 
     def __close(self):
         if self.__socket:
-            self.__socket.shutdown(socket.SHUT_RDWR)
+            try:
+                self.__socket.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
             self.__socket.close()
             self.__socket = False
 
     def __authenticate(self):
-        if (self.__vpn_config.get('password')):
-            self.__wait_for_data(password=self.__vpn_config.get('password'))
+        if self.__vpn_config.get('password'):
+            data = self.__wait_for_data(password=self.__vpn_config.get('password'))
+            if 'SUCCESS: password is correct' not in data:
+                raise ConnectionError(f'[{self.__name}] Authentication failed')
 
     def __connect(self):
         if self.__is_tls_socket():
@@ -151,6 +163,7 @@ class ManagementConnection(object):
 
     def __connect_unix(self):
         self.__socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.__socket.settimeout(self.__timeout)
         unix_socket = self.__vpn_config['socket']
         logging.info(f'[{self.__name}] Initiating UNIX socket connection to {unix_socket}')
         self.__socket.connect(unix_socket)
