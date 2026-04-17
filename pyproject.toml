@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openvpn-monitor"
+version = "2.0.4"
+description = "A simple web based openvpn monitor"
+readme = "README.md"
+license = "GPL-3.0-only"
+requires-python = ">=3.8"
+authors = [
+    { name = "Marcus Furlong", email = "furlongm@gmail.com" },
+]
+keywords = ["web", "openvpn", "monitor"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+]
+dependencies = [
+    "Flask>=3.1",
+    "Flask-WTF>=1.2",
+    "geoip2>=4.8",
+    "humanize>=4.11",
+    "semver>=3.0",
+]
+
+[project.urls]
+Homepage = "http://openvpn-monitor.openbytes.ie"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "flake8>=6.0",
+    "flake8-quotes>=3.4",
+    "ruff>=0.4",
+    "isort>=5.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["openvpn_monitor*"]
+
+[tool.setuptools.package-data]
+openvpn_monitor = [
+    "templates/*.html",
+    "templates/*.js",
+    "static/images/**/*",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.flake8]
+max-line-length = 120
+inline-quotes = "single"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["Q", "I"]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
+
+[tool.isort]
+profile = "google"
+line_length = 120
