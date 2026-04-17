@@ -47,7 +47,7 @@ class VPNDataCollector(object):
                 vpn['error'] = 'Failed to parse version'
                 connection.disconnect()
                 return
-            version = semver.parse_version_info(release.split(' ')[1])
+            version = semver.Version.parse(release.split(' ')[1])
             vpn['release'] = release
             vpn['version'] = version
             state = connection.send_command('state')
