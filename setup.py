@@ -43,9 +43,7 @@ else:
 
 data_files = []
 for dirpath, dirnames, filenames in os.walk('etc'):
-    for i, dirname in enumerate(dirnames):
-        if dirname.startswith('.'):
-            del dirnames[i]
+    dirnames[:] = [d for d in dirnames if not d.startswith('.')]
     if filenames:
         data_files.append(
             ['/etc/openvpn-monitor', [os.path.join(dirpath, f) for f in filenames]]
