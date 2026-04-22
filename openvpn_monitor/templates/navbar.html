@@ -24,7 +24,7 @@
     </ul>
       {% if logo %}
         <a href="#" class="pull-right">
-          <img alt="Logo" style="max-height:46px; padding-top:3px;" src="images/logo">
+          <img alt="Logo" style="max-height:46px; padding-top:3px;" src="{{ url_for('get_logo') }}">
         </a>
       {% endif %}
     </div>

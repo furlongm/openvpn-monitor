@@ -170,6 +170,9 @@ def openvpn_monitor_wsgi():
     @app.route('/images/logo', methods=['GET'])
     def get_logo():
         logo = settings.get('logo')
+        if not logo:
+            logging.warning('No logo defined in settings')
+            return '', 204
         if logo.startswith('http'):
             logging.info(f'Using `{logo}` for logo (http link)')
             return logo
@@ -183,6 +186,7 @@ def openvpn_monitor_wsgi():
             logging.info(f'Using `{logo_file}` for logo (static)')
             return current_app.send_static_file(static_logo)
         logging.error(f'Logo defined but image not found, skipping')
+        return '', 404
 
     @app.route('/', methods=['GET', 'POST'])
     def handle_root():
