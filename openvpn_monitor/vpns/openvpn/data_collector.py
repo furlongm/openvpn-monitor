@@ -72,14 +72,22 @@ class VPNDataCollector(object):
                 state['up_since'] = get_date(date_string=parts[0], uts=True)
                 state['connected'] = parts[1]
                 state['success'] = parts[2]
-                if parts[3]:
-                    state['local_ip'] = ip_address(parts[3])
-                else:
+                try:
+                    if parts[3]:
+                        state['local_ip'] = ip_address(parts[3])
+                    else:
+                        state['local_ip'] = ''
+                    if parts[4]:
+                        state['remote_ip'] = ip_address(parts[4])
+                        state['mode'] = 'Client'
+                    else:
+                        state['remote_ip'] = ''
+                        state['mode'] = 'Server'
+                    if len(parts) > 8 and parts[8]:
+                        state['local_ipv6'] = ip_address(parts[8])
+                except (ValueError, IndexError) as e:
+                    logging.warning(f'Error parsing state IP addresses: {e}')
                     state['local_ip'] = ''
-                if parts[4]:
-                    state['remote_ip'] = ip_address(parts[4])
-                    state['mode'] = 'Client'
-                else:
                     state['remote_ip'] = ''
                     state['mode'] = 'Server'
         return state
@@ -171,8 +179,8 @@ class VPNDataCollector(object):
                             session['latitude'] = gir.location.latitude
                     except AddressNotFoundError as e:
                         logging.warning(e)
-                    except SystemError:
-                        pass
+                    except SystemError as e:
+                        logging.warning(f'SystemError during GeoIP lookup: {e}')
                 local_ipv4 = parts.popleft()
                 if local_ipv4:
                     session['local_ip'] = ip_address(local_ipv4)
@@ -181,7 +189,7 @@ class VPNDataCollector(object):
                 if version >= semver.Version.parse('2.4.0'):
                     local_ipv6 = parts.popleft()
                     if local_ipv6:
-                        session['local_ip'] = ip_address(local_ipv6)
+                        session['local_ipv6'] = ip_address(local_ipv6)
                 session['bytes_recv'] = int(parts.popleft())
                 session['bytes_sent'] = int(parts.popleft())
                 parts.popleft()
@@ -200,12 +208,24 @@ class VPNDataCollector(object):
 
             if routes_section:
                 local_ip = parts[1]
-                remote_ip = parts[3]
-                route_remote, route_port, _ = self.parse_remote_address(remote_ip)
+                route_remote, route_port, _ = self.parse_remote_address(parts[3])
                 route_address = self.get_remote_address(route_remote, route_port)
                 last_seen = get_date(parts[5], uts=True)
+                # Match by IPv4 key, or find session whose local_ipv6 matches
+                matched_key = None
                 if sessions.get(local_ip):
-                    sessions[local_ip]['last_seen'] = last_seen
+                    matched_key = local_ip
+                else:
+                    for s_key, s_val in sessions.items():
+                        if str(s_val.get('local_ipv6', '')) == local_ip:
+                            matched_key = s_key
+                            break
+                if matched_key:
+                    if sessions[matched_key].get('last_seen'):
+                        if sessions[matched_key]['last_seen'] < last_seen:
+                            sessions[matched_key]['last_seen'] = last_seen
+                    else:
+                        sessions[matched_key]['last_seen'] = last_seen
                 elif self.is_mac_address(local_ip):
                     matching_local_ips = [sessions[s]['local_ip']
                                           for s in sessions if route_address ==

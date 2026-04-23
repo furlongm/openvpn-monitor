@@ -1,11 +1,12 @@
 {% set connected_since = session.get('connected_since').strftime(datetime_format) %}
-{% set last_seen = session.get('last_seen').strftime(datetime_format) %}
+{% set last_seen = session.get('last_seen').strftime(datetime_format) if session.get('last_seen') else None %}
 {% set total_connected_time = session.get('connected_since') | get_total_connected_time %}
 {% set bytes_recv = session.get('bytes_recv') %}
 {% set bytes_sent = session.get('bytes_sent') %}
 {% set username = session.get('username') %}
 {% set hostname = session.get('hostname') %}
 {% set local_ip = session.get('local_ip') %}
+{% set local_ipv6 = session.get('local_ipv6') %}
 {% set remote_ip = session.get('remote_ip') %}
 {% set port = session.get('port') %}
 {% set client_id = session.get('client_id') %}
@@ -13,7 +14,7 @@
 {% set full_location = session | get_full_location %}
 {% set flag = session | get_flag %}
 <td>{% if hostname %}{{ username }} / {{ hostname }}{% else %}{{ username }}{% endif %}</td>
-<td>{{ local_ip }}</td>
+<td>{% if local_ipv6 %}{{ local_ip }}<br>{{ local_ipv6 }}{% else %}{{ local_ip }}{% endif %}</td>
 <td>{{ remote_ip }}</td>
 {% if location %}
 <td><img src="{{ url_for('static', filename=flag) }}" title="{{ full_location }}" alt="{{ full_location }}">&nbsp;{{ full_location }}</td>
