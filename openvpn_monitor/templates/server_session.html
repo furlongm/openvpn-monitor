@@ -4,6 +4,7 @@
 {% set bytes_recv = session.get('bytes_recv') %}
 {% set bytes_sent = session.get('bytes_sent') %}
 {% set username = session.get('username') %}
+{% set hostname = session.get('hostname') %}
 {% set local_ip = session.get('local_ip') %}
 {% set remote_ip = session.get('remote_ip') %}
 {% set port = session.get('port') %}
@@ -11,7 +12,7 @@
 {% set location = session.get('location') %}
 {% set full_location = session | get_full_location %}
 {% set flag = session | get_flag %}
-<td>{{ username }}</td>
+<td>{% if hostname %}{{ username }} / {{ hostname }}{% else %}{{ username }}{% endif %}</td>
 <td>{{ local_ip }}</td>
 <td>{{ remote_ip }}</td>
 {% if location %}
